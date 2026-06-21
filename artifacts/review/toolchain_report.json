@@ -20,5 +20,5 @@
     "rust": "1.83.0",
     "sqlite_min": "3.40"
   },
-  "strict": true
+  "strict": false
 }

@@ -7,7 +7,7 @@
   "errors": [],
   "full_gate": false,
   "path": "examples/security/pii_holdout.v1.jsonl",
-  "phase": "m1-smoke",
+  "phase": "scaffold",
   "row_count": 3,
   "source_counts": {
     "red_team": 1,

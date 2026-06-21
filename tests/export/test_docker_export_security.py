@@ -57,12 +57,23 @@ async def test_docker_export_worker_writes_context_tar_manifest_and_evidence(tmp
     assert ":/models:ro" in manifest["runtime"]["run_command"]
     assert any(item["path"] == "Dockerfile" and item["role"] == "runtime_code" for item in manifest["files"])
 
+    evidence_dir = artifact_path.parent / "evidence"
+    cve_report = json.loads((evidence_dir / "cve_report.json").read_text(encoding="utf-8"))
     with tarfile.open(artifact_path) as archive:
         names = {member.name for member in archive.getmembers() if member.isfile()}
-    assert {"Dockerfile", "manifest.json", "runtime/agents/run.py", "requirements-runtime.txt"} <= names
-    assert not any(name.startswith("base_model/") or name.startswith("model_cache/") for name in names)
+        if cve_report.get("real_build"):
+            docker_manifest_file = archive.extractfile("manifest.json")
+            assert docker_manifest_file is not None
+            docker_manifest = json.loads(docker_manifest_file.read())
+            assert isinstance(docker_manifest, list) and docker_manifest
+            image = docker_manifest[0]
+            assert image["Config"] in names
+            assert image["Layers"]
+            assert all(layer in names for layer in image["Layers"])
+        else:
+            assert {"Dockerfile", "manifest.json", "runtime/agents/run.py", "requirements-runtime.txt"} <= names
+            assert not any(name.startswith("base_model/") or name.startswith("model_cache/") for name in names)
 
-    evidence_dir = artifact_path.parent / "evidence"
     scan = subprocess.run(
         [
             sys.executable,

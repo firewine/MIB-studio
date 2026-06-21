@@ -7,6 +7,7 @@ import io
 import json
 import re
 import tarfile
+import tempfile
 import zipfile
 from pathlib import Path
 
@@ -104,6 +105,10 @@ def validate_manifest(path: Path) -> list[str]:
         manifest = json.loads(manifest_bytes)
     except json.JSONDecodeError as exc:
         return [f"manifest.json: invalid JSON: {exc}"]
+    if isinstance(manifest, list):
+        return validate_docker_image_manifest(path, names, manifest)
+    if not isinstance(manifest, dict):
+        return [f"manifest.json: must be an object or Docker image manifest list"]
 
     schema = json.loads(Path("schemas/export_manifest.schema.json").read_text())
     errors = [f"manifest.json: {error.message}" for error in Draft7Validator(schema).iter_errors(manifest)]
@@ -120,6 +125,27 @@ def validate_manifest(path: Path) -> list[str]:
             actual_sha = hashlib.sha256(data).hexdigest()
             if actual_sha != expected_sha:
                 errors.append(f"manifest.json: sha256 mismatch for {file_path}")
+    return errors
+
+
+def validate_docker_image_manifest(path: Path, names: set[str], manifest: list[object]) -> list[str]:
+    errors: list[str] = []
+    if not manifest:
+        return [f"{path}: Docker image manifest list is empty"]
+    for index, image in enumerate(manifest):
+        if not isinstance(image, dict):
+            errors.append(f"manifest.json: Docker image entry {index} must be an object")
+            continue
+        config = image.get("Config")
+        if not isinstance(config, str) or config not in names:
+            errors.append(f"manifest.json: Docker image entry {index} Config missing from artifact")
+        layers = image.get("Layers")
+        if not isinstance(layers, list) or not layers:
+            errors.append(f"manifest.json: Docker image entry {index} Layers must be a non-empty list")
+            continue
+        for layer in layers:
+            if not isinstance(layer, str) or layer not in names:
+                errors.append(f"manifest.json: Docker image entry {index} layer missing from artifact")
     return errors
 
 
@@ -160,6 +186,33 @@ def main() -> int:
         fake_secret = b"api_" + b"key=" + b"sk-" + b"testvalue" + b"123456789012345"
         assert scan_bytes("bad", fake_secret)
         assert not scan_bytes("good", b"contract_sha256=0" * 4)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tar_path = Path(tmpdir) / "image.tar"
+            layer_buffer = io.BytesIO()
+            with tarfile.open(fileobj=layer_buffer, mode="w") as layer:
+                payload = b"runtime payload"
+                info = tarfile.TarInfo("app/runtime.txt")
+                info.size = len(payload)
+                layer.addfile(info, io.BytesIO(payload))
+            with tarfile.open(tar_path, mode="w") as archive:
+                entries = {
+                    "manifest.json": json.dumps(
+                        [
+                            {
+                                "Config": "config.json",
+                                "RepoTags": ["mib-export:test"],
+                                "Layers": ["layers/layer.tar"],
+                            }
+                        ]
+                    ).encode(),
+                    "config.json": b'{"architecture":"amd64","os":"linux"}',
+                    "layers/layer.tar": layer_buffer.getvalue(),
+                }
+                for name, payload in entries.items():
+                    info = tarfile.TarInfo(name)
+                    info.size = len(payload)
+                    archive.addfile(info, io.BytesIO(payload))
+            assert not validate_manifest(tar_path)
         print("export secret scan self-test OK")
         return 0
 

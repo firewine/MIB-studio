@@ -12,6 +12,7 @@ def test_cuda_dockerfile_is_digest_pinned_non_root_and_runtime_only() -> None:
     assert "EXPOSE 8000" in text
     assert "HEALTHCHECK" in text
     assert "MIB_MODEL_CACHE_DIR=/models" in text
+    assert "PYTHONPATH=/app/runtime" in text
     assert "MIB_LOCAL_API_TOKEN" not in text
     assert "MIB_RUNTIME_BEARER_TOKEN=" not in text
     assert "MIB_FALLBACK_API_KEY=" not in text

@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M3-004 Cancel/resume.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m3-004-cancel-resume",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "45f1ebf",
+  "head": "b44221b",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -73,7 +73,8 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_training_preflight.py tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "git diff --check"
+    "git diff --check",
+    "git diff --cached --check"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
@@ -82,7 +83,8 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_training_preflight.py tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "git diff --check"
+    "git diff --check",
+    "git diff --cached --check"
   ],
   "failed_verification_commands": [
     {
@@ -100,24 +102,24 @@
     "audit": "Read WORKING, M3 handoff, ARCHITECTURE job control/checkpoint sections, IMPLEMENTATION_GUIDE M3-004 and job-control sections, existing Job/ModelRun/Checkpoint/Audit models, TrainingStore, jobs route, job schema, OpenAPI seed, and training preflight tests.",
     "build": "Implemented checkpoint writer, TrainingStore helpers, JobControlService, route/schema wiring, and focused checkpoint resume tests.",
     "check": "Passed task JSON, py_compile, focused checkpoint pytest, training wrapper regressions, import boundary, file-size hard-limit check, and diff whitespace checks.",
-    "done": "Pending: commit implementation, update WORKING closeout, and push after closeout commit."
+    "done": "M3-004 implementation was verified and committed at b44221b; closeout updates are ready to commit and push."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m3-004-cancel-resume",
-    "status": "MIB_STUDIO_M3_004_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M3_004_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M3-004 Cancel/resume runtime wiring within listed files.",
     "blocked_scope": "No DB schema/model/migration, dataset generation retry/reapproval changes, trainer runtime changes, M3-005 dry-run/OOM, benchmark, package, export, playground, FE mockup, or docs/spec/foundation/mockup/handoff/review edits.",
-    "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
+    "phase_completion_git_policy": "Completed: implementation commit b44221b verified; closeout commit will be pushed to origin/main.",
     "plan": "Implement M3-004 Cancel/resume.",
     "audit": "Required references have been read.",
-    "build": "Implementation complete.",
+    "build": "Implementation committed at b44221b.",
     "check": "All required verification commands passed.",
-    "done": "Pending implementation commit and closeout."
+    "done": "Closeout update is prepared for commit and push."
   }
 }

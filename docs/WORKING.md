@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M3_003_MLX_WRAPPER
+phase_id: M3_004_CANCEL_RESUME
 milestone: M3_Training_Runtime
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-m3-003-mlx-wrapper
+gate_id: mib-studio-m3-004-cancel-resume
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -55,23 +55,22 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m3-003-mlx-wrapper
-  implementation_commit: 103f99e
+  gate: mib-studio-m3-004-cancel-resume
+  implementation_commit: b44221b
   pushed_to_origin_main: true
-  objective: implement M3-003 MLX wrapper and clear required m1-smoke file-size blocker
+  objective: implement M3-004 Cancel/resume
   summary:
-    - added services/worker/runtime/mlx_lm.py runner protocol and default subprocess runner
-    - generates train_config.json, backend_config.json, and MLX chat-message train/valid JSONL
-    - added golden normalized MLX config snapshot fixture
-    - added services/worker/handlers/train_mlx.py for Job(type=train), backend=mlx, method=mlx_lora
-    - handler records RUNNING/SUCCEEDED/FAILED mirror state on Job and ModelRun
-    - stdout-style runner events become sanitized JobEvent(log)
-    - loss/vram/tokens_per_sec runner events become JobEvent(metric)
-    - adapter files are hashed into manifest.json; ModelRun records adapter_path, adapter_sha256, and artifact_manifest_sha256 on success
-    - focused tests cover config/dataset generation, log/metric/artifact events, adapter manifest persistence, and failure mirroring
-    - extracted dataset_gen job submission logic into dataset_job_service.py to clear the required m1-smoke file-size hard blocker without API route/schema changes
+    - added services/worker/checkpoint_writer.py for atomic temp-to-rename checkpoint artifact writes
+    - checkpoint metrics include step, loss, adapter_sha256_at_step, optimizer_state_present, rng_state_present, and trainer_backend
+    - TrainingStore now records Checkpoint rows, marks queued train cancellation, records cancel requests, exposes cooperative cancel checks, and rebinds ModelRun current JobResource
+    - added services/api/app/services/job_control_service.py for cancel and resume transactions
+    - DELETE /jobs/{job_id} now cancels QUEUED jobs or sets cancel_requested_at for RUNNING jobs
+    - POST /jobs/{job_id}/resume validates checkpoint dataset/version/config/artifact guards before creating a child train Job
+    - resume child Job copies model_run_id and checkpoint_id, increments attempt_count, rebinds current JobResource, writes JobEvent resume_started, and records AuditEvent(job_control, action=resume)
+    - focused tests cover queued cancel, running cancel request, checkpoint artifact/metrics persistence, dataset/config/missing-artifact resume guards, optimizer/RNG warning audit, and successful child-job rebind
 
 m3_previous_work:
+  m3_004_cancel_resume: b44221b
   m3_003_mlx_wrapper: 103f99e
   m3_001_training_preflight: c52a76e
   m3_001_closeout: ab1b0a6
@@ -93,6 +92,7 @@ local_committed_context:
   m1_final_smoke_closeout: ccb21eb
   m3_002_cuda_wrapper: e8c8fc9
   m3_003_mlx_wrapper: 103f99e
+  m3_004_cancel_resume: b44221b
 
 do_not_start_without:
   - active PABCD task contract
@@ -104,21 +104,21 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m3_003_verified_and_pushed
+status: m3_004_verified_and_pushed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/train_mlx.py services/worker/runtime/mlx_lm.py services/api/app/services/dataset_service.py services/api/app/services/dataset_job_service.py tests/training/test_mlx_wrapper.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_mlx_wrapper.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_dataset_builder.py tests/security/test_teacher_packet.py tests/smoke/test_m1_smoke.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/checkpoint_writer.py services/shared/db/repositories/training_store.py services/api/app/services/job_control_service.py services/api/app/routes/jobs.py services/api/app/schemas/job.py tests/training/test_checkpoint_resume.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_checkpoint_resume.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_training_preflight.py tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
-  - PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
   - git diff --check
   - git diff --cached --check
 warnings:
   - file_size_report has soft warnings only; no hard file-size violations remain
-  - FastAPI ORJSONResponse deprecation warnings remain in existing API tests
+  - FastAPI ORJSONResponse deprecation warnings remain in existing training preflight tests
 failed:
-  - initial m1-smoke bootstrap failed with ambient PATH and sandboxed pip-audit; documented toolchain PATH, COREPACK_DEFAULT_TO_LATEST=0, and approved rerun passed
+  - initial checkpoint_resume pytest failed due test fixture FK flush order; fixture was fixed and focused pytest passed
 ```
 
 ## 4. Gate State
@@ -137,17 +137,18 @@ recorded_go:
   M3_001_Verified: true
   M3_002_Verified: true
   M3_003_Verified: true
+  M3_004_Verified: true
 
 active_gate:
   id: none
-  cto_decision: ready_for_m3_004_scoped_contract
+  cto_decision: ready_for_m3_005_scoped_contract
   review_bundle: artifacts/review
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: create scoped PABCD contract for M3-004 Cancel/resume
+  next_required_check: create scoped PABCD contract for M3-005 Dry-run + OOM isolation
 ```
 
 ## 5. Blockers And Deferred Work
@@ -160,7 +161,7 @@ security_deferred:
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports Gradio 6.x or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - checkpoint/resume and job control
+  - dry-run estimate and OOM isolation
   - DB schema/model/migration changes unless explicitly required by the next scoped gate
   - spec/foundation/mockup/handoff/review edits
 ```
@@ -169,15 +170,15 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create a new scoped PABCD task contract for M3-004 Cancel/resume
-  - read docs/handoffs/M3.md and docs/specs/IMPLEMENTATION_GUIDE.md M3-004 sections before edits
+  - create a new scoped PABCD task contract for M3-005 Dry-run + OOM isolation
+  - read docs/handoffs/M3.md and docs/specs/IMPLEMENTATION_GUIDE.md M3-005 sections before edits
 ```
 
 ## 7. Resume Prompt For Next LLM
 
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md. M1, M2, M3-000, M3-001, M3-002
-CUDA wrapper, and M3-003 MLX wrapper are committed and pushed. Do not start
-M3-004 until a new scoped PABCD task contract is created. Use .venv for Python,
-COREPACK_HOME=/tmp/corepack, and COREPACK_DEFAULT_TO_LATEST=0 for bootstrap checks.
+CUDA wrapper, M3-003 MLX wrapper, and M3-004 Cancel/resume are committed and
+pushed. Do not start M3-005 until a new scoped PABCD task contract is created.
+Use .venv for Python, COREPACK_HOME=/tmp/corepack, and COREPACK_DEFAULT_TO_LATEST=0 for bootstrap checks.
 ```

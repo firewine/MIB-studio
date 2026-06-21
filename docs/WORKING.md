@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M1_SMOKE_RECERTIFICATION
-milestone: M1_Environment_Recertification
-phase_status: m1_smoke_current_environment_verified
+phase_id: EXPORTED_ADAPTER_LOAD_GUARD
+milestone: M6_RC_Blocker_Remediation
+phase_status: adapter_load_guard_verified
 active_slice: none
-gate_id: mib-studio-m1-smoke-recertification
+gate_id: mib-studio-exported-adapter-load-guard
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,13 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m1-smoke-recertification
+  gate: mib-studio-exported-adapter-load-guard
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: rerun m1-smoke after previous toolchain mismatch hook failure and record current evidence
+  objective: close the M6 exported adapter-load acceptance test gap
   evidence:
+    exported_adapter_load_guard: artifacts/review/exported_adapter_load_guard_evidence.md
     m1_smoke_recertification: artifacts/review/m1_smoke_recertification_evidence.md
     toolchain_report: artifacts/review/toolchain_report.json
     file_size_report: artifacts/review/file_size_report.json
@@ -72,12 +73,11 @@ last_completed_work:
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - m1-smoke --skip-install passes in the current .venv environment
-    - previous toolchain version mismatch no longer reproduces
-    - toolchain_report strict checks are all true
-    - file_size_report records only soft LOC warnings and no hard failures
-    - pip_audit_cuda records the expected skip for the --skip-install environment
-    - no product code changed in this recertification gate
+    - tests/export/test_exported_adapter_load.py now guards M6 adapter-load acceptance
+    - fake backend behavior requires explicit MIB_RUNTIME_ALLOW_FAKE_BACKEND opt-in
+    - native and OpenAI exported runtime routes are tested to invoke the loaded adapter object
+    - Transformers and MLX metadata-only adapter objects are tested to fail without loaded backend objects
+    - exported runtime smoke and package/playground/export parity tests still pass
     - no real trained CUDA lora_adapter artifact is still available in this environment
     - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
 
@@ -118,15 +118,18 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m1_smoke_current_environment_verified
+status: adapter_load_guard_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_exported_adapter_load.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_exported_runtime_smoke.py tests/export/test_package_playground_export_output_parity.py -q
   - git diff --check
   - git diff --cached --check
 warnings:
   - M6-RC decision remains NOT_GO
   - no real trained CUDA lora_adapter artifact was found
+  - current host has no visible CUDA device; nvidia-smi is unavailable and torch.cuda.is_available() is false
+  - adapter-load guard tests prove invocation/failure behavior but do not prove real endpoint inference quality
   - m1-smoke --skip-install records pip-audit cuda as skipped; run without --skip-install for full network-backed audit
   - file_size_report records soft LOC warnings including services/worker/handlers/export.py, with no hard failures
   - previous endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
@@ -154,6 +157,7 @@ recorded_go:
   Exported_Runtime_Real_Backend_Dependencies_Packaged: true
   Export_Adapter_Structural_Validation: true
   Export_Adapter_Lineage_Validation: true
+  Exported_Runtime_Adapter_Load_Guard: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -161,9 +165,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 active_gate:
-  id: mib-studio-m1-smoke-recertification
+  id: mib-studio-exported-adapter-load-guard
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/m1_smoke_recertification_evidence.md
+  review_bundle: artifacts/review/exported_adapter_load_guard_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -227,6 +231,12 @@ artifacts/review/m1_smoke_recertification_evidence.md. The command
 COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python
 ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install passes in the current
 .venv environment, and the previous toolchain mismatch no longer reproduces.
+Exported adapter-load guard evidence is recorded in
+artifacts/review/exported_adapter_load_guard_evidence.md. The runtime tests now
+fail if fake backend is implicit, if native/OpenAI routes bypass the adapter
+object, or if Transformers/MLX metadata-only adapters infer without loaded
+backend objects. This is test coverage only, not real trained adapter endpoint
+evidence.
 M6-RC remains NOT_GO until real trained adapter inference evidence exists or the
 release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
 for Python.

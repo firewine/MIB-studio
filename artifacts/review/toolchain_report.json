@@ -1,16 +1,16 @@
 {
   "actual": {
-    "node": "22.23.0",
-    "pnpm": "node:fs:1370\n  const result = binding.mkdir(\n                         ^\n\nError: ENOENT: no such file or directory, mkdir '/home/firewine/.cache/node/corepack/v1'\n    at mkdirSync (node:fs:1370:26)\n    at getTemporaryFolder (/usr/lib/node_modules/corepack/dist/lib/corepack.cjs:21953:27)\n    at download (/usr/lib/node_modules/corepack/dist/lib/corepack.cjs:22288:21)\n    at installVersion (/usr/lib/node_modules/corepack/dist/lib/corepack.cjs:22386:61)\n    at async Engine.ensurePackageManager (/usr/lib/node_modules/corepack/dist/lib/corepack.cjs:22899:32)\n    at async Engine.executePackageManagerRequest (/usr/lib/node_modules/corepack/dist/lib/corepack.cjs:23010:25)\n    at async Object.runMain (/usr/lib/node_modules/corepack/dist/lib/corepack.cjs:23710:7) {\n  errno: -2,\n  code: 'ENOENT',\n  syscall: 'mkdir',\n  path: '/home/firewine/.cache/node/corepack/v1'\n}\n\nNode.js v22.23.0",
+    "node": "20.18.1",
+    "pnpm": "9.15.0",
     "python": "3.11.15",
-    "rust": "ERROR: [Errno 2] No such file or directory: 'rustc'",
+    "rust": "rustc 1.83.0 (90b35a623 2024-11-26)",
     "sqlite": "3.50.4"
   },
   "checks": {
-    "node": false,
-    "pnpm": false,
+    "node": true,
+    "pnpm": true,
     "python": true,
-    "rust": false,
+    "rust": true,
     "sqlite": true
   },
   "expected": {
@@ -20,5 +20,5 @@
     "rust": "1.83.0",
     "sqlite_min": "3.40"
   },
-  "strict": false
+  "strict": true
 }

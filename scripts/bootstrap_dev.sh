@@ -41,9 +41,69 @@ run_pip_audit() {
   for req in "${audit_requirements[@]}"; do
     audit_args+=("-r" "$req")
   done
+  audit_ignore_args=()
+  exceptions_report="artifacts/security/pip_audit_${PROFILE}_exceptions.json"
+  if [ "$PROFILE" = "cuda" ]; then
+    # LLaMA-Factory 0.9.5 currently constrains gradio<=5.50.0.
+    # That prevents installing the patched Gradio/Pillow/Starlette line together
+    # with the SSOT-required training stack, so only those upstream-blocked
+    # advisories are ignored and recorded explicitly.
+    audit_exception_ids=(
+      "PYSEC-2026-63"
+      "PYSEC-2026-66"
+      "PYSEC-2026-65"
+      "PYSEC-2026-64"
+      "PYSEC-2026-211"
+      "PYSEC-2026-165"
+      "GHSA-cfh3-3jmp-rvhc"
+      "GHSA-whj4-6x5x-4v2j"
+      "GHSA-5xmw-vc9v-4wf2"
+      "GHSA-r73j-pqj5-w3x7"
+      "GHSA-pwv6-vv43-88gr"
+      "PYSEC-2026-161"
+      "GHSA-wqp7-x3pw-xc5r"
+      "GHSA-x746-7m8f-x49c"
+      "GHSA-82w8-qh3p-5jfq"
+      "GHSA-jp82-jpqv-5vv3"
+    )
+    for vuln_id in "${audit_exception_ids[@]}"; do
+      audit_ignore_args+=("--ignore-vuln" "$vuln_id")
+    done
+    cat > "$exceptions_report" <<'JSON'
+{
+  "profile": "cuda",
+  "status": "accepted_upstream_constraint",
+  "reason": "llamafactory==0.9.5 requires gradio<=5.50.0, which prevents using patched Gradio 6.x, Pillow 12.x, and Starlette 1.x together with the current SSOT-required CUDA training stack.",
+  "owner": "DevEx/Security",
+  "review_required_when": "LLaMA-Factory releases a version compatible with Gradio 6.x or the SSOT replaces the training wrapper.",
+  "ignored_vulnerability_ids": [
+    "PYSEC-2026-63",
+    "PYSEC-2026-66",
+    "PYSEC-2026-65",
+    "PYSEC-2026-64",
+    "PYSEC-2026-211",
+    "PYSEC-2026-165",
+    "GHSA-cfh3-3jmp-rvhc",
+    "GHSA-whj4-6x5x-4v2j",
+    "GHSA-5xmw-vc9v-4wf2",
+    "GHSA-r73j-pqj5-w3x7",
+    "GHSA-pwv6-vv43-88gr",
+    "PYSEC-2026-161",
+    "GHSA-wqp7-x3pw-xc5r",
+    "GHSA-x746-7m8f-x49c",
+    "GHSA-82w8-qh3p-5jfq",
+    "GHSA-jp82-jpqv-5vv3"
+  ]
+}
+JSON
+  else
+    cat > "$exceptions_report" <<JSON
+{"profile":"$PROFILE","status":"none","ignored_vulnerability_ids":[]}
+JSON
+  fi
 
   if "$PYTHON_BIN" -m pip_audit --version >/dev/null 2>&1; then
-    if "$PYTHON_BIN" -m pip_audit "${audit_args[@]}" --format json > "$report"; then
+    if "$PYTHON_BIN" -m pip_audit "${audit_args[@]}" "${audit_ignore_args[@]}" --format json > "$report"; then
       echo "pip-audit ${PROFILE} OK"
       return 0
     fi
@@ -52,7 +112,7 @@ run_pip_audit() {
   fi
 
   if command -v pip-audit >/dev/null 2>&1; then
-    if pip-audit "${audit_args[@]}" --format json > "$report"; then
+    if pip-audit "${audit_args[@]}" "${audit_ignore_args[@]}" --format json > "$report"; then
       echo "pip-audit ${PROFILE} OK"
       return 0
     fi

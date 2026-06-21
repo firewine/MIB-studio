@@ -38,6 +38,52 @@ function Invoke-ProfilePipAudit {
   foreach ($req in $auditRequirements) {
     $auditArgs += @("-r", $req)
   }
+  $auditIgnoreArgs = @()
+  $exceptionsReport = "artifacts/security/pip_audit_${Profile}_exceptions.json"
+  if ($Profile -eq "cuda") {
+    # LLaMA-Factory 0.9.5 currently constrains gradio<=5.50.0.
+    # That prevents installing the patched Gradio/Pillow/Starlette line together
+    # with the SSOT-required training stack, so only those upstream-blocked
+    # advisories are ignored and recorded explicitly.
+    $ignoredVulnerabilityIds = @(
+      "PYSEC-2026-63",
+      "PYSEC-2026-66",
+      "PYSEC-2026-65",
+      "PYSEC-2026-64",
+      "PYSEC-2026-211",
+      "PYSEC-2026-165",
+      "GHSA-cfh3-3jmp-rvhc",
+      "GHSA-whj4-6x5x-4v2j",
+      "GHSA-5xmw-vc9v-4wf2",
+      "GHSA-r73j-pqj5-w3x7",
+      "GHSA-pwv6-vv43-88gr",
+      "PYSEC-2026-161",
+      "GHSA-wqp7-x3pw-xc5r",
+      "GHSA-x746-7m8f-x49c",
+      "GHSA-82w8-qh3p-5jfq",
+      "GHSA-jp82-jpqv-5vv3"
+    )
+    foreach ($vulnId in $ignoredVulnerabilityIds) {
+      $auditIgnoreArgs += @("--ignore-vuln", $vulnId)
+    }
+    [ordered]@{
+      profile = "cuda"
+      status = "accepted_upstream_constraint"
+      reason = "llamafactory==0.9.5 requires gradio<=5.50.0, which prevents using patched Gradio 6.x, Pillow 12.x, and Starlette 1.x together with the current SSOT-required CUDA training stack."
+      owner = "DevEx/Security"
+      review_required_when = "LLaMA-Factory releases a version compatible with Gradio 6.x or the SSOT replaces the training wrapper."
+      ignored_vulnerability_ids = $ignoredVulnerabilityIds
+    } | ConvertTo-Json -Depth 4 | Set-Content $exceptionsReport
+  } else {
+    [ordered]@{
+      profile = $Profile
+      status = "none"
+      ignored_vulnerability_ids = @()
+    } | ConvertTo-Json -Depth 4 | Set-Content $exceptionsReport
+  }
+  $fullAuditArgs = @()
+  $fullAuditArgs += $auditArgs
+  $fullAuditArgs += $auditIgnoreArgs
 
   $pythonAuditAvailable = $false
   try {
@@ -48,7 +94,7 @@ function Invoke-ProfilePipAudit {
   }
 
   if ($pythonAuditAvailable) {
-    Invoke-RepoPython -m pip_audit @auditArgs --format json | Set-Content $report
+    Invoke-RepoPython -m pip_audit @fullAuditArgs --format json | Set-Content $report
     if ($LASTEXITCODE -ne 0) {
       Get-Content $report -ErrorAction SilentlyContinue | Write-Error
       exit 4
@@ -58,7 +104,7 @@ function Invoke-ProfilePipAudit {
   }
 
   if (Get-Command pip-audit -ErrorAction SilentlyContinue) {
-    & pip-audit @auditArgs --format json | Set-Content $report
+    & pip-audit @fullAuditArgs --format json | Set-Content $report
     if ($LASTEXITCODE -ne 0) {
       Get-Content $report -ErrorAction SilentlyContinue | Write-Error
       exit 4

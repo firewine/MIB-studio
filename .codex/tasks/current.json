@@ -1,12 +1,12 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Harden M6 export so fixture or malformed adapter files cannot be packaged as valid lora_adapter/mlx_lora_adapter artifacts. Add export-time adapter file validation for safetensors, MLX npz, and adapter_config.json shape, plus focused tests and evidence. Do not create fake adapters, do not weaken runtime validation, do not change training wrappers, and do not claim M6-RC GO without real trained adapter endpoint evidence.",
+  "goal": "Harden M6 export provenance by verifying the current adapter artifact files against ModelRun.adapter_sha256 and ModelRun.artifact_manifest_sha256 before packaging zip or Docker exports. Prevent tampered or replaced adapter directories from being exported after AgentPackage creation. Do not create trained adapters, do not change training wrappers, do not weaken validation, and do not claim M6-RC GO without real trained adapter endpoint evidence.",
   "phase": "done",
-  "gate": "mib-studio-export-adapter-artifact-validation",
+  "gate": "mib-studio-export-adapter-lineage-verification",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "7b1d6a8",
+  "head": "c1ab4da",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -21,6 +21,7 @@
     "services/api",
     "services/daemon",
     "services/worker/handlers/train_cuda.py",
+    "services/worker/handlers/train_mlx.py",
     "services/worker/runtime",
     "services/worker/handlers/export_docker.py",
     "packages/agent-runtime",
@@ -35,12 +36,12 @@
     "Creating or committing model weights or trained adapter artifacts",
     "Pretending a fixture adapter is trained",
     "Weakening model cache validation, verifier validation, auth, or endpoint behavior",
-    "Changing training wrappers, runtime loaders, or model catalog policy",
+    "Changing training wrappers, runtime loaders, DB schema, or model catalog policy",
     "M6-RC GO/sign-off changes before real adapter endpoint evidence or release-policy decision"
   ],
-  "allowed_edit_paths_scope_note": "This gate may update export-time adapter artifact validation and focused export tests only. Large model/cache/adapter artifacts must remain outside git.",
+  "allowed_edit_paths_scope_note": "This gate may update export-time adapter lineage/hash validation and focused export tests only. Large model/cache/adapter artifacts must remain outside git.",
   "external_runtime_paths": [
-    "/tmp/mib-export-adapter-validation"
+    "/tmp/mib-export-adapter-lineage"
   ],
   "reference_only_paths": [
     "docs/CONTEXT.md",
@@ -49,25 +50,26 @@
     "docs/specs/IMPLEMENTATION_GUIDE.md",
     "docs/specs/AGENT_CONTRACT_SPEC.md",
     "services/worker/handlers/export.py",
+    "services/worker/runtime/llamafactory.py",
+    "services/worker/runtime/mlx_lm.py",
     "tests/export/test_export_api.py",
     "tests/export/test_export_manifest.py",
-    "artifacts/review/real_adapter_inference_evidence.md",
-    "artifacts/review/docker_real_backend_deps_evidence.md"
+    "artifacts/review/export_adapter_validation_evidence.md"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest <focused-export-adapter-validation-tests>",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest <focused-export-lineage-tests>",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Focused read of export adapter copy/validation path",
-    "Tests proving malformed/fixture safetensors adapters are rejected",
-    "Tests proving valid safetensors-shaped CUDA lora_adapter can still export",
-    "If MLX validation is touched, tests or a documented reason for coverage scope",
-    "Explicit note that structural adapter validation does not prove trained adapter inference"
+    "Focused read of training adapter manifest/hash format",
+    "Tests proving adapter file tampering after package creation is rejected",
+    "Tests proving manifest hash mismatch is rejected",
+    "Tests proving valid lineage still exports",
+    "Explicit note that lineage/hash validation does not prove endpoint inference"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
@@ -80,33 +82,33 @@
   ],
   "failed_verification_commands": [],
   "warnings": [
-    "This gate improves artifact integrity but cannot produce trained adapter endpoint evidence.",
+    "This gate improves export provenance integrity but cannot produce trained adapter endpoint evidence.",
     "Do not commit adapter artifacts; tests must generate temporary minimal artifacts only.",
-    "Do not claim M6-RC GO from structural validation alone."
+    "Do not claim M6-RC GO from lineage/hash validation alone."
   ],
   "phase_notes": {
-    "plan": "Open scoped implementation contract for export adapter artifact validation.",
-    "audit": "Focused read completed for export.py, export API/manifest tests, CUDA/MLX fake training outputs, and adapter artifact shape sections in the implementation guide.",
-    "build": "Added export-time adapter_config/safetensors/npz structural validation and updated export fixtures/tests to use generated minimal structured adapters.",
-        "check": "Focused export validation/API/Docker/runtime/parity tests, strict model catalog verification, contract JSON validation, git diff --check, and git diff --cached --check passed for closeout.",
-    "done": "Evidence recorded in artifacts/review/export_adapter_validation_evidence.md. Structural adapter validation is verified, but M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
+    "plan": "Open scoped implementation contract for export adapter lineage verification.",
+    "audit": "Focused read completed for training manifest writers, ModelRun adapter hash fields, AgentPackage preconditions, and export fixtures. Training manifests hash adapter file rows relative to the run directory and store both adapter_sha256 and artifact_manifest_sha256 on ModelRun.",
+    "build": "Added export-time adapter lineage/hash verification and reordered export fixtures so adapter files and ModelRun hashes exist before AgentPackage creation.",
+        "check": "Focused export lineage/API/Docker/runtime/parity tests, strict model catalog verification, contract JSON validation, git diff --check, and git diff --cached --check passed for closeout.",
+    "done": "Evidence recorded in artifacts/review/export_adapter_lineage_evidence.md. Export lineage validation is verified, but M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-export-adapter-artifact-validation",
-    "status": "MIB_STUDIO_EXPORT_ADAPTER_VALIDATION_DONE_NOT_GO",
+    "gate": "mib-studio-export-adapter-lineage-verification",
+    "status": "MIB_STUDIO_EXPORT_ADAPTER_LINEAGE_DONE_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Export-time adapter artifact validation, focused tests, evidence, and operational handoff.",
+    "approved_scope": "Export-time adapter lineage/hash validation, focused tests, evidence, and operational handoff.",
     "blocked_scope": "No fake trained-adapter claims, no model/adapter artifacts in git, no release GO changes.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped implementation contract for export adapter artifact validation.",
-    "audit": "Focused read completed for export.py, export API/manifest tests, CUDA/MLX fake training outputs, and adapter artifact shape sections in the implementation guide.",
-    "build": "Added export-time adapter_config/safetensors/npz structural validation and updated export fixtures/tests to use generated minimal structured adapters.",
-        "check": "Focused export validation/API/Docker/runtime/parity tests, strict model catalog verification, contract JSON validation, git diff --check, and git diff --cached --check passed for closeout.",
-    "done": "Evidence recorded in artifacts/review/export_adapter_validation_evidence.md. Structural adapter validation is verified, but M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
+    "plan": "Open scoped implementation contract for export adapter lineage verification.",
+    "audit": "Focused read completed for training manifest writers, ModelRun adapter hash fields, AgentPackage preconditions, and export fixtures. Training manifests hash adapter file rows relative to the run directory and store both adapter_sha256 and artifact_manifest_sha256 on ModelRun.",
+    "build": "Added export-time adapter lineage/hash verification and reordered export fixtures so adapter files and ModelRun hashes exist before AgentPackage creation.",
+        "check": "Focused export lineage/API/Docker/runtime/parity tests, strict model catalog verification, contract JSON validation, git diff --check, and git diff --cached --check passed for closeout.",
+    "done": "Evidence recorded in artifacts/review/export_adapter_lineage_evidence.md. Export lineage validation is verified, but M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   }
 }

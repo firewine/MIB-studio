@@ -6,7 +6,9 @@ import sys
 import zipfile
 from pathlib import Path
 
+import numpy as np
 import pytest
+from safetensors.numpy import save_file
 from jsonschema import Draft7Validator
 
 from services.shared.db.models import ModelRun
@@ -150,6 +152,74 @@ async def test_export_rejects_adapter_config_format_mismatch(tmp_path: Path) -> 
     try:
         with factory() as session:
             with pytest.raises(ExportError, match="adapter_config.json format mismatch"):
+                run_zip_export_job(session, mib_home, accepted.json()["job_id"])
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_export_rejects_adapter_file_hash_mismatch(tmp_path: Path) -> None:
+    database_url, mib_home, package = await create_exportable_package(tmp_path)
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            model_run = session.get(ModelRun, package["model_run_id"])
+            assert model_run is not None
+            adapter_dir = Path(str(model_run.adapter_path))
+            save_file({"base_model.model.router.lora_A.weight": np.zeros((1, 1), dtype=np.float32)}, adapter_dir / "adapter.safetensors")
+            session.commit()
+    finally:
+        engine.dispose()
+
+    async with client_for(database_url, mib_home) as client:
+        accepted = await call_api(
+            client.post(
+                f"/projects/{package['project_id']}/export",
+                json={"agent_package_id": package["id"], "export_type": "zip"},
+                headers=auth_headers(),
+            )
+        )
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            with pytest.raises(ExportError, match="Adapter artifact hash mismatch"):
+                run_zip_export_job(session, mib_home, accepted.json()["job_id"])
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_export_rejects_adapter_manifest_hash_mismatch(tmp_path: Path) -> None:
+    database_url, mib_home, package = await create_exportable_package(tmp_path)
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            model_run = session.get(ModelRun, package["model_run_id"])
+            assert model_run is not None
+            manifest_path = Path(str(model_run.adapter_path)).parent / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["trainer_backend"] = "tampered"
+            manifest_path.write_text(canonical_json(manifest) + "\n", encoding="utf-8")
+            session.commit()
+    finally:
+        engine.dispose()
+
+    async with client_for(database_url, mib_home) as client:
+        accepted = await call_api(
+            client.post(
+                f"/projects/{package['project_id']}/export",
+                json={"agent_package_id": package["id"], "export_type": "zip"},
+                headers=auth_headers(),
+            )
+        )
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            with pytest.raises(ExportError, match="Adapter artifact manifest hash mismatch"):
                 run_zip_export_job(session, mib_home, accepted.json()["job_id"])
     finally:
         engine.dispose()

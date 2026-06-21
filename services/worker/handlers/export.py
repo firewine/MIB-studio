@@ -165,6 +165,7 @@ def _copy_adapter(*, model_run: ModelRun, contract: dict[str, Any], root: Path) 
             raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", f"Missing adapter file: {relative}")
         source_files[relative] = src
     _validate_adapter_files(adapter_format=adapter_format, source_files=source_files)
+    _validate_adapter_lineage(model_run=model_run, adapter_dir=source)
     for relative, src in source_files.items():
         _copy(src, root / relative)
 
@@ -224,6 +225,39 @@ def _validate_mlx_npz(path: Path) -> None:
         raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", f"Invalid adapter file: {path.name}.") from exc
 
 
+def _validate_adapter_lineage(*, model_run: ModelRun, adapter_dir: Path) -> None:
+    if not model_run.adapter_sha256 or not model_run.artifact_manifest_sha256:
+        raise ExportError("MODEL_RUN_NOT_EXPORTABLE", "ModelRun adapter artifact hashes are missing.")
+    manifest_path = adapter_dir.parent / "manifest.json"
+    if not manifest_path.is_file():
+        raise ExportError("EXPORT_ADAPTER_LINEAGE_MISMATCH", "Adapter artifact manifest is missing.")
+    manifest_text = manifest_path.read_text(encoding="utf-8")
+    if sha256_text(manifest_text) != model_run.artifact_manifest_sha256:
+        raise ExportError("EXPORT_ADAPTER_LINEAGE_MISMATCH", "Adapter artifact manifest hash mismatch.")
+    try:
+        manifest = json.loads(manifest_text)
+    except Exception as exc:
+        raise ExportError("EXPORT_ADAPTER_LINEAGE_MISMATCH", "Adapter artifact manifest is invalid JSON.") from exc
+    if not isinstance(manifest, dict):
+        raise ExportError("EXPORT_ADAPTER_LINEAGE_MISMATCH", "Adapter artifact manifest is invalid.")
+    current_rows = _adapter_file_rows(adapter_dir)
+    current_sha = sha256_text(canonical_json(current_rows))
+    if current_sha != model_run.adapter_sha256 or manifest.get("adapter_sha256") != current_sha:
+        raise ExportError("EXPORT_ADAPTER_LINEAGE_MISMATCH", "Adapter artifact hash mismatch.")
+    if manifest.get("files") != current_rows:
+        raise ExportError("EXPORT_ADAPTER_LINEAGE_MISMATCH", "Adapter artifact file manifest mismatch.")
+
+
+def _adapter_file_rows(adapter_dir: Path) -> list[dict[str, Any]]:
+    run_dir = adapter_dir.parent
+    rows = []
+    for path in sorted(item for item in adapter_dir.rglob("*") if item.is_file()):
+        rows.append({"path": str(path.relative_to(run_dir)), "sha256": _sha256_file(path), "size_bytes": path.stat().st_size})
+    if not rows:
+        raise ExportError("EXPORT_ADAPTER_LINEAGE_MISMATCH", "Adapter artifact directory is empty.")
+    return rows
+
+
 def _validate_job(job: Job, export: ExportArtifact) -> None:
     if job.type != "export" or export.export_type != "zip":
         raise ExportError("JOB_TYPE_UNSUPPORTED", "M6-001 handles zip export jobs only.")
@@ -240,7 +274,7 @@ def _package(session: Session, package_id: str) -> AgentPackage:
 
 def _model_run(session: Session, model_run_id: str) -> ModelRun:
     model_run = session.get(ModelRun, model_run_id)
-    if model_run is None or model_run.status != "SUCCEEDED" or not model_run.adapter_path:
+    if model_run is None or model_run.status != "SUCCEEDED" or not model_run.adapter_path or not model_run.adapter_sha256 or not model_run.artifact_manifest_sha256:
         raise ExportError("MODEL_RUN_NOT_EXPORTABLE", "ModelRun is not exportable.")
     return model_run
 

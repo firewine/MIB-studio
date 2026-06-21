@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  addRoutePreset,
+  contractSection,
   createContract,
+  createInputSchema,
+  createOutputSchema,
+  createRoutingRules,
   createSeedExamples,
   initialRoutes,
   parseAppRoute,
@@ -43,5 +48,25 @@ test("createContract keeps v6 router contract fields", () => {
   const contract = createContract(initialRoutes);
   assert.equal(contract.agent_type, "router");
   assert.equal(contract.base_model, "google/gemma-2b-it");
+  assert.equal(contract.adapter.format, "lora_adapter");
+  assert.equal(contract.routes.find((route) => route.route_id === "human_review").default, true);
+  assert.deepEqual(contract.audit.fields, ["input_hash", "route", "confidence", "contract_version", "model_version"]);
   assert.deepEqual(contract.verifiers, ["json_schema", "allowed_route_check", "confidence_threshold", "unsafe_route_guard"]);
+});
+
+test("v6 contract sections expose input, output, and routing rules", () => {
+  const input = createInputSchema(initialRoutes);
+  const output = createOutputSchema(initialRoutes);
+  const rules = createRoutingRules(initialRoutes);
+  assert.deepEqual(input.required, ["text", "allowed_routes"]);
+  assert.deepEqual(output.properties.route.enum, initialRoutes.map((route) => route.route_id));
+  assert.equal(rules.default_route_id, "human_review");
+  assert.equal(contractSection(initialRoutes, "rules").rules.length, initialRoutes.length);
+});
+
+test("addRoutePreset appends v6 preset routes without duplicates", () => {
+  const once = addRoutePreset(initialRoutes, "finance");
+  const twice = addRoutePreset(once, "finance");
+  assert.equal(once.some((route) => route.route_id === "investment_advice_block"), true);
+  assert.equal(twice.length, once.length);
 });

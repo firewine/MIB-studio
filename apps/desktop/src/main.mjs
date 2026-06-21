@@ -1,7 +1,11 @@
 import {
+  addRoute,
+  addRoutePreset,
+  applyRoutePatch,
   createContract,
   createSeedExamples,
   initialRoutes,
+  paletteCategories,
   parseAppRoute,
   routesFromProject,
   routesToProjectInput,
@@ -9,6 +13,7 @@ import {
   workflowSteps,
 } from "./lib/appModel.mjs";
 import { ApiClientError, createApiClient, idempotencyKey, resolveBootstrap } from "./lib/apiClient.mjs";
+import { routeContractPage } from "./lib/routeContractView.mjs";
 
 const root = document.getElementById("root");
 const state = {
@@ -33,6 +38,10 @@ const state = {
   apiError: null,
   notice: null,
   selectedRoute: 0,
+  selectedPaletteCategory: "input",
+  inspectorTab: "route",
+  contractTab: "agent",
+  routeTestResult: null,
 };
 
 start();
@@ -113,7 +122,7 @@ async function onClick(event) {
   const target = event.target.closest("[data-action],[data-nav],[data-route-index]");
   if (!target) return;
   if (target.dataset.nav) return navigate(target.dataset.nav);
-  if (target.dataset.routeIndex) {
+  if (target.dataset.routeIndex !== undefined) {
     state.selectedRoute = Number(target.dataset.routeIndex);
     return render();
   }
@@ -130,6 +139,16 @@ async function onClick(event) {
     if (action === "delete-credential") await deleteCredential();
     if (action === "scan-hardware") await scanHardware();
     if (action === "poll-job") await pollJob();
+    if (action === "select-palette") selectPalette(target.dataset.palette);
+    if (action === "insert-block") insertBlock(target.dataset.blockLabel);
+    if (action === "select-inspector-tab") selectInspectorTab(target.dataset.tab);
+    if (action === "select-contract-tab") selectContractTab(target.dataset.contractTab);
+    if (action === "apply-route") applySelectedRouteFromDom();
+    if (action === "add-route") addDraftRoute();
+    if (action === "add-preset") addPresetRoutes(target.dataset.preset);
+    if (action === "compile-contract") compileContract();
+    if (action === "test-route") testSelectedRoute();
+    if (action === "download-contract") downloadContract();
     state.apiError = null;
   } catch (error) {
     state.apiError = errorText(error);
@@ -148,8 +167,14 @@ function onInput(event) {
   if (!selected) return;
   if (field === "route-id") selected.route_id = event.target.value;
   if (field === "route-desc") selected.description = event.target.value;
+  if (field === "task-type") selected.task_type = event.target.value;
+  if (field === "examples") selected.examples = event.target.value.split("\n").map((item) => item.trim()).filter(Boolean);
+  if (field === "calculation") selected.requires_calculation = event.target.checked;
   if (field === "unsafe") selected.is_unsafe = event.target.checked;
   if (field === "review") selected.requires_human_review = event.target.checked;
+  if (field === "default-route") {
+    state.routes = applyRoutePatch(state.routes, state.selectedRoute, { is_default: event.target.checked });
+  }
   render();
 }
 
@@ -174,7 +199,7 @@ async function saveRoutes() {
     body: { routes: routesToProjectInput(state.routes) },
   });
   state.notice = "Contract saved.";
-  await refresh();
+  state.selectedProject = { ...state.selectedProject, routes: routesToProjectInput(state.routes) };
 }
 
 async function buildDataset() {
@@ -262,6 +287,94 @@ async function pollJob() {
   }
 }
 
+function selectPalette(paletteId) {
+  if (paletteCategories.some((category) => category.id === paletteId)) state.selectedPaletteCategory = paletteId;
+}
+
+function insertBlock(label) {
+  state.notice = `v6 route contract block inserted: ${label}`;
+}
+
+function selectInspectorTab(tabId) {
+  if (["route", "checks", "contract"].includes(tabId)) state.inspectorTab = tabId;
+}
+
+function selectContractTab(tabId) {
+  if (["agent", "input", "output", "rules"].includes(tabId)) {
+    state.contractTab = tabId;
+    state.inspectorTab = "contract";
+  }
+}
+
+function applySelectedRouteFromDom() {
+  const routeId = readField("route-id").trim();
+  const patch = {
+    route_id: routeId || `route_${state.selectedRoute + 1}`,
+    description: readField("route-desc").trim() || "Untitled route",
+    task_type: readField("task-type"),
+    examples: readField("examples")
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean),
+    requires_calculation: readChecked("calculation"),
+    requires_human_review: readChecked("review"),
+    is_unsafe: readChecked("unsafe"),
+    is_default: readChecked("default-route"),
+  };
+  state.routes = applyRoutePatch(state.routes, state.selectedRoute, patch);
+  state.notice = "Route updated.";
+}
+
+function addDraftRoute() {
+  state.routes = addRoute(state.routes);
+  state.selectedRoute = state.routes.length - 1;
+  state.inspectorTab = "route";
+  state.notice = "Route added.";
+}
+
+function addPresetRoutes(presetId) {
+  const before = state.routes.length;
+  state.routes = addRoutePreset(state.routes, presetId);
+  state.selectedRoute = Math.max(0, state.routes.length - 1);
+  state.notice = state.routes.length > before ? `${presetId} preset added.` : `${presetId} preset already present.`;
+}
+
+function compileContract() {
+  const issues = validateRoutes(state.routes).filter((check) => !check.ok);
+  state.inspectorTab = issues.length ? "checks" : "contract";
+  state.notice = issues.length ? `Contract has ${issues.length} issue(s).` : "Contract compiled.";
+}
+
+function testSelectedRoute() {
+  const route = state.routes[state.selectedRoute] || state.routes[0];
+  state.routeTestResult = {
+    route: route.route_id,
+    task_type: route.task_type,
+    confidence: route.is_unsafe ? 0.91 : 0.82,
+    verifier_status: route.is_unsafe ? "blocked_by_unsafe_route_guard" : "schema_valid",
+  };
+  state.notice = `Test route: ${route.route_id}.`;
+}
+
+function downloadContract() {
+  const contract = createContract(state.routes);
+  const blob = new Blob([JSON.stringify(contract, null, 2)], { type: "application/json" });
+  const anchor = document.createElement("a");
+  anchor.href = URL.createObjectURL(blob);
+  anchor.download = "support_router.agent_contract.json";
+  anchor.click();
+  URL.revokeObjectURL(anchor.href);
+  state.notice = "Contract download started.";
+}
+
+function readField(field) {
+  return root.querySelector(`[data-field="${field}"]`)?.value || "";
+}
+
+function readChecked(field) {
+  return Boolean(root.querySelector(`[data-field="${field}"]`)?.checked);
+}
+
 function render() {
   const route = parseAppRoute(state.path);
   root.innerHTML = `
@@ -279,9 +392,9 @@ function sidebar() {
     <div class="brand"><div class="brand-mark">MIB</div><div><strong>MIB Studio</strong><span>MicroAgent Inventor Blocks</span></div></div>
     <section class="project-switcher"><small>Project</small><strong>${escapeHtml(project?.name || "No project")}</strong><span>${project ? `${project.routes.length} routes - router` : `${state.projects.length} saved`}</span><div class="switcher-actions"><button class="icon-button" title="Refresh" data-action="refresh">R</button><button class="icon-button" title="Create" data-nav="/projects/new">+</button></div></section>
     <section class="workflow"><div class="nav-section">Workflow</div><div class="workflow-list">${steps
-      .map((step, index) => `<button class="workflow-step ${step.state}" title="${escapeHtml(step.reason || step.label)}" data-nav="${step.state === "locked" ? state.path : step.path}"><span class="step-index">${step.state === "locked" ? "L" : index + 1}</span><span><span class="step-label">${step.label}</span><small>${step.state}</small></span></button>`)
+      .map((step, index) => `<button class="workflow-step ${step.state}" ${step.state === "current" ? 'aria-current="step"' : ""} title="${escapeHtml(step.reason || step.label)}" data-nav="${step.state === "locked" ? state.path : step.path}"><span class="step-index">${step.state === "locked" ? "L" : index + 1}</span><span><span class="step-label">${step.label}</span><small>${step.state}</small></span></button>`)
       .join("")}</div></section>
-    <nav class="side-nav"><button class="${state.path.startsWith("/projects") && !state.path.includes("define") ? "active" : ""}" data-nav="/projects"><span class="nav-icon">P</span>Projects</button><button class="${state.path.includes("/define") ? "active" : ""}" data-nav="${project ? `/projects/${project.id}/define` : "/projects/new"}"><span class="nav-icon">D</span>Define</button><button class="${state.path.includes("datasets") ? "active" : ""}" data-nav="${project ? `/projects/${project.id}/datasets/new` : "/projects/new"}"><span class="nav-icon">E</span>Data</button><button class="${state.path === "/hardware" ? "active" : ""}" data-nav="/hardware"><span class="nav-icon">H</span>Hardware</button><button class="${state.path.startsWith("/settings") ? "active" : ""}" data-nav="/settings"><span class="nav-icon">S</span>Settings</button></nav>
+    <nav class="side-nav"><button class="${state.path.startsWith("/projects") && !state.path.includes("define") ? "active" : ""}" ${state.path.startsWith("/projects") && !state.path.includes("define") ? 'aria-current="page"' : ""} data-nav="/projects"><span class="nav-icon">P</span>Projects</button><button class="${state.path.includes("/define") ? "active" : ""}" ${state.path.includes("/define") ? 'aria-current="page"' : ""} data-nav="${project ? `/projects/${project.id}/define` : "/projects/new"}"><span class="nav-icon">D</span>Define</button><button class="${state.path.includes("datasets") ? "active" : ""}" ${state.path.includes("datasets") ? 'aria-current="page"' : ""} data-nav="${project ? `/projects/${project.id}/datasets/new` : "/projects/new"}"><span class="nav-icon">E</span>Data</button><button class="${state.path === "/hardware" ? "active" : ""}" ${state.path === "/hardware" ? 'aria-current="page"' : ""} data-nav="/hardware"><span class="nav-icon">H</span>Hardware</button><button class="${state.path.startsWith("/settings") ? "active" : ""}" ${state.path.startsWith("/settings") ? 'aria-current="page"' : ""} data-nav="/settings"><span class="nav-icon">S</span>Settings</button></nav>
   </aside>`;
 }
 
@@ -326,9 +439,7 @@ function dashboardPage() {
 
 function definePage() {
   const checks = validateRoutes(state.routes);
-  const selected = state.routes[state.selectedRoute] || state.routes[0];
-  const contract = createContract(state.routes);
-  return pageShell("Define", "Route contract", "Assemble input, route, guard, output, and audit blocks into a fixed router contract.", `<button class="button" data-action="save-routes">Save</button>`, `${notice()}<div class="define-grid"><section class="toolbox"><h2>Toolbox</h2>${["when input arrives", "normalize text", "route among labels", "if unsafe request", "if confidence below", "emit JSON"].map((block) => `<button class="palette-block">${block}<small>route contract block</small></button>`).join("")}</section><section class="canvas-surface"><div class="canvas-toolbar"><span class="pill blue">${state.routes.length} routes</span><button class="button">Test</button></div><div class="block-stack"><div class="iblock input">when input.text arrives</div><div class="iblock input">normalize text with pii_mask</div><div class="iblock route">route among ${state.routes.length} labels using examples</div><div class="nested-blocks"><div class="iblock guard">if route has unsafe flag then block</div><div class="iblock logic">if confidence &lt; 0.65 then human_review</div></div><div class="iblock eval">emit JSON route - task_type - confidence</div><div class="iblock data">log trace with contract_version</div></div></section><aside class="inspector"><h2>Inspector</h2><div class="route-chips">${state.routes.map((item, index) => `<button class="${index === state.selectedRoute ? "active" : ""}" data-route-index="${index}"><strong>${escapeHtml(item.route_id)}</strong><small>${escapeHtml(item.description)}</small></button>`).join("")}</div>${routeForm(selected)}<h3>Checks</h3>${checksHtml(checks)}<h3>Contract</h3><pre class="codebox">${escapeHtml(JSON.stringify(contract, null, 2))}</pre><button class="button" data-nav="/projects/${state.selectedProject?.id}/datasets/new">Build examples from contract</button></aside></div>`);
+  return routeContractPage({ state, checks, pageShell, noticeHtml: notice(), checksHtml, escapeHtml });
 }
 
 function examplesPage() {
@@ -381,10 +492,6 @@ function pageShell(eyebrow, title, description, actions, body) {
   return `<section class="page"><div class="page-header"><div><div class="eyebrow">${eyebrow}</div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p></div><div class="page-actions">${actions || ""}</div></div>${body}</section>`;
 }
 
-function routeForm(route) {
-  return `<div class="form-grid"><label class="field"><span>Route id</span><input data-field="route-id" value="${escapeHtml(route.route_id)}"></label><label class="field"><span>Description</span><input data-field="route-desc" value="${escapeHtml(route.description)}"></label><label class="check-field"><input type="checkbox" data-field="unsafe" ${route.is_unsafe ? "checked" : ""}> unsafe route</label><label class="check-field"><input type="checkbox" data-field="review" ${route.requires_human_review ? "checked" : ""}> human review</label></div>`;
-}
-
 function examplesTable(examples) {
   return `<div class="table-surface"><table><thead><tr><th>#</th><th>Input</th><th>Expected route</th><th>Status</th></tr></thead><tbody>${examples.map((example, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(String(example.input.text || ""))}</td><td class="mono">${escapeHtml(String(example.output.route || ""))}</td><td><span class="pill ok">schema-valid</span></td></tr>`).join("")}</tbody></table></div>`;
 }
@@ -398,7 +505,8 @@ function metric(label, value, tone) {
 }
 
 function statePanel(stateName, title, body, action = "") {
-  return `<section class="state-panel ${stateName}"><div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(body)}</p></div>${action}</section>`;
+  const role = stateName === "api_error" ? "alert" : "status";
+  return `<section class="state-panel ${stateName}" role="${role}" aria-live="polite"><div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(body)}</p></div>${action}</section>`;
 }
 
 function notice() {

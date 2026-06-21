@@ -2,7 +2,7 @@
 
 > 범위: **MIB Studio v0(Router 프리셋)의 화면·정보 구조(IA)·워크플로·UI 상태 규약**을 정의한다.
 > 관련: [PRODUCT_SPEC](./PRODUCT_SPEC.md) · [PRESET_SPEC](./PRESET_SPEC.md) · [EVAL_SPEC](./EVAL_SPEC.md) · [HARDWARE_DOCTOR_SPEC](./HARDWARE_DOCTOR_SPEC.md) · [SECURITY_SPEC](./SECURITY_SPEC.md) · [AGENT_CONTRACT_SPEC](./AGENT_CONTRACT_SPEC.md) · [ARCHITECTURE](./ARCHITECTURE.md)
-> 시각 캐논(canonical mockup): [`docs/mockup/260620 FE mockup.html`](../mockup/260620 FE mockup.html) — 본 문서가 정의하는 화면을 구현한 단일 파일 고충실도 목업. 목업 상단 주석의 VERSION HISTORY가 변경 이력을 보존한다. `docs/mockup/README.md`가 명시하듯 다른 HTML mockup은 archive이며, 구현 기준이 아니다.
+> 시각 캐논(canonical mockup): [`docs/mockup/mib_fe_mockup_v6_routes_contract.html`](../mockup/mib_fe_mockup_v6_routes_contract.html) — 본 문서가 정의하는 Router route-contract builder 흐름을 구현한 단일 파일 고충실도 목업. `docs/mockup/README.md`가 명시하듯 이전 HTML mockup은 archive이며, 구현 기준이 아니다.
 
 ---
 

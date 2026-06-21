@@ -1,8 +1,8 @@
 # Mockup Status
 
-The canonical v0 UX artifact is `260620 FE mockup.html`.
+The canonical v0 UX artifact for current implementation is `mib_fe_mockup_v6_routes_contract.html`.
 
-Other HTML files in this folder are archived design iterations. They may be useful for visual comparison, but implementation must follow `docs/specs/UX_SPEC.md` and the canonical mockup when there is any conflict.
+`260620 FE mockup.html` and earlier HTML files are archived design iterations. They may be useful for visual comparison, but implementation must follow `docs/specs/UX_SPEC.md` and the canonical v6 mockup when there is any conflict.
 
 Rules for archived mockups:
 

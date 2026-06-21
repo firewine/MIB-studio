@@ -155,6 +155,40 @@ class TrainingStore:
         )
         self.session.flush()
 
+    def mark_dry_run_succeeded(
+        self,
+        *,
+        job: Job,
+        model_run: ModelRun,
+        report_path: str,
+        report_sha256: str,
+        report: dict[str, Any],
+        ts: str,
+    ) -> None:
+        model_run.status = "SUCCEEDED"
+        model_run.resumable = 0
+        model_run.ended_at = ts
+        job.status = "SUCCEEDED"
+        job.ended_at = ts
+        self.append_event(
+            job=job,
+            ts=ts,
+            level="info",
+            event_type="artifact",
+            payload={
+                "phase": "dry_run_completed",
+                "model_run_id": model_run.id,
+                "dry_run_report_path": report_path,
+                "dry_run_report_sha256": report_sha256,
+                "predicted_vram_peak_mb": report["predicted_vram_peak_mb"],
+                "observed_vram_peak_mb": report["observed_vram_peak_mb"],
+                "tokens_per_sec": report["tokens_per_sec"],
+                "predicted_duration_seconds": report["predicted_duration_seconds"],
+                "estimate_error_pct": report["estimate_error_pct"],
+            },
+        )
+        self.session.flush()
+
     def mark_failed(self, *, job: Job, model_run: ModelRun, error_class: str, error_message: str, ts: str) -> None:
         job.status = "FAILED"
         job.error_class = error_class

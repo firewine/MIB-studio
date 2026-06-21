@@ -119,12 +119,15 @@ def backend_config(
     train_count: int,
 ) -> dict[str, Any]:
     hyperparams = trainer_input.hyperparams
+    iters = max(1, int(hyperparams["epochs"] * train_count / hyperparams["batch_size"]))
+    if hyperparams.get("dry_run"):
+        iters = int(hyperparams["dry_run_steps"])
     return {
         "model": str(model_cache_path),
         "train": True,
         "data": str(dataset_dir),
         "adapter_path": str(Path(trainer_input.output_dir) / "adapter"),
-        "iters": max(1, int(hyperparams["epochs"] * train_count / hyperparams["batch_size"])),
+        "iters": iters,
         "batch_size": hyperparams["batch_size"],
         "learning_rate": hyperparams["learning_rate"],
         "max_seq_length": trainer_input.max_seq_length,

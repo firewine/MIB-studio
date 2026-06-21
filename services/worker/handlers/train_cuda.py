@@ -17,6 +17,14 @@ from services.worker.runtime.llamafactory import (
     write_llamafactory_artifacts,
     write_manifest,
 )
+from services.worker.runtime.dry_run import (
+    DryRunMetric,
+    build_dry_run_report,
+    dry_run_enabled,
+    remove_probe_adapter_artifacts,
+    with_dry_run_probe_limits,
+    write_dry_run_report,
+)
 
 
 class TrainCudaError(Exception):
@@ -48,11 +56,38 @@ def run_train_cuda_job(
         now = utc_now()
         store.mark_running(job=job, model_run=model_run, ts=now)
         run_dir = mib_home / "projects" / model_run.project_id / "runs" / model_run.id
-        trainer_input = _trainer_input(job, model_run, dataset, run_dir)
+        params = json.loads(job.params_json)
+        is_dry_run = dry_run_enabled(params)
+        trainer_input = _trainer_input(job, model_run, dataset, run_dir, params=params)
         model_cache_path = mib_home / "model_cache" / json.loads(model_run.config_json)["model_cache_subdir"]
         config_path = write_llamafactory_artifacts(trainer_input, model_cache_path=model_cache_path, dataset_id=dataset.id)
+        dry_run_metrics: list[DryRunMetric] = []
         for event in (runner or SubprocessLlamaFactoryRunner()).run(config_path, run_dir=run_dir):
             _record_trainer_event(store, job, model_run, event)
+            if event.kind == "metric":
+                dry_run_metrics.append(
+                    DryRunMetric(step=event.step, total_steps=event.total_steps, vram_gb=event.vram_gb, tokens_per_sec=event.tokens_per_sec)
+                )
+        if is_dry_run:
+            remove_probe_adapter_artifacts(run_dir)
+            report = build_dry_run_report(
+                backend=model_run.backend,
+                base_model=model_run.base_model,
+                dataset_sample_count=dataset.sample_count,
+                max_seq_length=trainer_input.max_seq_length,
+                hyperparams=trainer_input.hyperparams,
+                metrics=dry_run_metrics,
+            )
+            report_path, report_sha256 = write_dry_run_report(run_dir, report)
+            store.mark_dry_run_succeeded(
+                job=job,
+                model_run=model_run,
+                report_path=str(report_path),
+                report_sha256=report_sha256,
+                report=report,
+                ts=utc_now(),
+            )
+            return model_run.id
         manifest_path, adapter_sha256, manifest_sha256 = write_manifest(run_dir)
         store.mark_succeeded(
             job=job,
@@ -68,8 +103,10 @@ def run_train_cuda_job(
         raise
     except Exception as exc:
         message = sanitize_error(str(exc) or exc.__class__.__name__)
-        store.mark_failed(job=job, model_run=model_run, error_class="UNKNOWN", error_message=message, ts=utc_now())
-        raise TrainCudaError("CUDA_TRAIN_FAILED", message) from exc
+        error_class = classify_cuda_error(exc, message)
+        code = "CUDA_OOM" if error_class == "CUDA_OOM" else "CUDA_TRAIN_FAILED"
+        store.mark_failed(job=job, model_run=model_run, error_class=error_class, error_message=message, ts=utc_now())
+        raise TrainCudaError(code, message, error_class=error_class) from exc
 
 
 def _model_run_for_job(session: Session, job: Job) -> ModelRun:
@@ -94,10 +131,13 @@ def _validate_cuda_job(job: Job, model_run: ModelRun) -> None:
         raise TrainCudaError("TRAIN_JOB_NOT_RUNNABLE", "Train job is not in a runnable state.", error_class="PERMISSION_DENIED")
 
 
-def _trainer_input(job: Job, model_run: ModelRun, dataset: Dataset, run_dir: Path) -> TrainerJobInput:
-    params = json.loads(job.params_json)
+def _trainer_input(job: Job, model_run: ModelRun, dataset: Dataset, run_dir: Path, *, params: dict[str, Any] | None = None) -> TrainerJobInput:
+    params = params or json.loads(job.params_json)
     config = json.loads(model_run.config_json)
     training_preset = str(params.get("training_preset") or "balanced")
+    selected_hyperparams = hyperparams(training_preset, config.get("hardware_profile_id"))
+    if dry_run_enabled(params):
+        selected_hyperparams = with_dry_run_probe_limits(selected_hyperparams, params)
     return TrainerJobInput(
         job_id=job.id,
         project_id=model_run.project_id,
@@ -110,7 +150,7 @@ def _trainer_input(job: Job, model_run: ModelRun, dataset: Dataset, run_dir: Pat
         output_dir=str(run_dir),
         seed=model_run.seed,
         max_seq_length=1024,
-        hyperparams=hyperparams(training_preset, config.get("hardware_profile_id")),
+        hyperparams=selected_hyperparams,
     )
 
 
@@ -157,6 +197,13 @@ def _record_trainer_event(store: TrainingStore, job: Job, model_run: ModelRun, e
 
 def sanitize_error(value: str) -> str:
     return value.replace("\n", " ")[:500]
+
+
+def classify_cuda_error(exc: Exception, message: str) -> str:
+    combined = f"{exc.__class__.__name__} {message}".lower()
+    if "cuda" in combined and ("out of memory" in combined or "oom" in combined or "alloc" in combined):
+        return "CUDA_OOM"
+    return "UNKNOWN"
 
 
 def utc_now() -> str:

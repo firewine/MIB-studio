@@ -104,7 +104,7 @@ def trainer_input_to_dict(value: TrainerJobInput) -> dict[str, Any]:
 
 def backend_config(trainer_input: TrainerJobInput, *, model_cache_path: Path, dataset_dir: Path, dataset_id: str) -> dict[str, Any]:
     hyperparams = trainer_input.hyperparams
-    return {
+    config = {
         "stage": "sft",
         "do_train": True,
         "model_name_or_path": str(model_cache_path),
@@ -127,6 +127,10 @@ def backend_config(trainer_input: TrainerJobInput, *, model_cache_path: Path, da
         "trust_remote_code": False,
         "seed": trainer_input.seed,
     }
+    if hyperparams.get("dry_run"):
+        config["max_steps"] = int(hyperparams["dry_run_steps"])
+        config["save_strategy"] = "no"
+    return config
 
 
 def convert_dataset(dataset_path: Path, dataset_dir: Path, *, dataset_id: str) -> None:

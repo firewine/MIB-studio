@@ -45,12 +45,12 @@
       "soft": 240
     }
   },
-  "files_checked": 86,
+  "files_checked": 87,
   "violations": [
     {
       "hard_limit": 400,
       "kind": "default",
-      "loc": 278,
+      "loc": 312,
       "path": "services/shared/db/repositories/training_store.py",
       "severity": "soft",
       "soft_limit": 260

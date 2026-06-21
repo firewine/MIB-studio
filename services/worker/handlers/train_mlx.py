@@ -17,6 +17,14 @@ from services.worker.runtime.mlx_lm import (
     write_mlx_artifacts,
     write_mlx_manifest,
 )
+from services.worker.runtime.dry_run import (
+    DryRunMetric,
+    build_dry_run_report,
+    dry_run_enabled,
+    remove_probe_adapter_artifacts,
+    with_dry_run_probe_limits,
+    write_dry_run_report,
+)
 
 
 class TrainMlxError(Exception):
@@ -47,11 +55,38 @@ def run_train_mlx_job(
     try:
         store.mark_running(job=job, model_run=model_run, ts=utc_now())
         run_dir = mib_home / "projects" / model_run.project_id / "runs" / model_run.id
-        trainer_input = _trainer_input(job, model_run, dataset, run_dir)
+        params = json.loads(job.params_json)
+        is_dry_run = dry_run_enabled(params)
+        trainer_input = _trainer_input(job, model_run, dataset, run_dir, params=params)
         model_cache_path = mib_home / "model_cache" / json.loads(model_run.config_json)["model_cache_subdir"]
         config_path = write_mlx_artifacts(trainer_input, model_cache_path=model_cache_path)
+        dry_run_metrics: list[DryRunMetric] = []
         for event in (runner or SubprocessMlxLmRunner()).run(config_path, run_dir=run_dir):
             _record_trainer_event(store, job, model_run, event)
+            if event.kind == "metric":
+                dry_run_metrics.append(
+                    DryRunMetric(step=event.step, total_steps=event.total_steps, vram_gb=event.vram_gb, tokens_per_sec=event.tokens_per_sec)
+                )
+        if is_dry_run:
+            remove_probe_adapter_artifacts(run_dir)
+            report = build_dry_run_report(
+                backend=model_run.backend,
+                base_model=model_run.base_model,
+                dataset_sample_count=dataset.sample_count,
+                max_seq_length=trainer_input.max_seq_length,
+                hyperparams=trainer_input.hyperparams,
+                metrics=dry_run_metrics,
+            )
+            report_path, report_sha256 = write_dry_run_report(run_dir, report)
+            store.mark_dry_run_succeeded(
+                job=job,
+                model_run=model_run,
+                report_path=str(report_path),
+                report_sha256=report_sha256,
+                report=report,
+                ts=utc_now(),
+            )
+            return model_run.id
         manifest_path, adapter_sha256, manifest_sha256 = write_mlx_manifest(run_dir)
         store.mark_succeeded(
             job=job,
@@ -93,10 +128,13 @@ def _validate_mlx_job(job: Job, model_run: ModelRun) -> None:
         raise TrainMlxError("TRAIN_JOB_NOT_RUNNABLE", "Train job is not in a runnable state.", error_class="PERMISSION_DENIED")
 
 
-def _trainer_input(job: Job, model_run: ModelRun, dataset: Dataset, run_dir: Path) -> MlxTrainerJobInput:
-    params = json.loads(job.params_json)
+def _trainer_input(job: Job, model_run: ModelRun, dataset: Dataset, run_dir: Path, *, params: dict[str, Any] | None = None) -> MlxTrainerJobInput:
+    params = params or json.loads(job.params_json)
     config = json.loads(model_run.config_json)
     training_preset = str(params.get("training_preset") or "balanced")
+    selected_hyperparams = hyperparams(training_preset, config.get("hardware_profile_id"))
+    if dry_run_enabled(params):
+        selected_hyperparams = with_dry_run_probe_limits(selected_hyperparams, params)
     return MlxTrainerJobInput(
         job_id=job.id,
         project_id=model_run.project_id,
@@ -109,7 +147,7 @@ def _trainer_input(job: Job, model_run: ModelRun, dataset: Dataset, run_dir: Pat
         output_dir=str(run_dir),
         seed=model_run.seed,
         max_seq_length=1024,
-        hyperparams=hyperparams(training_preset, config.get("hardware_profile_id")),
+        hyperparams=selected_hyperparams,
     )
 
 

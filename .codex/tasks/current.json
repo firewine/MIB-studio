@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M3-002 CUDA wrapper.",
-  "phase": "build",
+  "phase": "done",
   "gate": "mib-studio-m3-002-cuda-wrapper",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "ab1b0a6",
+  "head": "e8c8fc9390e8db714683a6a39088993d1321b498",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -41,7 +41,7 @@
     "benchmark, package, export, or playground runtime changes",
     "foundation/spec/mockup/handoff/review edits"
   ],
-  "allowed_edit_paths_scope_note": "M3-001 is pushed. This scope implements M3-002 CUDA worker wrapper around LLaMA-Factory config/dataset conversion, runner protocol, sanitized job events, and ModelRun terminal artifact updates.",
+  "allowed_edit_paths_scope_note": "M3-001 is pushed. This scope implemented M3-002 CUDA worker wrapper around LLaMA-Factory config/dataset conversion, runner protocol, sanitized job events, and ModelRun terminal artifact updates.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
@@ -63,32 +63,45 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "git diff --check"
   ],
-  "executed_verification_commands": [],
-  "failed_verification_commands": [],
+  "executed_verification_commands": [
+    "python3 -m json.tool .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/train_cuda.py services/worker/runtime/llamafactory.py services/shared/db/repositories/training_store.py tests/training/test_cuda_wrapper.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+    "git diff --check",
+    "git diff --cached --check"
+  ],
+  "failed_verification_commands": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py -q",
+      "status": "fixed",
+      "reason": "Initial test setup inserted Dataset before flushing Project FK; test setup was fixed and pytest passed."
+    }
+  ],
   "warnings": [],
   "phase_notes": {
     "plan": "Implement M3-002 only: CUDA train handler, LLaMA-Factory YAML/dataset conversion, runner protocol, log/metric JobEvents, adapter manifest/hash terminal updates. Keep MLX, checkpoint/resume, API, and DB schema out of scope.",
     "audit": "Read M3 handoff, IMPLEMENTATION_GUIDE M3-002 Done notes, ARCHITECTURE Trainer Wrapper Contract and LLaMA-Factory YAML/dataset conversion requirements, existing ModelRun/Job schemas, and M3-001 TrainingStore.",
-    "build": "In progress: add runtime adapter, CUDA handler, training store worker update helpers, config fixture, and focused tests.",
-    "check": "Pending: task JSON, py_compile, focused pytest, import boundary, and diff whitespace checks.",
-    "done": "Pending: update WORKING closeout, commit, and push after verification passes."
+    "build": "Implemented runtime adapter, CUDA handler, TrainingStore worker update helpers, config fixture, and focused tests.",
+    "check": "Required M3-002 verification commands passed: task JSON, py_compile, focused pytest, import boundary, and diff whitespace checks.",
+    "done": "M3-002 implementation was verified and committed at e8c8fc9; closeout updates are ready to commit and push."
   },
   "pabcd": {
-    "active": true,
-    "phase": "build",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m3-002-cuda-wrapper",
-    "status": "MIB_STUDIO_M3_002_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M3_002_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M3-002 CUDA wrapper worker/runtime/tests within listed paths.",
     "blocked_scope": "No MLX wrapper, checkpoint/resume, job control, API changes, DB schema/model/migration, benchmark, package, export, playground, or docs/spec/foundation/mockup/handoff/review edits.",
-    "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
-    "plan": "Implement M3-002 CUDA wrapper.",
-    "audit": "Required references have been read.",
-    "build": "In progress.",
-    "check": "Pending.",
-    "done": "Pending."
+    "phase_completion_git_policy": "Completed: implementation commit e8c8fc9 verified; closeout commit will be pushed to origin/main.",
+    "plan": "Implemented M3-002 CUDA wrapper.",
+    "audit": "Required references were read.",
+    "build": "Implemented and committed at e8c8fc9.",
+    "check": "All required verification commands passed.",
+    "done": "Closeout update is prepared for commit and push."
   }
 }

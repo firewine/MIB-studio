@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     )
     token_file_path: Path = Field(default=Path(".mib-dev-token"), alias="MIB_TOKEN_FILE")
     body_max_bytes: int = Field(default=1_048_576, alias="MIB_BODY_MAX_BYTES")
+    database_url: str = Field(default="sqlite:///mib_studio.db", alias="MIB_DATABASE_URL")
 
     @model_validator(mode="after")
     def validate_security_mode(self) -> "Settings":

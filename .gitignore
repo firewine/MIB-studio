@@ -4,6 +4,7 @@
 !.env.example
 .venv/
 .mib-home/
+/mib_studio.db
 node_modules/
 __pycache__/
 .pytest_cache/

@@ -62,12 +62,12 @@ async def test_invalid_token_rejected() -> None:
 async def test_valid_token_reaches_locked_future_stub() -> None:
     settings = Settings(app_env="production", dev_auth="bootstrap", bootstrap_token="test-token")
     async with client_for(settings) as client:
-        response = await client.get("/projects", headers=allowed_headers("test-token"))
+        response = await client.get("/presets", headers=allowed_headers("test-token"))
 
     body = response.json()
     assert response.status_code == 409
     assert body["error_code"] == "MILESTONE_LOCKED"
-    assert body["details"]["operation_id"] == "listProjects"
+    assert body["details"]["operation_id"] == "listPresets"
     assert body["details"]["current_milestone"] == "M1-001"
 
 
@@ -143,7 +143,7 @@ async def test_token_file_mode_is_development_only_and_accepts_file_token(tmp_pa
     settings = Settings(app_env="development", dev_auth="token_file", token_file_path=token_file)
 
     async with client_for(settings) as client:
-        response = await client.get("/projects", headers=allowed_headers("file-token"))
+        response = await client.get("/presets", headers=allowed_headers("file-token"))
 
     assert response.status_code == 409
     assert response.json()["error_code"] == "MILESTONE_LOCKED"

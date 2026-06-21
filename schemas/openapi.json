@@ -2809,6 +2809,15 @@
           },
           {
             "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "include_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {

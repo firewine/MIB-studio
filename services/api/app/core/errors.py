@@ -44,6 +44,16 @@ def error_response(error: APIError, trace_id: str) -> ORJSONResponse:
     return response
 
 
+def json_safe_errors(errors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    safe: list[dict[str, Any]] = []
+    for item in errors:
+        copied = dict(item)
+        if isinstance(copied.get("ctx"), dict):
+            copied["ctx"] = {key: str(value) for key, value in copied["ctx"].items()}
+        safe.append(copied)
+    return safe
+
+
 async def api_error_handler(request: Request, exc: APIError) -> ORJSONResponse:
     return error_response(exc, request_trace_id(request))
 
@@ -57,7 +67,7 @@ async def validation_error_handler(
             "VALIDATION_ERROR",
             "Request validation failed.",
             status_code=422,
-            details={"errors": exc.errors()},
+            details={"errors": json_safe_errors(exc.errors())},
         ),
         request_trace_id(request),
     )

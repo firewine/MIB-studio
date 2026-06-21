@@ -30,11 +30,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M1_002_DB_MIGRATION_SEED
+phase_id: M1_003_PROJECT_API
 milestone: M1_Core
-phase_status: m1_002_complete
-active_slice: db_migration_seed
-gate_id: mib-studio-m1-002-db-migration-seed
+phase_status: m1_003_complete
+active_slice: project_api_crud_archive_guard
+gate_id: mib-studio-m1-003-project-api
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment: python_venv
 venv_path: .venv
@@ -45,8 +45,8 @@ venv_gitignored: true
 
 ```yaml
 mode: implement
-status: m1_002_complete
-objective: implement M1-002 DB migration and router preset seed
+status: m1_003_complete
+objective: implement M1-003 Project API CRUD and archive guards
 source_gate_packet: user_goal_final_program_development_docs_based_v6_fe
 review_tier: focused
 
@@ -54,13 +54,16 @@ allowed_edit_paths:
   - docs/WORKING.md
   - .codex/tasks/current.json
   - .gitignore
-  - alembic.ini
-  - services/shared/db/models/
-  - services/shared/db/session.py
-  - services/shared/db/seed.py
-  - services/shared/db/migrations/env.py
-  - services/shared/db/migrations/versions/0001_initial.py
-  - tests/db/
+  - services/api/app/main.py
+  - services/api/app/core/config.py
+  - services/api/app/core/errors.py
+  - services/api/app/routes/
+  - services/api/app/schemas/
+  - services/api/app/services/
+  - tests/api/test_auth_bootstrap.py
+  - tests/api/test_projects.py
+  - schemas/openapi.json
+  - apps/desktop/src/lib/generated.ts
   - artifacts/review/
   - artifacts/security/
 blocked_edit_paths:
@@ -69,26 +72,30 @@ blocked_edit_paths:
   - docs/mockup/
   - docs/handoffs/
   - docs/reviews/
-  - services/api/app/routes/
-  - services/api/app/services/
+  - services/shared/db/models/
+  - services/shared/db/migrations/
   - services/worker/
   - packages/
-  - apps/desktop/
+  - apps/desktop/src/features/
+  - apps/desktop/src/pages/
   - .github/
   - scripts/
 
 changed:
   - .gitignore
-  - alembic.ini
-  - services/shared/db/models/
-  - services/shared/db/session.py
-  - services/shared/db/seed.py
-  - services/shared/db/migrations/env.py
-  - services/shared/db/migrations/versions/0001_initial.py
-  - tests/db/test_migration_seed.py
+  - services/api/app/core/config.py
+  - services/api/app/core/errors.py
+  - services/api/app/main.py
+  - services/api/app/routes/
+  - services/api/app/schemas/
+  - services/api/app/services/
+  - tests/api/test_auth_bootstrap.py
+  - tests/api/test_projects.py
+  - schemas/openapi.json
+  - apps/desktop/src/lib/generated.ts
   - artifacts/review/file_size_report.json
 local_uncommitted_context:
-  note: M1-001 API bootstrap was committed and pushed at 33a326f
+  note: M1-002 DB migration + seed was committed and pushed at 1020a90
   do_not_revert_without_user_request: true
 
 result_so_far:
@@ -99,29 +106,31 @@ result_so_far:
   - M1-001 API bootstrap is implemented, verified, committed, and pushed.
   - FastAPI now exposes /healthz, Host/Origin/CORS/body/auth middleware, standard errors, trace_id response headers, and locked future stubs.
   - Bootstrap token helpers support exactly one MIB_BOOTSTRAP line for daemon startup, and Tauri/FE helpers can pass Bearer tokens.
-  - M1-002 DB migration + seed is implemented and verified.
+  - M1-002 DB migration + seed is implemented, verified, committed, and pushed.
   - SQLAlchemy metadata now covers the ARCHITECTURE section 24.2 canonical SQLite schema and indexes.
   - Alembic upgrade/downgrade, FK/integrity checks, router.basic.v1 seed, model_catalog load, and critical partial unique constraints are covered by tests/db.
-  - .gitignore may be repaired only to keep root model artifacts ignored while allowing services/shared/db/models source files to be tracked.
+  - M1-003 Project API is implemented and verified.
+  - Project CRUD, preset existence check, route count/duplicate validation, include_archived list behavior, soft archive, archived mutation guard, and route taxonomy lock are covered by tests.
+  - .gitignore may be repaired only to keep the default local sqlite runtime file out of git.
 ```
 
 ## 3. Verification State
 
 ```yaml
-status: m1_002_complete
+status: m1_003_complete
 passed:
-  - uv pip install --python .venv/bin/python SQLAlchemy==2.0.40 alembic==1.15.2 PyYAML==6.0.2
   - python3 -m json.tool .codex/tasks/current.json
   - test -d .venv
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c "import sqlalchemy, alembic, yaml; print('m1-db-deps-ok')"
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile services/shared/db/models/base.py services/shared/db/models/preset.py services/shared/db/models/project.py services/shared/db/models/dataset.py services/shared/db/models/eval.py services/shared/db/models/hardware.py services/shared/db/models/credential.py services/shared/db/models/job.py services/shared/db/models/training.py services/shared/db/models/package.py services/shared/db/models/audit.py services/shared/db/models/migration.py services/shared/db/models/__init__.py services/shared/db/session.py services/shared/db/seed.py tests/db/test_migration_seed.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/db -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c "import fastapi, sqlalchemy, pydantic, httpx, pytest; print('m1-project-deps-ok')"
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile services/api/app/core/config.py services/api/app/core/errors.py services/api/app/main.py services/api/app/schemas/project.py services/api/app/services/project_service.py services/api/app/routes/projects.py tests/api/test_projects.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/api/test_auth_bootstrap.py tests/db tests/api/test_projects.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py
   - PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --verify-only --skip-install
   - git diff --check
 failed: []
 not_run: []
 required_before_done:
-  - explicit git stage, commit, and push for M1-002
+  - explicit git stage, commit, and push for M1-003
 ```
 
 ## 4. Gate State
@@ -132,17 +141,17 @@ recorded_go:
   M1_Authorized: true
 
 active_gate:
-  id: mib-studio-m1-002-db-migration-seed
-  cto_decision: m1_002_complete
+  id: mib-studio-m1-003-project-api
+  cto_decision: m1_003_complete
   review_bundle:
-    - tests/db/test_migration_seed.py
+    - tests/api/test_projects.py
     - artifacts/review/file_size_report.json
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: scoped M1-003 Project API task contract
+  next_required_check: scoped M1-004 Preset API task contract
 ```
 
 ## 5. Blockers And Deferred Work
@@ -151,7 +160,7 @@ known_project_state:
 operator_blockers: []
 
 blocked_until_later_gate:
-  - M1-003+ API route/service implementation before M1-002 is complete
+  - M1-004+ endpoint implementation before M1-003 is complete
   - frontend screen implementation beyond bootstrap API helpers
   - worker/training/eval/export runtime implementation
   - milestone review bundles
@@ -162,9 +171,9 @@ blocked_until_later_gate:
 
 ```yaml
 immediate:
-  - stage explicit M1-002 files
-  - commit and push M1-002
-  - create a scoped M1-003 Project API task contract before editing API route/service files
+  - stage explicit M1-003 files
+  - commit and push M1-003
+  - create a scoped M1-004 Preset API task contract before editing preset API files
 
 do_not_start_without:
   - explicit user task or approved gate packet
@@ -177,10 +186,11 @@ do_not_start_without:
 ## 7. Resume Prompt For Next LLM
 
 ```text
-Read docs/CONTEXT.md and docs/WORKING.md. Day-0 Bootstrap readiness and M1-001
-API bootstrap have both been committed and pushed. M1-002 DB migration + seed is
-implemented and verified. Finish closeout by ensuring the M1-002 commit is
-pushed, then create a scoped M1-003 Project API task contract before editing API
-route/service files. Do not start FE screens, worker, training, eval, export, or
-teacher runtime work before the proper gate. Use .venv for Python work.
+Read docs/CONTEXT.md and docs/WORKING.md. Day-0 Bootstrap readiness, M1-001 API
+bootstrap, M1-002 DB migration + seed, and M1-003 Project API have been
+implemented, verified, committed/pushed except for the current M1-003 closeout
+commit if it has not yet happened. Finish closeout, then create a scoped M1-004
+Preset API task contract before editing preset API files. Do not start FE
+screens, worker, training, eval, export, or teacher runtime work before the
+proper gate. Use .venv for Python work.
 ```

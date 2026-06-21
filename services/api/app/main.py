@@ -21,6 +21,8 @@ from services.api.app.core.errors import (
     http_error_handler,
     validation_error_handler,
 )
+from services.api.app.routes.projects import router as projects_router
+from services.shared.db.session import create_sqlite_engine, session_factory
 from services.shared.security.auth import SecurityError, format_bootstrap_line, validate_bearer_header
 from services.shared.security.origin import (
     OriginSettings,
@@ -70,6 +72,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or load_settings()
     app = FastAPI(title="MIB Studio Local Daemon", version=app_settings.version)
     app.state.settings = app_settings
+    app.state.db_engine = create_sqlite_engine(app_settings.database_url)
+    app.state.db_session_factory = session_factory(app.state.db_engine)
 
     def custom_openapi() -> dict[str, Any]:
         return openapi_seed()
@@ -135,6 +139,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/healthz")
     async def healthz() -> dict[str, str]:
         return {"status": "ok", "version": app_settings.version}
+
+    app.include_router(projects_router)
 
     @app.api_route("/{path:path}", methods=ROUTE_METHODS)
     async def milestone_locked(request: Request, path: str) -> ORJSONResponse:

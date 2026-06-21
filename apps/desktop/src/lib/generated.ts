@@ -561,7 +561,7 @@ export type ApiOperationId =
 
 export interface ApiOperationMap {
   healthz: { params: void; request: void; response: HealthRead };
-  listProjects: { params: PageParams; request: void; response: PageResponse<ProjectRead> };
+  listProjects: { params: PageParams & { include_archived?: boolean }; request: void; response: PageResponse<ProjectRead> };
   createProject: { params: void; request: ProjectCreate; response: ProjectRead };
   getProject: { params: { id: Id }; request: void; response: ProjectRead };
   updateProject: { params: { id: Id }; request: ProjectPatch; response: ProjectRead };

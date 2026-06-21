@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M3_000_MODEL_CACHE_SERVICE
+phase_id: M3_001_TRAINING_PREFLIGHT
 milestone: M3_Training_Runtime
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-m3-000-model-cache-service
+gate_id: mib-studio-m3-001-training-preflight
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -55,30 +55,29 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m3-000-model-cache-service
-  implementation_commit: c683a2b
+  gate: mib-studio-m3-001-training-preflight
+  implementation_commit: c52a76e
   pushed_to_origin_main: true
-  objective: implement M3-000 Model cache service
+  objective: implement M3-001 Training preflight
   summary:
-    - added services/shared/model_catalog.py strict loader for presets/model_catalog.yaml
-    - rejects M1_DAY0_FILL placeholders, duplicate ids, unsafe paths, trust_remote_code=true, invalid hashes, and missing required weight shards
-    - exposes ModelCatalog, ModelSpec, ModelFile, required files, and stable cache_subdir metadata by model id
-    - added services/worker/model_cache.py with ensure_model(base_model, backend, purpose)
-    - cache path is .mib-home/model_cache/{model_id_sanitized}@{hf_commit_sha}
-    - verifies existing cached files against strict SHA256 metadata before use
-    - uses a per-model fcntl file lock to prevent duplicate concurrent downloads
-    - downloads missing required files through pinned Hugging Face commit SHA when online
-    - returns MODEL_CACHE_MISS_OFFLINE for missing required files in offline/no-downloader mode
-    - quarantines mismatched cached or downloaded files under .mib-home/model_cache/quarantine/
-    - added focused tests for strict catalog load, placeholder rejection, cache hit, pinned download, lock contention, offline miss, and hash mismatch quarantine
+    - added TrainParams validation for train job submit payloads
+    - added ModelRunRead and ModelRunPage API DTOs
+    - added TrainingStore for atomic ModelRun, train Job, and current JobResource insertion
+    - added TrainingService preflight checks for project/preset, approved dataset, strict model catalog, hardware backend enablement, and route snapshot consistency
+    - train submit writes ModelRun(status=QUEUED), Job(type=train, resource_class=gpu_exclusive), and JobResource(resource_type=model_run, is_current=1) in one transaction
+    - Job.params_json includes server-owned model_run_id
+    - JobAcceptedResponse returns created_resource_type=model_run and created_resource_id=model_run.id
+    - added GET /projects/{id}/model-runs and GET /model-runs/{id}
+    - preserved dataset_gen job submit behavior after route dispatch change
+    - added focused tests for train submit resource creation, idempotency replay, model-run read/list, approved dataset guard, hardware backend guard, and route snapshot mismatch guard
 
 m3_previous_work:
+  m3_000_model_cache_service: c683a2b
+  m3_000_closeout: 96c9042
   m2_004_hard_negative_generation: 34a848e
   m2_004_closeout: 464c06c
   m2_003_teacher_synthetic_generation: d1f15fd
   m2_003_closeout: de14577
-  m2_002_teacher_packet_preview: 430b32a
-  m2_002_closeout: 9a1fe8e
 
 local_committed_context:
   day0_ready: 89b346f
@@ -91,7 +90,7 @@ local_committed_context:
   m1_007_desktop_shell: f45968f
   m1_final_smoke_verification: c13fb6f
   m1_final_smoke_closeout: ccb21eb
-  m3_000_model_cache_service: c683a2b
+  m3_001_training_preflight: c52a76e
 
 do_not_start_without:
   - active PABCD task contract
@@ -103,16 +102,20 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m3_000_verified_and_pushed
+status: m3_001_verified_and_pushed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/shared/model_catalog.py services/worker/model_cache.py tests/training/test_model_cache.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_model_cache.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_verification.json
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/routes/jobs.py services/api/app/routes/model_runs.py services/api/app/schemas/job.py services/api/app/schemas/training.py services/api/app/services/training_service.py services/shared/db/repositories/training_store.py tests/training/test_training_preflight.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_training_preflight.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
   - git diff --check
   - git diff --cached --check
-warnings: []
+warnings:
+  - focused M3-001 pytest emits existing FastAPI ORJSONResponse deprecation warnings
+  - focused M3-001 pytest took 181.99s because tests prepare isolated SQLite migrations and ASGI clients
+  - dataset_gen regression pytest took 61.26s and emits the same existing ORJSONResponse deprecation warning
 failed: []
 ```
 
@@ -129,17 +132,18 @@ recorded_go:
   M2_003_Verified: true
   M2_004_Verified: true
   M3_000_Verified: true
+  M3_001_Verified: true
 
 active_gate:
   id: none
-  cto_decision: ready_for_m3_001_scoped_contract
+  cto_decision: ready_for_m3_002_scoped_contract
   review_bundle: artifacts/review
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: create scoped PABCD contract for M3-001 Training preflight
+  next_required_check: create scoped PABCD contract for M3-002 CUDA wrapper
 ```
 
 ## 5. Blockers And Deferred Work
@@ -152,8 +156,8 @@ security_deferred:
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports Gradio 6.x or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - M3-001 training preflight
-  - CUDA/MLX training wrappers
+  - M3-002 CUDA wrapper
+  - M3-003 MLX wrapper
   - checkpoint/resume and job control
   - DB schema/model/migration changes unless explicitly required by the next scoped gate
   - spec/foundation/mockup/handoff/review edits
@@ -163,14 +167,14 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create a new scoped PABCD task contract for M3-001 Training preflight
-  - read docs/handoffs/M3.md and docs/specs/IMPLEMENTATION_GUIDE.md M3-001 sections before edits
+  - create a new scoped PABCD task contract for M3-002 CUDA wrapper
+  - read docs/handoffs/M3.md and docs/specs/IMPLEMENTATION_GUIDE.md M3-002 sections before edits
 ```
 
 ## 7. Resume Prompt For Next LLM
 
 ```text
-Read docs/CONTEXT.md and docs/WORKING.md. M1, M2, and M3-000 Model cache
-service are committed and pushed. Do not start M3-001 until a new scoped PABCD
-task contract is created. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
+Read docs/CONTEXT.md and docs/WORKING.md. M1, M2, M3-000, and M3-001 Training
+preflight are committed and pushed. Do not start M3-002 until a new scoped
+PABCD task contract is created. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
 ```

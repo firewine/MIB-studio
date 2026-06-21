@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M3-001 Training preflight.",
-  "phase": "build",
+  "phase": "done",
   "gate": "mib-studio-m3-001-training-preflight",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "96c9042",
+  "head": "c52a76e4430cc77d00e8e8fbcaa4340dab2e9891",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -44,7 +44,7 @@
     "benchmark, package, export, or playground runtime changes",
     "foundation/spec/mockup/handoff/review edits"
   ],
-  "allowed_edit_paths_scope_note": "M3-000 is pushed. This scope implements M3-001 train job preflight, ModelRun/Job/JobResource transaction creation, and model-run read/list API without touching training runtime wrappers.",
+  "allowed_edit_paths_scope_note": "M3-000 is pushed. This scope implemented M3-001 train job preflight, ModelRun/Job/JobResource transaction creation, and model-run read/list API without touching training runtime wrappers.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
@@ -71,32 +71,45 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "git diff --check"
   ],
-  "executed_verification_commands": [],
+  "executed_verification_commands": [
+    "python3 -m json.tool .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/routes/jobs.py services/api/app/routes/model_runs.py services/api/app/schemas/job.py services/api/app/schemas/training.py services/api/app/services/training_service.py services/shared/db/repositories/training_store.py tests/training/test_training_preflight.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_training_preflight.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+    "git diff --check",
+    "git diff --cached --check"
+  ],
   "failed_verification_commands": [],
-  "warnings": [],
+  "warnings": [
+    "Focused M3-001 pytest emits existing FastAPI ORJSONResponse deprecation warnings.",
+    "Focused M3-001 pytest took 181.99s because tests prepare isolated SQLite migrations and ASGI clients.",
+    "Dataset_gen regression pytest took 61.26s and emits the same existing ORJSONResponse deprecation warning."
+  ],
   "phase_notes": {
     "plan": "Implement M3-001 only: train JobSubmitRequest preflight, approved dataset and hardware backend guard, strict base_model catalog guard, route snapshot consistency, atomic ModelRun+Job+JobResource creation, and model-run read/list APIs.",
     "audit": "Read M3 handoff, IMPLEMENTATION_GUIDE M3-001 Done/transaction notes, ARCHITECTURE ModelRun/JobResource invariants, existing job route/dataset/hardware services, and model catalog/cache boundaries.",
-    "build": "In progress: add training DTOs, store/service, route wiring, and focused training preflight tests.",
-    "check": "Pending: task JSON, py_compile, focused pytest, OpenAPI export, import boundary, and diff whitespace checks.",
-    "done": "Pending: update WORKING closeout, commit, and push after verification passes."
+    "build": "Implemented training DTOs, TrainingStore, TrainingService, jobs route dispatch, model-run routes, and focused preflight tests.",
+    "check": "Required M3-001 verification commands passed: task JSON, py_compile, focused pytest, OpenAPI export, import boundary, and diff whitespace checks. Dataset_gen regression also passed.",
+    "done": "M3-001 implementation was verified and committed at c52a76e; closeout updates are ready to commit and push."
   },
   "pabcd": {
-    "active": true,
-    "phase": "build",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m3-001-training-preflight",
-    "status": "MIB_STUDIO_M3_001_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M3_001_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M3-001 train preflight API/service/store/tests within listed paths.",
     "blocked_scope": "No CUDA/MLX runtime execution, worker training wrappers, checkpoint/resume, job control, DB schema/model/migration, benchmark, package, export, playground, or docs/spec/foundation/mockup/handoff/review edits.",
-    "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
-    "plan": "Implement M3-001 Training preflight.",
-    "audit": "Required references have been read.",
-    "build": "In progress.",
-    "check": "Pending.",
-    "done": "Pending."
+    "phase_completion_git_policy": "Completed: implementation commit c52a76e verified; closeout commit will be pushed to origin/main.",
+    "plan": "Implemented M3-001 Training preflight.",
+    "audit": "Required references were read.",
+    "build": "Implemented and committed at c52a76e.",
+    "check": "All required verification commands passed.",
+    "done": "Closeout update is prepared for commit and push."
   }
 }

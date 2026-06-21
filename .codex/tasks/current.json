@@ -2,7 +2,7 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M6-001 Zip export API, worker handler, runtime template, manifest validation, and focused smoke/security tests.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m6-001-zip-export",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
@@ -110,14 +110,14 @@
     "audit": "Read WORKING, CONTEXT, M6 handoff, IMPLEMENTATION_GUIDE M6-001/M6-002 boundary, Dev Plan Phase 6 acceptance, export_manifest schema, existing runtime template/loaders/tests, export secret scanner, model catalog, job and ExportArtifact models, and existing job/API patterns.",
     "build": "Implemented zip export API/service/store, worker handler, manifest and artifact hash verification, exported runtime native and OpenAI-compatible endpoints, backend loader invocation hooks, copied deterministic router inference core, model-cache/bearer-token runtime checks, and focused export/runtime/security/parity tests.",
     "check": "Passed bootstrap m1-smoke, task JSON, py_compile, tests/export, runtime template smoke, playground plus AgentPackage verifier regression, export secret scan self-test, import boundary, file-size hard-limit, unstaged diff whitespace, and staged diff whitespace checks.",
-    "done": "Pending commit and push after verification passes."
+    "done": "Implementation committed as 31971d7; WORKING closeout prepared and ready for push."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m6-001-zip-export",
     "status": "MIB_STUDIO_M6_001_VERIFIED",
-    "phase_complete": false,
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": true,
@@ -128,6 +128,6 @@
     "audit": "Required references have been read.",
     "build": "Implementation complete.",
     "check": "All required verification passed.",
-    "done": "Pending."
+    "done": "M6-001 verified, implementation committed as 31971d7, and closeout prepared for push."
   }
 }

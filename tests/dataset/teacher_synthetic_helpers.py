@@ -40,25 +40,46 @@ class TeacherSyntheticSetup:
 
 
 class FakeTeacherClient:
-    def __init__(self, *, count: int = 200, overlap_input: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        count: int = 200,
+        hard_negative_count: int = 40,
+        overlap_input: dict[str, Any] | None = None,
+    ) -> None:
         self.count = count
+        self.hard_negative_count = hard_negative_count
         self.overlap_input = overlap_input
 
     def generate_examples(self, packet: dict[str, Any], *, target_count: int) -> list[dict[str, Any]]:
         route_ids = [route["route_id"] for route in packet["rules"]]
+        boundary_routes = [
+            route_id
+            for route_id in route_ids
+            if route_id.startswith("blocked") or route_id.endswith("_block") or route_id == "human_review"
+        ]
+        if not boundary_routes:
+            boundary_routes = route_ids
         count = max(self.count, target_count)
         examples = []
         for index in range(count):
-            route_id = route_ids[index % len(route_ids)]
+            is_hard_negative = index < self.hard_negative_count
+            route_pool = boundary_routes if is_hard_negative else route_ids
+            route_id = route_pool[index % len(route_pool)]
             input_payload = {
-                "text": f"synthetic teacher case {index} for {route_id}",
+                "text": f"synthetic {'hard negative' if is_hard_negative else 'teacher'} case {index} for {route_id}",
                 "allowed_routes": route_ids,
-                "metadata": {"synthetic_index": index, "teacher_packet_sha": packet.get("packet_sha256")},
+                "metadata": {
+                    "synthetic_index": index,
+                    "boundary_case": is_hard_negative,
+                    "teacher_packet_sha": packet.get("packet_sha256"),
+                },
             }
             if index == 0 and self.overlap_input is not None:
                 input_payload = self.overlap_input
             examples.append(
                 {
+                    "source": "hard_negative" if is_hard_negative else "teacher",
                     "input": input_payload,
                     "output": {
                         "route": route_id,
@@ -151,6 +172,7 @@ async def create_approved_teacher_synthetic_job(
     client: httpx.AsyncClient,
     *,
     target_count: int = 200,
+    hard_negative_min_count: int = 40,
 ) -> TeacherSyntheticSetup:
     project = await call_api(client.post("/projects", json=project_payload(), headers=auth_headers()))
     assert project.status_code == 201, project.text
@@ -219,6 +241,7 @@ async def create_approved_teacher_synthetic_job(
                     "generation_mode": "teacher_synthetic",
                     "teacher_packet_approval_id": approval.json()["approval_id"],
                     "target_count": target_count,
+                    "hard_negative_min_count": hard_negative_min_count,
                 },
             },
             headers=auth_headers(),

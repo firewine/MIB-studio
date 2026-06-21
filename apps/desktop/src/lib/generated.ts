@@ -195,6 +195,7 @@ export interface DatasetGenParams {
   teacher_packet_approval_id?: Id | null;
   packet_sha256?: string | null;
   target_count: number;
+  hard_negative_min_count: number;
 }
 
 export interface TrainParams {

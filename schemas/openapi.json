@@ -911,7 +911,8 @@
         "type": "object",
         "required": [
           "generation_mode",
-          "target_count"
+          "target_count",
+          "hard_negative_min_count"
         ],
         "properties": {
           "dataset_id": {
@@ -956,6 +957,12 @@
             "minimum": 20,
             "maximum": 5000,
             "default": 200
+          },
+          "hard_negative_min_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5000,
+            "default": 40
           }
         },
         "additionalProperties": false

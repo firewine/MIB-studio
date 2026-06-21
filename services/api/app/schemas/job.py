@@ -19,11 +19,14 @@ class DatasetGenParams(StrictModel):
     teacher_packet_approval_id: str | None = None
     packet_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     target_count: int = Field(default=200, ge=20, le=5000)
+    hard_negative_min_count: int = Field(default=40, ge=0, le=5000)
 
     @model_validator(mode="after")
     def require_teacher_approval(self) -> "DatasetGenParams":
         if self.generation_mode == "teacher_synthetic" and not self.teacher_packet_approval_id:
             raise ValueError("teacher_packet_approval_id is required for teacher_synthetic")
+        if self.hard_negative_min_count > self.target_count:
+            raise ValueError("hard_negative_min_count must not exceed target_count")
         return self
 
 

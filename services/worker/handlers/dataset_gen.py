@@ -25,6 +25,7 @@ class DatasetGenResult:
     job_id: str
     dataset_id: str
     generated_count: int
+    hard_negative_count: int
     validated_count: int
     rejected_count: int
     packet_sha256: str
@@ -78,6 +79,7 @@ def run_dataset_gen_job(
             "phase": "done",
             "generation_mode": "teacher_synthetic",
             "generated_count": result.generated_count,
+            "hard_negative_count": result.hard_negative_count,
             "validated_count": result.validated_count,
             "rejected_count": result.rejected_count,
             "packet_sha256": result.packet_sha256,
@@ -126,10 +128,18 @@ def _run_teacher_synthetic(
     guard_hashes = _teacher_guard_input_hashes(teacher_guard)
 
     target_count = int(params.get("target_count") or 200)
+    hard_negative_min_count = int(params.get("hard_negative_min_count") or 0)
     packet = json.loads(approval.packet_json)
     _audit_teacher_egress(session, job, approval, target_count=target_count)
     raw_examples = list(teacher_client.generate_examples(packet, target_count=target_count))
-    examples = _validate_generated_examples(raw_examples, source_dataset, guard_hashes, target_count=target_count)
+    examples = _validate_generated_examples(
+        raw_examples,
+        source_dataset,
+        guard_hashes,
+        target_count=target_count,
+        hard_negative_min_count=hard_negative_min_count,
+    )
+    hard_negative_count = sum(1 for example in examples if example.source == "hard_negative")
 
     now = utc_now()
     store = DatasetStore(session, mib_home)
@@ -156,6 +166,7 @@ def _run_teacher_synthetic(
         job_id=job.id,
         dataset_id=dataset.id,
         generated_count=len(raw_examples),
+        hard_negative_count=hard_negative_count,
         validated_count=len(examples),
         rejected_count=len(raw_examples) - len(examples),
         packet_sha256=packet_sha256,
@@ -168,6 +179,7 @@ def _validate_generated_examples(
     guard_hashes: set[str],
     *,
     target_count: int,
+    hard_negative_min_count: int,
 ) -> list[DatasetExampleInput]:
     if len(raw_examples) < target_count:
         raise DatasetGenWorkerError(
@@ -183,8 +195,12 @@ def _validate_generated_examples(
     for index, raw in enumerate(raw_examples):
         input_payload = raw.get("input")
         output_payload = raw.get("output")
+        source = raw.get("source") or "teacher"
         if not isinstance(input_payload, dict) or not isinstance(output_payload, dict):
             row_errors.append({"row_index": index, "code": "ROW_SHAPE_INVALID"})
+            continue
+        if source not in {"teacher", "hard_negative"}:
+            row_errors.append({"row_index": index, "code": "SOURCE_INVALID"})
             continue
         input_sha256 = sha256_text(canonical_json(input_payload))
         if input_sha256 in guard_hashes:
@@ -195,7 +211,7 @@ def _validate_generated_examples(
                 {"row_index": index, "errors": [error.model_dump() for error in errors], "code": "SCHEMA_VALIDATION_FAILED"}
             )
             continue
-        examples.append(DatasetExampleInput(input=input_payload, output=output_payload, source="teacher"))
+        examples.append(DatasetExampleInput(input=input_payload, output=output_payload, source=str(source)))
 
     if overlaps:
         raise DatasetGenWorkerError(
@@ -213,6 +229,13 @@ def _validate_generated_examples(
         raise DatasetGenWorkerError(
             "TEACHER_SYNTHETIC_UNDER_VALIDATED",
             "Teacher response did not produce enough schema-valid examples.",
+            error_class="SCHEMA_VALIDATION_FAIL",
+        )
+    hard_negative_count = sum(1 for example in examples if example.source == "hard_negative")
+    if hard_negative_count < hard_negative_min_count:
+        raise DatasetGenWorkerError(
+            "DATASET_HARD_NEGATIVE_MIN_NOT_MET",
+            f"Teacher response produced {hard_negative_count} schema-valid hard negatives; {hard_negative_min_count} required.",
             error_class="SCHEMA_VALIDATION_FAIL",
         )
     return examples

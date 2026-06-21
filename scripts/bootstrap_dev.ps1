@@ -147,7 +147,7 @@ foreach ($file in $requiredFiles) {
 
 $toolchainStrict = -not ($VerifyOnly -and $Phase -eq "scaffold")
 $toolErrors = @()
-foreach ($cmd in @("node", "corepack", "sqlite3", "rustc")) {
+foreach ($cmd in @("node", "corepack", "rustc")) {
   if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
     $toolErrors += "missing required tool: $cmd"
   }
@@ -177,7 +177,7 @@ $nodeVersion = ((& node --version 2>&1) -join "").TrimStart("v")
 $pnpmVersion = ((& corepack pnpm --version 2>&1) -join "")
 $rustVersion = ((& rustc --version 2>&1) -join "")
 $rustOk = ($LASTEXITCODE -eq 0)
-$sqliteVersion = ((& sqlite3 --version 2>&1) -join "").Split(" ")[0]
+$sqliteVersion = (Invoke-RepoPython -c "import sqlite3; print(sqlite3.sqlite_version)" 2>&1) -join ""
 $expectedNode = (Get-Content ".node-version").Trim()
 $expectedRust = ((Get-Content "rust-toolchain.toml") | Select-String 'channel = "([^"]+)"').Matches.Groups[1].Value
 $checks = [ordered]@{

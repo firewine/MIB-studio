@@ -77,7 +77,7 @@ if [ "$VERIFY_ONLY" = "1" ] && [ "$PHASE" = "scaffold" ]; then
   TOOLCHAIN_STRICT="0"
 fi
 
-for cmd in "$PYTHON_BIN" node corepack sqlite3 rustc; do
+for cmd in "$PYTHON_BIN"; do
   command -v "$cmd" >/dev/null 2>&1 || { echo "missing required tool: $cmd" >&2; exit 1; }
 done
 

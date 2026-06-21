@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: DOCKER_RUNTIME_REMEDIATION
-milestone: M6_RC_Blocker_Remediation
+phase_id: STRICT_MODEL_CACHE_EVIDENCE
+milestone: M6_RC_Blocker_Evidence
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-docker-runtime-evidence-remediation
+gate_id: mib-studio-strict-model-cache-runtime-evidence
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -45,10 +45,6 @@ dev_environment:
     node: /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin
     rustc: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin
     cargo: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin
-  last_bootstrap_smoke:
-    command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
-    status: passed
-    note: toolchain versions passed; cuda pip-audit was skipped by project policy and recorded under artifacts/security
 ```
 
 ## 2. Current Work
@@ -61,24 +57,27 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-docker-runtime-evidence-remediation
+  gate: mib-studio-strict-model-cache-runtime-evidence
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: fix real Docker runtime import and image-tar scan blockers, then restore the m1-smoke Route contract guard
+  objective: determine whether strict Gemma cache can be used for exported Docker endpoint evidence
   evidence:
-    previous_blocker_evidence: artifacts/review/docker_runtime_evidence.md
-    remediation_evidence: artifacts/review/docker_runtime_remediation_evidence.md
+    strict_model_cache: artifacts/review/strict_model_cache_evidence.md
+    docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - Dockerfile.cuda now sets PYTHONPATH=/app/runtime so uvicorn agents.run:app imports inside the image
-    - scan_export_artifact.py now validates Docker image tar manifest.json lists separately from MIB export manifest objects
-    - Docker export test now validates context tar structure in default mode and image tar structure in real-build mode
-    - desktop main.mjs restores exact Route contract smoke text expected by m1-smoke
-    - real Docker build/save passed with digest-pinned getbeta-backend base image
-    - remediated container starts Uvicorn and imports agents.run successfully
-    - endpoint success remains blocked by missing strict external model cache; no M6-RC GO was claimed
+    - strict model catalog verification passed with errors=[]
+    - required Gemma cache subdir is google__gemma-2b-it@96988410cbdaeb8d5093d1ebdc5a8fb563e02bad
+    - local searches found no matching strict cache and no Hugging Face cache directory
+    - only fake 0000... fixture caches were found under /tmp and must not be used as evidence
+    - HF_TOKEN, HUGGING_FACE_HUB_TOKEN, HUGGINGFACE_TOKEN, HF token files, and netrc are absent
+    - network HEAD request to Gemma config returned HTTP 401 GatedRepo
+    - model_cache.ensure_model in offline mode returns MODEL_CACHE_MISS_OFFLINE with all five required files missing
+    - endpoint success transcripts remain blocked by missing authenticated Gemma access or user-provided strict cache
+    - no product code, model catalog, runtime, loader, API, DB, FE, benchmark, or release sign-off files were changed
 
 m6_previous_work:
+  docker_runtime_remediation: caf9c0f
   docker_runtime_evidence_not_go: 860f5d6
   fe_v6_mockup: d7a68bf
   m6_rc_signoff: 841d620
@@ -113,26 +112,20 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: docker_runtime_remediation_verified
+status: strict_model_cache_access_blocked
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest packages/agent-runtime/tests/test_docker_export_security.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --self-test
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
-  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
-  - MIB_DOCKER_EXPORT_REAL_BUILD=1 MIB_DOCKER_BASE_IMAGE_WITH_DIGEST=getbeta-backend@sha256:95792b6d22c23bd9b95e91b1e53365ebaa31b12847a242fdac63e8f4434034f1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --artifact <saved-image-tar> --sbom <sbom> --cve-report <cve-report> --require-docker-evidence
-  - docker run remediated image with read-only empty /models mount
-  - docker exec remediated container python -c "import agents.run"
-  - curl -i http://127.0.0.1:18081/healthz
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json
+  - local search for matching Gemma cache root
+  - HF credential presence check without printing secrets
+  - MIB_OFFLINE=1 model_cache.ensure_model miss check
+  - network HEAD check to Gemma config returned authenticated-gated response
   - git diff --check
   - git diff --cached --check
 warnings:
   - M6-RC decision remains NOT_GO until strict model cache exists and endpoint transcripts pass in a scoped re-review
-  - /healthz currently returns HTTP 500 with RuntimeError MODEL_CACHE_MISSING: config.json when /models is empty
-  - file_size_report has existing soft warnings only; no hard file-size violations remain
-  - cuda pip-audit remains skipped by project policy because upstream CUDA training dependency constraints still apply
+  - /healthz success, /agents/{agent_id}/run success, and /v1/chat/completions success are not proven
+  - Gemma requires authenticated HF access with accepted terms, or an externally supplied strict cache
 failed: []
 ```
 
@@ -150,15 +143,17 @@ recorded_go:
   M6_002_Verified: true
   FE_V6_Mockup_Verified: true
   Docker_Runtime_Import_And_ImageTarScan_Remediated: true
+  Strict_Model_Catalog_Verified: true
 
 recorded_not_go:
   M6_RC_Signoff: true
   Docker_Runtime_Endpoint_Success_With_Strict_Model_Cache: true
+  Strict_Gemma_Model_Cache_Available: true
 
 active_gate:
   id: none
-  cto_decision: ready_for_strict_model_cache_provisioning_then_runtime_endpoint_evidence_and_m6_rc_rereview
-  review_bundle: artifacts/review/docker_runtime_remediation_evidence.md
+  cto_decision: waiting_for_authenticated_gemma_access_or_user_supplied_strict_cache
+  review_bundle: artifacts/review/strict_model_cache_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -171,41 +166,44 @@ known_project_state:
 
 ```yaml
 operator_blockers:
-  - strict external model cache is missing under a read-only MIB_MODEL_CACHE_DIR mount
+  - no HF token or local HF credential exists in this environment
+  - Hugging Face returns HTTP 401 GatedRepo for google/gemma-2b-it without authentication
+  - no strict external Gemma cache root is present
 
 security_deferred:
   - cuda pip-audit ignores upstream-blocked training dependency advisories under the existing project exception policy
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports newer safe transitive dependency versions or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
+  - materialize google__gemma-2b-it@96988410cbdaeb8d5093d1ebdc5a8fb563e02bad outside repo with exact strict catalog hashes
   - successful /healthz transcript with strict model cache
   - successful /agents/{agent_id}/run transcript with strict model cache
   - successful /v1/chat/completions transcript with strict model cache
   - M6-RC re-review after endpoint runtime evidence is complete
-  - DB schema/model/migration changes unless explicitly required by a scoped gate
-  - spec/foundation/mockup/handoff/review edits
 ```
 
 ## 6. Next Work
 
 ```yaml
 immediate:
-  - create a scoped PABCD contract for strict model cache provisioning or discovery
-  - mount the required Gemma cache read-only at MIB_MODEL_CACHE_DIR
-  - rerun the remediated Docker image and capture /healthz, /agents/{agent_id}/run, and /v1/chat/completions transcripts
-  - rerun M6-RC sign-off after endpoint runtime evidence is complete
+  - get an HF token for an account that accepted google/gemma-2b-it terms, or provide a prebuilt strict cache root
+  - create a scoped PABCD contract for cache materialization and endpoint evidence
+  - run services.worker.model_cache.ensure_model for google/gemma-2b-it cuda runtime_evidence with the cache outside git
+  - mount the cache root read-only into the remediated Docker image
+  - capture /healthz, /agents/{agent_id}/run, and /v1/chat/completions transcripts
+  - rerun M6-RC sign-off only after endpoint runtime evidence passes
 ```
 
 ## 7. Resume Prompt For Next LLM
 
 ```text
-Read docs/CONTEXT.md and docs/WORKING.md. The FE v6 mockup is committed at
-d7a68bf. Real Docker evidence at 860f5d6 found NOT_GO blockers. The current
-remediation fixed Docker agents.run import and saved Docker image tar scanning,
-and evidence is in artifacts/review/docker_runtime_remediation_evidence.md.
-M6-RC remains NOT_GO because strict external Gemma model cache is still missing;
-do not claim endpoint success until /healthz, /agents/{agent_id}/run, and
-/v1/chat/completions pass with a read-only MIB_MODEL_CACHE_DIR mount. Use .venv
-for Python. Frontend commands should use the cached strict Node/pnpm toolchain
-recorded above.
+Read docs/CONTEXT.md and docs/WORKING.md. FE v6 mockup is committed at d7a68bf.
+Docker runtime import/image-tar scan remediation is committed at caf9c0f. Strict
+model cache evidence is in artifacts/review/strict_model_cache_evidence.md.
+M6-RC remains NOT_GO because the environment has no authenticated Gemma access
+and no strict cache root. Do not fake cache files or claim endpoint success.
+Next work requires HF_TOKEN/HUGGING_FACE_HUB_TOKEN/HUGGINGFACE_TOKEN for an
+account with accepted google/gemma-2b-it terms, or a user-provided cache root
+containing google__gemma-2b-it@96988410cbdaeb8d5093d1ebdc5a8fb563e02bad with
+strict catalog hashes. Use .venv for Python.
 ```

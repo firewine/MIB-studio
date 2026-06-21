@@ -1,29 +1,25 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Fix Docker runtime evidence blockers found by real Docker build/save/run and restore the m1-smoke bootstrap guard after the FE v6 mockup: make agents.run importable inside the exported image, support saved Docker image tar scanning without confusing Docker manifest.json with MIB manifest.json, preserve the Route contract UI contract, and update focused tests while preserving export contracts.",
+  "goal": "Provision or conclusively discover the strict external Gemma model cache required by the exported Docker runtime, then collect /healthz, /agents/{agent_id}/run, and /v1/chat/completions evidence with a read-only MIB_MODEL_CACHE_DIR mount if the cache is available. Do not fake model files, do not bundle base-model weights into the repo or image, and do not claim M6-RC GO unless endpoint evidence actually passes.",
   "phase": "done",
-  "gate": "mib-studio-docker-runtime-evidence-remediation",
+  "gate": "mib-studio-strict-model-cache-runtime-evidence",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "860f5d6",
+  "head": "caf9c0f",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
-    "packages/agent-runtime/templates/docker/Dockerfile.cuda",
-    "packages/agent-runtime/tests/test_docker_export_security.py",
-    "scripts/scan_export_artifact.py",
-    "tests/export/test_docker_export_security.py",
-    "apps/desktop/src/main.mjs",
     "artifacts/review/",
     "artifacts/security/"
   ],
   "blocked_path_prefixes": [
     "services",
+    "apps",
     "schemas",
-    "packages/agent-runtime/templates/zip_runtime",
-    "packages/agent-runtime/loaders",
-    "packages/agent-runtime/core",
+    "packages",
+    "scripts",
+    "tests",
     "docs/foundation",
     "docs/specs",
     "docs/mockup",
@@ -32,84 +28,99 @@
     ".github"
   ],
   "blocked_scope": [
-    "Backend/API/DB behavior changes",
-    "Export worker behavior changes outside focused tests and Dockerfile runtime path fix",
-    "Runtime inference, loader, verifier, or schema behavior changes",
-    "FE changes except the exact m1-smoke Route contract text guard in apps/desktop/src/main.mjs",
-    "Benchmark number edits or invented benchmark claims",
-    "M6-RC GO/sign-off changes",
-    "Model catalog changes"
+    "Product code changes",
+    "Runtime, loader, verifier, schema, API, DB, worker, FE, or benchmark changes",
+    "Bundling base-model weights in git, export artifacts, or Docker image",
+    "Creating fake strict-cache files or weakening hash/size validation",
+    "M6-RC GO/sign-off changes before endpoint transcripts pass"
   ],
-  "allowed_edit_paths_scope_note": "This remediation fixes the Docker image import path, scan/test support for saved image tar evidence, and the m1-smoke Route contract UI text guard. It does not bypass strict model-cache requirements or claim RC GO.",
+  "allowed_edit_paths_scope_note": "This gate records strict model cache discovery/provisioning and exported Docker endpoint evidence only. It may write large model files only outside the repo, under an explicit external cache path such as /tmp/mib-strict-model-cache or an existing user-provided cache root.",
+  "external_runtime_paths": [
+    "/tmp/mib-strict-model-cache",
+    "/tmp/mib-docker-evidence",
+    "existing user-provided model cache roots if discovered"
+  ],
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/specs/IMPLEMENTATION_GUIDE.md",
-    "artifacts/review/docker_runtime_evidence.md",
-    "services/worker/handlers/export_docker.py",
+    "docs/specs/AGENT_CONTRACT_SPEC.md",
+    "presets/model_catalog.yaml",
+    "services/worker/model_cache.py",
+    "services/shared/model_catalog.py",
     "packages/agent-runtime/templates/zip_runtime/agents/run.py",
-    "tests/smoke/test_m1_smoke.py",
-    "tests/export/test_export_api.py",
-    "tests/export/test_exported_runtime_smoke.py"
+    "packages/agent-runtime/loaders/transformers_lora.py",
+    "artifacts/review/docker_runtime_evidence.md",
+    "artifacts/review/docker_runtime_remediation_evidence.md"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest packages/agent-runtime/tests/test_docker_export_security.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --self-test",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
     "git diff --check",
     "git diff --cached --check"
+  ],
+  "required_evidence": [
+    "Strict catalog-required Gemma cache_subdir and required file list",
+    "Search result for existing matching cache roots",
+    "HF token/terms availability check without exposing secret values",
+    "If network/cache provisioning is possible, downloader command result and required file hash verification",
+    "If strict cache exists, Docker run with read-only MIB_MODEL_CACHE_DIR mount",
+    "If strict cache exists, HTTP transcript for /healthz",
+    "If strict cache exists, HTTP transcript for /agents/{agent_id}/run",
+    "If strict cache exists, HTTP transcript for /v1/chat/completions",
+    "If strict cache remains unavailable, concrete blocker with exact missing external condition"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest packages/agent-runtime/tests/test_docker_export_security.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --self-test",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-    "MIB_DOCKER_EXPORT_REAL_BUILD=1 MIB_DOCKER_BASE_IMAGE_WITH_DIGEST=getbeta-backend@sha256:95792b6d22c23bd9b95e91b1e53365ebaa31b12847a242fdac63e8f4434034f1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --artifact <saved-image-tar> --sbom <sbom> --cve-report <cve-report> --require-docker-evidence",
-    "docker run -d --name mib-docker-evidence-71aff -p 127.0.0.1:18081:8000 -v /tmp/mib-docker-evidence/model_cache:/models:ro -e MIB_MODEL_CACHE_DIR=/models -e MIB_RUNTIME_BEARER_TOKEN=<redacted> mib-export-71aff545aa454ed096e3c29c59e6b862:latest",
-    "docker exec mib-docker-evidence-71aff python -c \"import agents.run; print('agents.run import ok')\"",
-    "curl -sS -i http://127.0.0.1:18081/healthz",
-    "docker logs mib-docker-evidence-71aff",
-    "docker rm -f mib-docker-evidence-71aff",
-    "git diff --check",
-    "git diff --cached --check"
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
+    "find /home/firewine/.cache/huggingface /home/firewine/MIB-studio /tmp -maxdepth 8 -type d -name 'google__gemma-2b-it@96988410cbdaeb8d5093d1ebdc5a8fb563e02bad'",
+    "find /home/firewine/.cache/huggingface /home/firewine/MIB-studio /tmp -maxdepth 10 -type f -name '<required-cache-file>' -printf '%s %p\\n'",
+    "HF token environment presence check without printing secret values",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. MIB_OFFLINE=1 ./.venv/bin/python -c '<ensure_model google/gemma-2b-it cuda runtime_evidence>'",
+    "df -h /tmp /home/firewine/MIB-studio",
+    "find /tmp/mib-strict-model-cache -maxdepth 4 -type f -printf '%s %p\\n'",
+    "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}' | rg '^mib-export-71aff|^mib-export-'",
+        "HF credential file presence check without printing secret values",
+        "curl -sS -I -L --max-time 30 https://huggingface.co/google/gemma-2b-it/resolve/96988410cbdaeb8d5093d1ebdc5a8fb563e02bad/config.json",
+        "git diff --check",
+        "git diff --cached --check"
   ],
-  "failed_verification_commands": [],
+  "failed_verification_commands": [
+    {
+      "command": "curl -sS -I -L --max-time 30 https://huggingface.co/google/gemma-2b-it/resolve/96988410cbdaeb8d5093d1ebdc5a8fb563e02bad/config.json",
+      "reason": "Sandbox DNS resolution failed; rerun with network access succeeded and returned HTTP 401 GatedRepo."
+    }
+  ],
   "warnings": [
-    "This remediation does not make M6-RC GO because success endpoint smoke still needs a strict external model cache.",
-    "No model catalog, runtime inference, export worker, API, DB, broad FE, benchmark, or release-signoff behavior may change.",
-    "Real Docker build/save/run evidence was rerun; container import now passes and health reaches MODEL_CACHE_MISSING because strict model cache is absent."
+    "Gemma is gated by license terms; do not bypass terms or fabricate cache files.",
+    "This evidence gate does not change product code and does not make M6-RC GO unless endpoint evidence actually passes.",
+    "Large model files must stay outside git and outside exported images."
   ],
   "phase_notes": {
-    "plan": "Patch Dockerfile import path, saved image tar scanner/tests, and the FE Route contract smoke text guard based on recorded evidence.",
-    "audit": "Focused read completed for Dockerfile, scanner, Docker tests, smoke test, app entrypoint, and recorded evidence artifact.",
-    "build": "Patch Dockerfile import path, scanner Docker image tar support, focused tests, and Route contract UI smoke text.",
-    "check": "All required verification commands passed. Real Docker build/save passed with daemon access. Container import path is fixed; /healthz reaches MODEL_CACHE_MISSING because strict model cache is absent.",
-    "done": "Remediation complete and documented in artifacts/review/docker_runtime_remediation_evidence.md. M6-RC remains NOT_GO until strict model cache endpoint transcripts pass."
+    "plan": "Open a scoped evidence contract for strict model cache discovery/provisioning and exported Docker endpoint evidence.",
+    "audit": "Focused read completed for strict catalog, model cache service, runtime cache validation, loader behavior, M6 export acceptance, and prior Docker evidence.",
+    "build": "Collected strict catalog verification, local cache discovery, HF credential availability, offline model-cache miss, disk, Docker image availability, and HF gated access evidence.",
+    "check": "Strict catalog verification passed. No valid strict Gemma cache or HF credential exists. Hugging Face returned HTTP 401 GatedRepo for unauthenticated Gemma access.",
+    "done": "Evidence recorded in artifacts/review/strict_model_cache_evidence.md. Endpoint success evidence remains blocked by missing authenticated Gemma access or user-provided strict cache."
   },
   "pabcd": {
     "active": false,
     "phase": "done",
-    "gate": "mib-studio-docker-runtime-evidence-remediation",
-    "status": "MIB_STUDIO_DOCKER_REMEDIATION_COMPLETE_MODEL_CACHE_BLOCKED",
+    "gate": "mib-studio-strict-model-cache-runtime-evidence",
+    "status": "MIB_STUDIO_STRICT_MODEL_CACHE_NOT_GO_ACCESS_BLOCKED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Focused Docker runtime image import path, image tar scan support, tests, FE Route contract smoke text guard, and evidence/closeout docs.",
-    "blocked_scope": "No broad product behavior, schema, DB, API, broad FE, model catalog, benchmark, or release sign-off changes.",
-    "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
-    "plan": "Create scoped remediation contract.",
-    "audit": "Focused read completed for Dockerfile, scanner, Docker tests, smoke test, app entrypoint, and recorded evidence artifact.",
-    "build": "Patch focused Docker runtime and smoke guard files.",
-    "check": "All required verification commands passed; real Docker daemon evidence confirms import remediation and MODEL_CACHE_MISSING boundary.",
-    "done": "Stage, commit, and push this completed remediation phase."
+    "approved_scope": "Strict model cache discovery/provisioning evidence, exported Docker runtime endpoint evidence if cache exists, and operational docs/artifacts.",
+    "blocked_scope": "No product code changes, no fake cache, no bundled model weights, no release GO changes.",
+    "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
+    "plan": "Create scoped strict model cache/runtime evidence contract.",
+    "audit": "Focused read completed for strict catalog, model cache service, runtime cache validation, loader behavior, M6 export acceptance, and prior Docker evidence.",
+    "build": "Collected strict model cache discovery/provisioning evidence.",
+    "check": "Required evidence proves strict cache is unavailable in this environment and Gemma access is gated without credentials.",
+    "done": "Stage, commit, and push this NOT_GO evidence phase."
   }
 }

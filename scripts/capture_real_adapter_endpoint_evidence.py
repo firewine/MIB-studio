@@ -15,6 +15,7 @@ from typing import Any
 
 
 DEFAULT_OUTPUT = "artifacts/review/real_trained_adapter_endpoint_evidence.md"
+DEFAULT_JSON_OUTPUT = "artifacts/review/real_trained_adapter_endpoint_evidence.json"
 
 
 @dataclass(frozen=True)
@@ -84,6 +85,10 @@ def parse_json(text: str) -> Any:
         return text
 
 
+def is_sha256(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+
+
 def verify_endpoint_outputs(native: EndpointResult, openai: EndpointResult) -> tuple[bool, dict[str, Any]]:
     native_output = native.body.get("output") if isinstance(native.body, dict) else None
     choices = openai.body.get("choices") if isinstance(openai.body, dict) else None
@@ -149,6 +154,8 @@ container_name: {report["container_name"]}
 agent_id: {report["agent_id"]}
 model_cache_dir: {report["model_cache_dir"]}
 adapter_intake_report: {report["adapter_intake_report"]}
+adapter_sha256: {report["adapter_sha256"]}
+artifact_manifest_sha256: {report["artifact_manifest_sha256"]}
 docker_run: {report["docker_run_redacted"]}
 fake_backend_env_absent: {str(report["inspect"].get("fake_backend_absent")).lower()}
 readonly_model_cache_mount: {str(report["inspect"].get("readonly_model_cache_mount")).lower()}
@@ -195,6 +202,33 @@ self_test: {str(report["self_test"]).lower()}
 """
 
 
+def normalize_report(report: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": "mib_real_adapter_endpoint_evidence.v1",
+        "source": "self_test" if report["self_test"] else "live_docker_capture",
+        "decision": "GO_REAL_TRAINED_ADAPTER_ENDPOINT",
+        "date": report["date"],
+        "self_test": bool(report["self_test"]),
+        "image": report["image"],
+        "container_name": report["container_name"],
+        "agent_id": report["agent_id"],
+        "model_cache_dir": report["model_cache_dir"],
+        "adapter_intake_report": report["adapter_intake_report"],
+        "adapter_intake_verified": bool(report["adapter_intake_verified"]),
+        "adapter_sha256": report["adapter_sha256"],
+        "artifact_manifest_sha256": report["artifact_manifest_sha256"],
+        "fake_backend_env_absent": bool(report["inspect"].get("fake_backend_absent")),
+        "readonly_model_cache_mount": bool(report["inspect"].get("readonly_model_cache_mount")),
+        "health_status": int(report["health_status"]),
+        "native_status": int(report["native_status"]),
+        "openai_status": int(report["openai_status"]),
+        "native_openai_output_equal": bool(report["output_equal"]),
+        "health_body": report["health_body"],
+        "native_body": report["native_body"],
+        "openai_body": report["openai_body"],
+    }
+
+
 def self_test_report() -> dict[str, Any]:
     native_body = {
         "output": {
@@ -225,6 +259,8 @@ def self_test_report() -> dict[str, Any]:
         "model_cache_dir": "/tmp/self-test-model-cache",
         "adapter_intake_report": "/tmp/self-test-adapter-intake.json",
         "adapter_intake_verified": True,
+        "adapter_sha256": "a" * 64,
+        "artifact_manifest_sha256": "b" * 64,
         "docker_run_redacted": "self-test only; no docker command was run",
         "inspect": {"fake_backend_absent": True, "readonly_model_cache_mount": True},
         "health_status": 200,
@@ -248,6 +284,12 @@ def live_report(args: argparse.Namespace) -> dict[str, Any]:
     adapter_intake = json.loads(intake_report_path.read_text(encoding="utf-8"))
     if adapter_intake.get("status") != "GO_REAL_ADAPTER_ARTIFACT_INTAKE":
         raise SystemExit("adapter intake report must have status GO_REAL_ADAPTER_ARTIFACT_INTAKE")
+    adapter_sha = adapter_intake.get("adapter_sha256")
+    manifest_sha = adapter_intake.get("artifact_manifest_sha256")
+    if not is_sha256(adapter_sha):
+        raise SystemExit("adapter intake report must include lowercase SHA-256 adapter_sha256")
+    if not is_sha256(manifest_sha):
+        raise SystemExit("adapter intake report must include lowercase SHA-256 artifact_manifest_sha256")
     cmd = docker_run_command(
         image=args.image,
         name=args.container_name,
@@ -287,6 +329,8 @@ def live_report(args: argparse.Namespace) -> dict[str, Any]:
             "model_cache_dir": str(model_cache_dir.resolve()),
             "adapter_intake_report": str(intake_report_path),
             "adapter_intake_verified": True,
+            "adapter_sha256": adapter_sha,
+            "artifact_manifest_sha256": manifest_sha,
             "docker_run_redacted": redact_command(cmd, token),
             "inspect": inspect,
             "health_status": health.status,
@@ -317,6 +361,7 @@ def main() -> int:
     parser.add_argument("--timeout-seconds", type=int, default=120)
     parser.add_argument("--keep-container", action="store_true")
     parser.add_argument("--output", default=DEFAULT_OUTPUT)
+    parser.add_argument("--json-output", default=DEFAULT_JSON_OUTPUT)
     args = parser.parse_args()
 
     if args.self_test:
@@ -330,7 +375,10 @@ def main() -> int:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(render_markdown(report), encoding="utf-8")
-    print(json.dumps({"output": str(output), "self_test": report["self_test"]}, sort_keys=True))
+    json_output = Path(args.json_output)
+    json_output.parent.mkdir(parents=True, exist_ok=True)
+    json_output.write_text(json.dumps(normalize_report(report), sort_keys=True, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"json_output": str(json_output), "output": str(output), "self_test": report["self_test"]}, sort_keys=True))
     return 0
 
 

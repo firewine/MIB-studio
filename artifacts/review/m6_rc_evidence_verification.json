@@ -66,6 +66,7 @@
       "fake_backend_present": false,
       "id": "real_trained_adapter_no_fake_endpoint",
       "missing_markers": [
+        "structured endpoint JSON sidecar",
         "Decision: `GO_REAL_TRAINED_ADAPTER_ENDPOINT`",
         "MIB_RUNTIME_ALLOW_FAKE_BACKEND: absent",
         "/agents/{agent_id}/run: 200",
@@ -77,7 +78,8 @@
       "path": "artifacts/review/real_trained_adapter_endpoint_evidence.md",
       "present": false,
       "rc_required": true,
-      "self_test": false
+      "self_test": false,
+      "source": null
     },
     {
       "id": "m6_review_docs_current",

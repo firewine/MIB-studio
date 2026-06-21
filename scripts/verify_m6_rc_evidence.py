@@ -75,6 +75,9 @@ def evaluate_check(item: dict[str, object]) -> dict[str, object]:
 
 def real_endpoint_check(path: str) -> dict[str, object]:
     text = read_text(path)
+    json_result = real_endpoint_json_check(Path(path).with_suffix(".json"))
+    if json_result["present"]:
+        return json_result
     required_markers = [
         "Decision: `GO_REAL_TRAINED_ADAPTER_ENDPOINT`",
         "MIB_RUNTIME_ALLOW_FAKE_BACKEND: absent",
@@ -90,11 +93,70 @@ def real_endpoint_check(path: str) -> dict[str, object]:
         "id": "real_trained_adapter_no_fake_endpoint",
         "path": path,
         "present": bool(text),
-        "ok": bool(text) and not missing and not fake_backend_present and not self_test,
+        "ok": False,
         "rc_required": True,
-        "missing_markers": missing,
+        "missing_markers": ["structured endpoint JSON sidecar"] + missing,
         "fake_backend_present": fake_backend_present,
         "self_test": self_test,
+        "source": "markdown_only" if text else None,
+    }
+
+
+def is_sha256(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+
+
+def real_endpoint_json_check(path: Path) -> dict[str, object]:
+    if not path.is_file():
+        return {
+            "id": "real_trained_adapter_no_fake_endpoint",
+            "path": str(path),
+            "present": False,
+            "ok": False,
+            "rc_required": True,
+            "missing_markers": ["structured endpoint JSON sidecar"],
+            "self_test": False,
+            "source": None,
+        }
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return {
+            "id": "real_trained_adapter_no_fake_endpoint",
+            "path": str(path),
+            "present": True,
+            "ok": False,
+            "rc_required": True,
+            "missing_markers": [f"invalid JSON: {exc}"],
+            "self_test": False,
+            "source": None,
+        }
+    requirements = {
+        "schema_version": data.get("schema_version") == "mib_real_adapter_endpoint_evidence.v1",
+        "source": data.get("source") == "live_docker_capture",
+        "decision": data.get("decision") == "GO_REAL_TRAINED_ADAPTER_ENDPOINT",
+        "self_test": data.get("self_test") is False,
+        "adapter_intake_verified": data.get("adapter_intake_verified") is True,
+        "adapter_sha256": is_sha256(data.get("adapter_sha256")),
+        "artifact_manifest_sha256": is_sha256(data.get("artifact_manifest_sha256")),
+        "fake_backend_env_absent": data.get("fake_backend_env_absent") is True,
+        "readonly_model_cache_mount": data.get("readonly_model_cache_mount") is True,
+        "health_status": data.get("health_status") == 200,
+        "native_status": data.get("native_status") == 200,
+        "openai_status": data.get("openai_status") == 200,
+        "native_openai_output_equal": data.get("native_openai_output_equal") is True,
+    }
+    missing = [key for key, ok in requirements.items() if not ok]
+    return {
+        "id": "real_trained_adapter_no_fake_endpoint",
+        "path": str(path),
+        "present": True,
+        "ok": not missing,
+        "rc_required": True,
+        "missing_markers": missing,
+        "fake_backend_present": data.get("fake_backend_env_absent") is False,
+        "self_test": data.get("self_test") is True,
+        "source": data.get("source"),
     }
 
 

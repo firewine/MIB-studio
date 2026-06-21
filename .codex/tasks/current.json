@@ -1,15 +1,14 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Add real CUDA lora_adapter artifact intake verification and require that verification in the real adapter endpoint evidence path, so M6-RC cannot be marked GO from marker-shaped markdown or fixture adapters. The verifier must reject fixture-sized/minimal adapters, require PEFT LoRA metadata for locked v0 base models, validate safetensors tensor content, optionally validate training manifest lineage, and update capture/RC verification tooling to require adapter_intake_verified: true. This gate does not provide a real adapter and must preserve current M6-RC NOT_GO.",
+  "goal": "Harden real adapter endpoint evidence from marker-shaped markdown to structured JSON verification. capture_real_adapter_endpoint_evidence.py must write a JSON sidecar with live/self-test source, adapter intake hashes, endpoint statuses, output equivalence, fake-backend absence, and read-only model-cache mount state. verify_m6_rc_evidence.py must prefer and validate the JSON sidecar so markdown-only or self-test evidence cannot close M6-RC. This gate does not provide a real adapter and must preserve current M6-RC NOT_GO.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-artifact-intake",
+  "gate": "mib-studio-structured-real-endpoint-evidence",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "a0d847b",
+  "head": "c4d0227",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/verify_real_adapter_artifact.py",
     "scripts/capture_real_adapter_endpoint_evidence.py",
     "scripts/verify_m6_rc_evidence.py",
     "tests/scripts/",
@@ -41,46 +40,45 @@
   "blocked_scope": [
     "Product runtime, API, UI, DB, schema, training, export implementation, or model behavior changes",
     "Creating or committing model weights or adapter artifacts",
-    "Claiming M6-RC GO before real trained adapter endpoint evidence exists",
-    "Weakening real adapter or endpoint evidence acceptance"
+    "Claiming M6-RC GO before live structured endpoint evidence exists",
+    "Weakening real adapter endpoint evidence acceptance"
   ],
-  "allowed_edit_paths_scope_note": "This gate may add adapter-intake verification tooling, focused tests, generated tooling evidence, and handoff updates only.",
+  "allowed_edit_paths_scope_note": "This gate may harden evidence tooling, focused tests, generated tooling evidence, and handoff docs only.",
   "external_runtime_paths": [
     "/tmp"
   ],
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
-    "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "docs/specs/IMPLEMENTATION_GUIDE.md",
     "scripts/capture_real_adapter_endpoint_evidence.py",
     "scripts/verify_m6_rc_evidence.py",
+    "artifacts/review/real_adapter_artifact_intake_evidence.md",
     "artifacts/review/real_adapter_endpoint_capture_tooling_evidence.md"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_real_adapter_artifact.py scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_real_adapter_artifact.py tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_real_adapter_artifact.py --self-test --json-output /tmp/mib-real-adapter-intake-self-test.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md --json-output /tmp/mib-real-adapter-endpoint-self-test.json",
+    "python3 -m json.tool /tmp/mib-real-adapter-endpoint-self-test.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
     "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "verify_real_adapter_artifact.py rejects fixture/minimal adapters",
-    "verify_real_adapter_artifact.py accepts a structurally real-like PEFT LoRA adapter fixture in tests",
-    "capture_real_adapter_endpoint_evidence.py requires a GO intake report for live evidence",
-    "verify_m6_rc_evidence.py requires adapter_intake_verified: true and still reports current NOT_GO"
+    "Capture self-test writes structured JSON sidecar",
+    "verify_m6_rc_evidence.py rejects self-test JSON as RC GO evidence",
+    "verify_m6_rc_evidence.py requires structured live JSON fields before GO",
+    "Current M6 verifier remains NOT_GO with real_trained_adapter_no_fake_endpoint blocker"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_real_adapter_artifact.py scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_real_adapter_artifact.py tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_real_adapter_artifact.py --self-test --json-output /tmp/mib-real-adapter-intake-self-test.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md --json-output /tmp/mib-real-adapter-endpoint-self-test.json",
+    "python3 -m json.tool /tmp/mib-real-adapter-endpoint-self-test.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
     "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
     "git diff --check",
@@ -90,31 +88,31 @@
   "warnings": [
     "This gate does not provide a real trained adapter.",
     "This gate does not run live Docker endpoint transcripts.",
-    "M6-RC remains NOT_GO until a live endpoint evidence file with adapter_intake_verified: true and self_test: false exists."
+    "M6-RC remains NOT_GO until live structured endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Open scoped tooling contract for real adapter artifact intake verification.",
-    "audit": "Read WORKING.md, capture_real_adapter_endpoint_evidence.py, verify_m6_rc_evidence.py, export/training adapter metadata references, and current evidence. Found endpoint marker verification lacks a real adapter artifact intake prerequisite.",
-    "build": "Add adapter intake verifier, connect capture and M6 verifier to adapter_intake_verified marker, and add focused tests.",
-    "check": "Contract JSON validation, py_compile, focused tests, adapter intake self-test, endpoint capture self-test, M6 RC verifier, generated JSON validation, git diff --check, and git diff --cached --check passed.",
-    "done": "Adapter intake tooling is recorded in artifacts/review/real_adapter_artifact_intake_evidence.md. Endpoint evidence now requires adapter_intake_verified: true, and current M6-RC remains NOT_GO because no live real adapter endpoint evidence exists."
+    "plan": "Open scoped evidence-hardening contract for structured real endpoint evidence.",
+    "audit": "Read current WORKING.md, capture_real_adapter_endpoint_evidence.py, verify_m6_rc_evidence.py, and script tests. Found M6 verifier still relies on markdown markers for endpoint evidence.",
+    "build": "Added structured endpoint JSON sidecar generation, lowercase SHA-256 intake hash enforcement, verifier sidecar validation, and focused tests for self-test/markdown-only/readonly-mount rejection.",
+    "check": "Passed json.tool, py_compile, focused pytest, endpoint capture self-test with JSON sidecar, M6-RC verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "Structured endpoint evidence tooling is complete. M6-RC remains NOT_GO because live real trained adapter no-fake endpoint evidence is still absent."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-artifact-intake",
-    "status": "MIB_STUDIO_REAL_ADAPTER_ARTIFACT_INTAKE_DONE_M6_NOT_GO",
+    "gate": "mib-studio-structured-real-endpoint-evidence",
+    "status": "MIB_STUDIO_STRUCTURED_REAL_ENDPOINT_EVIDENCE_COMPLETE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Adapter intake tooling, endpoint evidence tooling integration, focused tests, generated evidence, WORKING.md, and PABCD contract only.",
+    "approved_scope": "Structured endpoint evidence tooling, focused tests, generated evidence, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no M6 GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped tooling contract for real adapter artifact intake verification.",
-    "audit": "Read WORKING.md, capture_real_adapter_endpoint_evidence.py, verify_m6_rc_evidence.py, export/training adapter metadata references, and current evidence. Found endpoint marker verification lacks a real adapter artifact intake prerequisite.",
-    "build": "Add adapter intake verifier, connect capture and M6 verifier to adapter_intake_verified marker, and add focused tests.",
-    "check": "Contract JSON validation, py_compile, focused tests, adapter intake self-test, endpoint capture self-test, M6 RC verifier, generated JSON validation, git diff --check, and git diff --cached --check passed.",
-    "done": "Adapter intake tooling is recorded in artifacts/review/real_adapter_artifact_intake_evidence.md. Endpoint evidence now requires adapter_intake_verified: true, and current M6-RC remains NOT_GO because no live real adapter endpoint evidence exists."
+    "plan": "Open scoped evidence-hardening contract for structured real endpoint evidence.",
+    "audit": "Read current WORKING.md, capture_real_adapter_endpoint_evidence.py, verify_m6_rc_evidence.py, and script tests. Found M6 verifier still relies on markdown markers for endpoint evidence.",
+    "build": "Added structured endpoint JSON sidecar generation, lowercase SHA-256 intake hash enforcement, verifier sidecar validation, and focused tests for self-test/markdown-only/readonly-mount rejection.",
+    "check": "Passed json.tool, py_compile, focused pytest, endpoint capture self-test with JSON sidecar, M6-RC verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "Structured endpoint evidence tooling is complete. M6-RC remains NOT_GO because live real trained adapter no-fake endpoint evidence is still absent."
   }
 }

@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M2_000_EVALSET_FREEZE
+phase_id: M2_001_CREDENTIAL_STORAGE
 milestone: M2_Eval_Teacher_Pipeline
-phase_status: pushed_complete
-active_slice: none
-gate_id: mib-studio-m2-000-evalset-freeze
+phase_status: verified_ready_to_commit_and_push
+active_slice: M2-001
+gate_id: mib-studio-m2-001-credential-storage
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -48,28 +48,24 @@ dev_environment:
 ## 2. Current Work
 
 ```yaml
-mode: none
-status: no_active_work
-objective: none
-source_gate_packet: none
-review_tier: none
+mode: implement
+status: verification_passed
+objective: implement M2-001 Credential storage
+source_gate_packet: docs/handoffs/M2.md
+review_tier: focused_security_api_service_test
+
+implemented:
+  - added keyring-backed credential store adapter with SECURITY_SPEC keychain ref format
+  - added Credential DTOs for upsert/list without returning api_key
+  - added credentials route/service for GET /credentials, PUT /credentials/{provider}, and DELETE /credentials/{provider}
+  - stores only Credential.keychain_ref/base_url metadata in SQLite and writes sanitized credential_access audit events
+  - returns 503 KEYCHAIN_UNAVAILABLE without DB writes when OS keychain storage is unavailable
+  - added focused tests in tests/security/test_credentials.py
 
 last_completed_work:
   gate: mib-studio-m2-000-evalset-freeze
   implementation_commit: a8b0846
-  pushed_to_origin_main: true
-  objective: implement M2-000 EvalSet freeze prework
-  summary:
-    - added EvalSet DTO validation for teacher_guard, benchmark_gold, and finance_reference quality gates
-    - added EvalSet repository artifact writer for immutable JSONL freeze files under .mib-home/projects/{project_id}/eval_sets/{version}/eval_set.jsonl
-    - added EvalSet service guards for project/dataset ownership, approval state, pre-teacher teacher_guard source, benchmark overlap, frozen_at, sha256, purpose, labeler_ids, kappa, and route_snapshot_sha256
-    - added POST /projects/{id}/eval-sets, GET /projects/{id}/eval-sets, and GET /eval-sets/{id}
-    - added focused tests in tests/eval/test_eval_set_freeze.py
-
-m1_completed_work:
-  gate: mib-studio-m1-final-smoke
-  verification_commit: c13fb6f
-  closeout_commit: ccb21eb
+  closeout_commit: 5975108
   pushed_to_origin_main: true
 
 local_committed_context:
@@ -84,6 +80,7 @@ local_committed_context:
   m1_final_smoke_verification: c13fb6f
   m1_final_smoke_closeout: ccb21eb
   m2_000_evalset_freeze: a8b0846
+  m2_000_closeout: 5975108
 
 do_not_start_without:
   - active PABCD task contract
@@ -95,17 +92,17 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m2_000_verified_and_pushed
+status: m2_001_verified_ready_to_push
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/routes/eval_sets.py services/api/app/schemas/eval.py services/api/app/services/eval_service.py services/shared/db/repositories/eval_store.py tests/eval/test_eval_set_freeze.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/eval/test_eval_set_freeze.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/routes/credentials.py services/api/app/schemas/credential.py services/api/app/services/credential_service.py services/shared/security/credential_store.py tests/security/test_credentials.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/security/test_credentials.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
   - git diff --check
 warnings:
-  - focused EvalSet pytest emits existing FastAPI ORJSONResponse deprecation warnings
-  - focused EvalSet pytest took 121.66s because tests prepare isolated SQLite migrations and ASGI clients
+  - focused credential pytest emits existing FastAPI ORJSONResponse deprecation warnings on error responses
+  - focused credential pytest took 81.55s because tests prepare isolated SQLite migrations and ASGI clients
 failed: []
 ```
 
@@ -117,17 +114,18 @@ recorded_go:
   M1_Authorized: true
   M1_Final_Smoke_Verified: true
   M2_000_Verified: true
+  M2_001_Verified: true
 
 active_gate:
-  id: none
-  cto_decision: ready_for_m2_001_scoped_contract
+  id: mib-studio-m2-001-credential-storage
+  cto_decision: verified_ready_to_commit_and_push
   review_bundle: artifacts/review
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: create scoped PABCD contract for M2-001 Credential storage
+  next_required_check: after push, create scoped PABCD contract for M2-002 Teacher Packet Preview
 ```
 
 ## 5. Blockers And Deferred Work
@@ -140,7 +138,6 @@ security_deferred:
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports Gradio 6.x or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - M2-001 credential storage
   - M2-002 teacher packet preview
   - M2-003 teacher synthetic generation
   - M2-004 hard negative generation
@@ -153,14 +150,16 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create a new scoped PABCD task contract for M2-001 Credential storage
-  - read docs/handoffs/M2.md and docs/specs/IMPLEMENTATION_GUIDE.md M2-001 sections before edits
+  - stage explicit M2-001 files
+  - commit and push M2-001
+  - after push, update this file to pushed_complete or create the next scoped PABCD contract for M2-002
 ```
 
 ## 7. Resume Prompt For Next LLM
 
 ```text
-Read docs/CONTEXT.md and docs/WORKING.md. M1 and M2-000 EvalSet freeze are
-committed and pushed. Do not start M2-001 until a new scoped PABCD task contract
-is created. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
+Read docs/CONTEXT.md and docs/WORKING.md. M1 and M2-000 are pushed. M2-001
+Credential storage is implemented and verified but must be committed and pushed
+if not already present on origin/main. Do not start M2-002 until a new scoped
+PABCD task contract is created. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
 ```

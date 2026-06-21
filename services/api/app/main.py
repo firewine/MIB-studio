@@ -23,6 +23,7 @@ from services.api.app.core.errors import (
     http_error_handler,
     validation_error_handler,
 )
+from services.api.app.routes.credentials import router as credentials_router
 from services.api.app.routes.datasets import router as datasets_router
 from services.api.app.routes.eval_sets import router as eval_sets_router
 from services.api.app.routes.hardware_doctor import router as hardware_doctor_router
@@ -30,6 +31,7 @@ from services.api.app.routes.presets import router as presets_router
 from services.api.app.routes.projects import router as projects_router
 from services.shared.db.session import create_sqlite_engine, session_factory
 from services.shared.security.auth import SecurityError, format_bootstrap_line, validate_bearer_header
+from services.shared.security.credential_store import KeyringCredentialStore
 from services.shared.security.origin import (
     OriginSettings,
     cors_preflight_headers,
@@ -150,6 +152,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = app_settings
     app.state.db_engine = create_sqlite_engine(app_settings.database_url)
     app.state.db_session_factory = session_factory(app.state.db_engine)
+    app.state.credential_store = KeyringCredentialStore()
 
     def custom_openapi() -> dict[str, Any]:
         return openapi_seed()
@@ -168,6 +171,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(presets_router)
     app.include_router(datasets_router)
     app.include_router(eval_sets_router)
+    app.include_router(credentials_router)
     app.include_router(hardware_doctor_router)
 
     @app.api_route("/{path:path}", methods=ROUTE_METHODS)

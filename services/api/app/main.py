@@ -11,7 +11,9 @@ from typing import Any
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import ORJSONResponse
+from starlette.datastructures import Headers, MutableHeaders
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from services.api.app.core.config import Settings, load_settings
 from services.api.app.core.errors import (
@@ -21,6 +23,7 @@ from services.api.app.core.errors import (
     http_error_handler,
     validation_error_handler,
 )
+from services.api.app.routes.datasets import router as datasets_router
 from services.api.app.routes.presets import router as presets_router
 from services.api.app.routes.projects import router as projects_router
 from services.shared.db.session import create_sqlite_engine, session_factory
@@ -69,6 +72,76 @@ def create_bootstrap_line(settings: Settings, port: int, pid: int | None = None)
     return format_bootstrap_line(base_url, settings.bootstrap_token, pid)
 
 
+class LocalAPIGuardMiddleware:
+    def __init__(self, app: ASGIApp, settings: Settings) -> None:
+        self.app = app
+        self.settings = settings
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = Headers(scope=scope)
+        trace_id = headers.get("x-trace-id") or uuid.uuid4().hex
+        scope.setdefault("state", {})["trace_id"] = trace_id
+        origin_settings = OriginSettings(app_env=self.settings.app_env, bind_host=self.settings.bind_host)
+
+        async def send_with_trace(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                response_headers = MutableHeaders(scope=message)
+                response_headers["x-trace-id"] = trace_id
+            await send(message)
+
+        try:
+            if not host_is_allowed(headers.get("host"), origin_settings):
+                raise APIError(
+                    "HOST_NOT_ALLOWED",
+                    "Host header is not allowed.",
+                    status_code=403,
+                    details={"host": headers.get("host", "")},
+                )
+
+            origin = headers.get("origin")
+            if not origin_is_allowed(origin, origin_settings):
+                raise APIError(
+                    "ORIGIN_NOT_ALLOWED",
+                    "Origin is not allowed.",
+                    status_code=403,
+                    details={"origin": origin or ""},
+                )
+
+            requested_method = headers.get("access-control-request-method")
+            method = str(scope.get("method", "GET"))
+            if is_cors_preflight(method, origin, requested_method):
+                if not requested_method_is_allowed(requested_method) or not requested_headers_are_allowed(
+                    headers.get("access-control-request-headers")
+                ):
+                    raise APIError("CORS_PREFLIGHT_NOT_ALLOWED", "CORS preflight is not allowed.", status_code=403)
+                response = Response(status_code=204)
+                for key, value in cors_preflight_headers(origin or "").items():
+                    response.headers[key] = value
+                response.headers["x-trace-id"] = trace_id
+                await response(scope, receive, send)
+                return
+
+            content_length = headers.get("content-length")
+            if content_length and int(content_length) > self.settings.body_max_bytes:
+                raise APIError("REQUEST_TOO_LARGE", "Request body exceeds the configured limit.", status_code=413)
+
+            if scope.get("path") != "/healthz":
+                try:
+                    validate_bearer_header(headers.get("authorization"), self.settings)
+                except SecurityError as exc:
+                    raise APIError(exc.error_code, exc.message, status_code=exc.status_code) from exc
+        except APIError as exc:
+            response = error_response(exc, trace_id)
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send_with_trace)
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or load_settings()
     app = FastAPI(title="MIB Studio Local Daemon", version=app_settings.version)
@@ -83,59 +156,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_exception_handler(APIError, api_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
     app.add_exception_handler(StarletteHTTPException, http_error_handler)
-
-    @app.middleware("http")
-    async def local_api_guard(request: Request, call_next: Any) -> Response:
-        trace_id = request.headers.get("x-trace-id") or uuid.uuid4().hex
-        request.state.trace_id = trace_id
-        origin_settings = OriginSettings(app_env=app_settings.app_env, bind_host=app_settings.bind_host)
-
-        try:
-            if not host_is_allowed(request.headers.get("host"), origin_settings):
-                raise APIError(
-                    "HOST_NOT_ALLOWED",
-                    "Host header is not allowed.",
-                    status_code=403,
-                    details={"host": request.headers.get("host", "")},
-                )
-
-            origin = request.headers.get("origin")
-            if not origin_is_allowed(origin, origin_settings):
-                raise APIError(
-                    "ORIGIN_NOT_ALLOWED",
-                    "Origin is not allowed.",
-                    status_code=403,
-                    details={"origin": origin or ""},
-                )
-
-            requested_method = request.headers.get("access-control-request-method")
-            if is_cors_preflight(request.method, origin, requested_method):
-                if not requested_method_is_allowed(requested_method) or not requested_headers_are_allowed(
-                    request.headers.get("access-control-request-headers")
-                ):
-                    raise APIError("CORS_PREFLIGHT_NOT_ALLOWED", "CORS preflight is not allowed.", status_code=403)
-                response = Response(status_code=204)
-                for key, value in cors_preflight_headers(origin or "").items():
-                    response.headers[key] = value
-                response.headers["x-trace-id"] = trace_id
-                return response
-
-            content_length = request.headers.get("content-length")
-            if content_length and int(content_length) > app_settings.body_max_bytes:
-                raise APIError("REQUEST_TOO_LARGE", "Request body exceeds the configured limit.", status_code=413)
-
-            if request.url.path != "/healthz":
-                try:
-                    validate_bearer_header(request.headers.get("authorization"), app_settings)
-                except SecurityError as exc:
-                    raise APIError(exc.error_code, exc.message, status_code=exc.status_code) from exc
-
-            response = await call_next(request)
-        except APIError as exc:
-            response = error_response(exc, trace_id)
-
-        response.headers["x-trace-id"] = trace_id
-        return response
+    app.add_middleware(LocalAPIGuardMiddleware, settings=app_settings)
 
     @app.get("/healthz")
     async def healthz() -> dict[str, str]:
@@ -143,6 +164,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(projects_router)
     app.include_router(presets_router)
+    app.include_router(datasets_router)
 
     @app.api_route("/{path:path}", methods=ROUTE_METHODS)
     async def milestone_locked(request: Request, path: str) -> ORJSONResponse:

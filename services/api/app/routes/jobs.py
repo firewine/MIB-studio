@@ -6,8 +6,9 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.orm import Session, sessionmaker
 
-from services.api.app.schemas.job import JobAcceptedResponse, JobSubmitRequest
+from services.api.app.schemas.job import JobAcceptedResponse, JobControlResponse, JobSubmitRequest, ResumeJobRequest
 from services.api.app.services.dataset_service import DatasetService
+from services.api.app.services.job_control_service import JobControlService
 from services.api.app.services.training_service import TrainingService
 
 
@@ -54,3 +55,24 @@ async def submit_project_job(
         idempotency_key=idempotency_key,
         trace_id=trace_id,
     )
+
+
+@router.delete("/jobs/{job_id}", response_model=JobControlResponse, status_code=202)
+async def cancel_job(
+    job_id: str,
+    session: Session = Depends(db_session),
+    home: Path = Depends(mib_home),
+) -> JobControlResponse:
+    return JobControlService(session, home).cancel_job(job_id)
+
+
+@router.post("/jobs/{job_id}/resume", response_model=JobControlResponse, status_code=202)
+async def resume_job(
+    job_id: str,
+    payload: ResumeJobRequest,
+    request: Request,
+    session: Session = Depends(db_session),
+    home: Path = Depends(mib_home),
+) -> JobControlResponse:
+    trace_id = str(getattr(request.state, "trace_id", "missing-trace-id"))
+    return JobControlService(session, home).resume_job(job_id, payload, trace_id=trace_id)

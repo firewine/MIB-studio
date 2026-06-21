@@ -1,21 +1,21 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Implement M3-003 MLX wrapper and clear the required m1-smoke file-size blocker.",
-  "phase": "done",
-  "gate": "mib-studio-m3-003-mlx-wrapper",
+  "goal": "Implement M3-004 Cancel/resume.",
+  "phase": "check",
+  "gate": "mib-studio-m3-004-cancel-resume",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "103f99e",
+  "head": "45f1ebf",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
-    "services/worker/handlers/train_mlx.py",
-    "services/worker/runtime/mlx_lm.py",
-    "services/api/app/services/dataset_service.py",
-    "services/api/app/services/dataset_job_service.py",
-    "tests/training/test_mlx_wrapper.py",
-    "examples/fixtures/mlx_config.golden.json",
+    "services/worker/checkpoint_writer.py",
+    "services/shared/db/repositories/training_store.py",
+    "services/api/app/services/job_control_service.py",
+    "services/api/app/routes/jobs.py",
+    "services/api/app/schemas/job.py",
+    "tests/training/test_checkpoint_resume.py",
     "artifacts/review/",
     "artifacts/security/"
   ],
@@ -27,23 +27,24 @@
     "docs/reviews",
     "services/shared/db/migrations",
     "services/shared/db/models",
-    "services/api/app/routes",
-    "services/api/app/core",
-    "services/api/app/schemas",
+    "services/api/app/services/dataset_service.py",
+    "services/api/app/services/dataset_job_service.py",
+    "services/worker/handlers/dataset_gen.py",
     "services/worker/handlers/train_cuda.py",
-    "services/worker/runtime/llamafactory.py",
+    "services/worker/handlers/train_mlx.py",
+    "services/worker/runtime",
     "packages",
     ".github"
   ],
   "blocked_scope": [
-    "CUDA wrapper changes",
-    "checkpoint/resume and job control",
-    "API route/schema changes",
     "DB schema, migration, or model changes",
-    "benchmark, package, export, or playground runtime changes",
-    "foundation/spec/mockup/handoff/review edits"
+    "dataset generation retry/reapproval behavior",
+    "CUDA or MLX trainer runtime changes",
+    "dry-run, OOM isolation, benchmark, package, export, or playground runtime changes",
+    "foundation/spec/mockup/handoff/review edits",
+    "FE v6 mockup implementation"
   ],
-  "allowed_edit_paths_scope_note": "M3-002 is pushed. This scope implements M3-003 MLX worker wrapper around mlx-lm config/dataset conversion, runner protocol, sanitized job events, and ModelRun terminal artifact updates. It also allows a behavior-preserving dataset service extraction because the required m1-smoke bootstrap currently fails the file-size hard limit on that existing service.",
+  "allowed_edit_paths_scope_note": "M3-003 is pushed. This scope implements M3-004 cancel/resume around checkpoint artifact writing, checkpoint DB recording, job cancel API behavior, train resume guard, child train Job creation, and JobResource current-link rebinding. Route/schema edits are limited to wiring the pre-existing OpenAPI seed contract at runtime.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
@@ -51,80 +52,72 @@
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/specs/IMPLEMENTATION_GUIDE.md",
     "docs/specs/ARCHITECTURE.md",
-    "services/shared/db/models/training.py",
+    "schemas/openapi.json",
     "services/shared/db/models/job.py",
+    "services/shared/db/models/training.py",
+    "services/shared/db/models/audit.py",
     "services/shared/db/repositories/dataset_store.py",
     "services/shared/db/repositories/training_store.py",
-    "services/api/app/services/dataset_service.py",
-    "services/worker/model_cache.py",
-    "services/worker/handlers/train_cuda.py",
-    "services/worker/runtime/llamafactory.py",
-    "tests/training/test_cuda_wrapper.py"
+    "services/api/app/routes/jobs.py",
+    "services/api/app/schemas/job.py",
+    "services/api/app/services/training_service.py",
+    "tests/training/test_training_preflight.py",
+    "tests/training/test_cuda_wrapper.py",
+    "tests/training/test_mlx_wrapper.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/train_mlx.py services/worker/runtime/mlx_lm.py services/api/app/services/dataset_service.py services/api/app/services/dataset_job_service.py tests/training/test_mlx_wrapper.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_mlx_wrapper.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_dataset_builder.py tests/security/test_teacher_packet.py tests/smoke/test_m1_smoke.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/checkpoint_writer.py services/shared/db/repositories/training_store.py services/api/app/services/job_control_service.py services/api/app/routes/jobs.py services/api/app/schemas/job.py tests/training/test_checkpoint_resume.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_checkpoint_resume.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_training_preflight.py tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
-    "PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-    "git diff --check",
-    "git diff --cached --check"
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
+    "git diff --check"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/train_mlx.py services/worker/runtime/mlx_lm.py services/api/app/services/dataset_service.py services/api/app/services/dataset_job_service.py tests/training/test_mlx_wrapper.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_mlx_wrapper.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_dataset_builder.py tests/security/test_teacher_packet.py tests/smoke/test_m1_smoke.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/checkpoint_writer.py services/shared/db/repositories/training_store.py services/api/app/services/job_control_service.py services/api/app/routes/jobs.py services/api/app/schemas/job.py tests/training/test_checkpoint_resume.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_checkpoint_resume.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_training_preflight.py tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
-    "PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
     "git diff --check"
   ],
   "failed_verification_commands": [
     {
-      "command": "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_checkpoint_resume.py -q",
       "status": "fixed",
-      "reason": "Initial run used ambient Node/Rust PATH and failed strict toolchain; rerun with documented /tmp/mib-toolchain PATH passed."
-    },
-    {
-      "command": "PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-      "status": "fixed",
-      "reason": "Corepack attempted latest pnpm lookup; rerun with COREPACK_DEFAULT_TO_LATEST=0 used the cached packageManager pin."
-    },
-    {
-      "command": "PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-      "status": "fixed",
-      "reason": "Sandboxed pip-audit temp venv upgrade failed; escalated rerun passed."
+      "reason": "Initial fixture inserted Dataset before flushing Project FK; fixture order was fixed and focused pytest passed."
     }
   ],
   "warnings": [
-    "m1-smoke file_size_report.json still records soft warnings for services/worker/handlers/dataset_gen.py, services/api/app/services/dataset_service.py, and services/api/app/services/training_service.py; no hard violations remain.",
-    "FastAPI ORJSONResponse deprecation warnings remain in API regression tests."
+    "file_size_report.json records soft warnings for services/shared/db/repositories/training_store.py, services/worker/handlers/dataset_gen.py, services/api/app/services/dataset_service.py, and services/api/app/services/training_service.py; no hard violations remain.",
+    "FastAPI ORJSONResponse deprecation warnings remain in existing training preflight tests."
   ],
   "phase_notes": {
-    "plan": "Implement M3-003: MLX train handler, mlx-lm JSON/dataset conversion, runner protocol, log/metric JobEvents, adapter manifest/hash terminal updates. Also clear the required m1-smoke hard file-size blocker with a behavior-preserving dataset service extraction. Keep CUDA, checkpoint/resume, API routes/schemas, and DB schema out of scope.",
-    "audit": "Read M3 handoff, IMPLEMENTATION_GUIDE M3-003 Done notes, ARCHITECTURE MLX command/config/dataset requirements, existing ModelRun/Job schemas, M3-001 TrainingStore, M3-002 CUDA wrapper patterns, bootstrap_dev.sh, code_shape rules, and the dataset_service hard-limit report.",
-    "build": "Implemented MLX runtime adapter, MLX handler, config fixture, focused tests, and dataset-gen job submission helper extraction without API contract changes.",
-    "check": "Passed task JSON, py_compile, focused MLX pytest, dataset/API regression pytest, import boundary, m1-smoke bootstrap, and diff whitespace checks.",
-    "done": "M3-003 implementation was verified and committed at 103f99e; closeout updates are ready to commit and push."
+    "plan": "Implement M3-004 only: cancel queued/running jobs, checkpoint writer with atomic temp-to-rename artifact creation, Checkpoint row recording, resume guard errors, child train Job creation, AuditEvent resume details, and JobResource current-link rebinding. Keep DB schema, dataset retry rules, trainer runtimes, and M3-005 dry-run/OOM out of scope.",
+    "audit": "Read WORKING, M3 handoff, ARCHITECTURE job control/checkpoint sections, IMPLEMENTATION_GUIDE M3-004 and job-control sections, existing Job/ModelRun/Checkpoint/Audit models, TrainingStore, jobs route, job schema, OpenAPI seed, and training preflight tests.",
+    "build": "Implemented checkpoint writer, TrainingStore helpers, JobControlService, route/schema wiring, and focused checkpoint resume tests.",
+    "check": "Passed task JSON, py_compile, focused checkpoint pytest, training wrapper regressions, import boundary, file-size hard-limit check, and diff whitespace checks.",
+    "done": "Pending: commit implementation, update WORKING closeout, and push after closeout commit."
   },
   "pabcd": {
-    "active": false,
-    "phase": "done",
-    "gate": "mib-studio-m3-003-mlx-wrapper",
-    "status": "MIB_STUDIO_M3_003_VERIFIED",
-    "phase_complete": true,
+    "active": true,
+    "phase": "check",
+    "gate": "mib-studio-m3-004-cancel-resume",
+    "status": "MIB_STUDIO_M3_004_IN_PROGRESS",
+    "phase_complete": false,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": true,
-    "approved_scope": "M3-003 MLX wrapper worker/runtime/tests within listed paths plus dataset service extraction needed to clear the required m1-smoke file-size blocker.",
-    "blocked_scope": "No CUDA wrapper changes, checkpoint/resume, job control, API route/schema changes, DB schema/model/migration, benchmark, package, export, playground, or docs/spec/foundation/mockup/handoff/review edits.",
-    "phase_completion_git_policy": "Completed: implementation commit 103f99e verified; closeout commit will be pushed to origin/main.",
-    "plan": "Implement M3-003 MLX wrapper and required m1-smoke hard-limit remediation.",
-    "audit": "Required MLX and bootstrap/file-size references have been read.",
-    "build": "Implementation committed at 103f99e.",
+    "all_required_teams_go": false,
+    "approved_scope": "M3-004 Cancel/resume runtime wiring within listed files.",
+    "blocked_scope": "No DB schema/model/migration, dataset generation retry/reapproval changes, trainer runtime changes, M3-005 dry-run/OOM, benchmark, package, export, playground, FE mockup, or docs/spec/foundation/mockup/handoff/review edits.",
+    "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
+    "plan": "Implement M3-004 Cancel/resume.",
+    "audit": "Required references have been read.",
+    "build": "Implementation complete.",
     "check": "All required verification commands passed.",
-    "done": "Closeout update is prepared for commit and push."
+    "done": "Pending implementation commit and closeout."
   }
 }

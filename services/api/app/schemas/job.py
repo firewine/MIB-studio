@@ -52,3 +52,15 @@ class JobAcceptedResponse(StrictModel):
     created_resource_type: CreatedResourceType = "none"
     created_resource_id: str | None = None
     idempotency_replayed: bool = False
+
+
+class JobControlResponse(StrictModel):
+    job_id: str
+    status: JobStatus
+    events_url: str
+    cancel_requested: bool = False
+    child_job_id: str | None = None
+
+
+class ResumeJobRequest(StrictModel):
+    checkpoint_id: str

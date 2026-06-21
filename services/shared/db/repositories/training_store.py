@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
-from services.shared.db.models import Job, JobEvent, JobResource, ModelRun
+from services.shared.db.models import Checkpoint, Job, JobEvent, JobResource, ModelRun
 from services.shared.db.repositories.dataset_store import canonical_json, new_id, sha256_text
 
 
@@ -33,6 +33,20 @@ class TrainingRunRows:
     model_run: ModelRun
     job: Job
     job_resource: JobResource
+
+
+@dataclass(frozen=True)
+class CheckpointRecordInput:
+    job_id: str
+    model_run_id: str
+    step: int
+    path: str
+    metrics: dict[str, Any]
+    dataset_id: str
+    dataset_version: int
+    training_config_hash: str
+    weights_sha256: str
+    created_at: str
 
 
 class TrainingStore:
@@ -94,6 +108,12 @@ class TrainingStore:
         row = self.session.scalars(statement).first()
         return row.job_id if row is not None else None
 
+    def model_run_id_for_job(self, job_id: str) -> str | None:
+        row = self.session.get(JobResource, job_id)
+        if row is None or row.resource_type != "model_run":
+            return None
+        return row.resource_id
+
     def mark_running(self, *, job: Job, model_run: ModelRun, ts: str) -> None:
         job.status = "RUNNING"
         job.started_at = job.started_at or ts
@@ -150,6 +170,73 @@ class TrainingStore:
             payload={"phase": "failed", "model_run_id": model_run.id, "error_class": error_class, "message": error_message},
         )
         self.session.flush()
+
+    def mark_cancelled(self, *, job: Job, model_run: ModelRun | None, ts: str) -> None:
+        job.status = "CANCELLED"
+        job.ended_at = ts
+        if model_run is not None:
+            model_run.status = "CANCELLED"
+            model_run.ended_at = ts
+        self.append_event(job=job, ts=ts, level="info", event_type="status_change", payload={"status": "CANCELLED"})
+        self.session.flush()
+
+    def request_cancel(self, *, job: Job, ts: str) -> None:
+        job.cancel_requested_at = ts
+        self.append_event(
+            job=job,
+            ts=ts,
+            level="info",
+            event_type="status_change",
+            payload={"status": job.status, "cancel_requested": True},
+        )
+        self.session.flush()
+
+    def cancel_requested(self, job_id: str) -> bool:
+        job = self.session.get(Job, job_id)
+        return bool(job is not None and job.cancel_requested_at is not None)
+
+    def record_checkpoint(self, payload: CheckpointRecordInput) -> Checkpoint:
+        checkpoint = Checkpoint(
+            id=new_id(),
+            job_id=payload.job_id,
+            model_run_id=payload.model_run_id,
+            step=payload.step,
+            path=payload.path,
+            metrics_json=canonical_json(payload.metrics),
+            dataset_id=payload.dataset_id,
+            dataset_version=payload.dataset_version,
+            training_config_hash=payload.training_config_hash,
+            weights_sha256=payload.weights_sha256,
+            created_at=payload.created_at,
+        )
+        model_run = self.session.get(ModelRun, payload.model_run_id)
+        self.session.add(checkpoint)
+        self.session.flush()
+        if model_run is not None:
+            model_run.best_checkpoint_id = checkpoint.id
+            model_run.resumable = 1
+            self.session.flush()
+        return checkpoint
+
+    def rebind_model_run_job(self, *, model_run: ModelRun, child_job: Job, ts: str) -> JobResource:
+        statement = select(JobResource).where(
+            JobResource.resource_type == "model_run",
+            JobResource.resource_id == model_run.id,
+            JobResource.is_current == 1,
+        )
+        for resource in self.session.scalars(statement):
+            resource.is_current = 0
+        self.session.flush()
+        child_resource = JobResource(
+            job_id=child_job.id,
+            resource_type="model_run",
+            resource_id=model_run.id,
+            is_current=1,
+            created_at=ts,
+        )
+        self.session.add(child_resource)
+        self.session.flush()
+        return child_resource
 
     def append_event(self, *, job: Job, ts: str, level: str, event_type: str, payload: dict[str, Any]) -> None:
         next_seq = int(self.session.scalar(select(func.max(JobEvent.seq)).where(JobEvent.job_id == job.id)) or 0) + 1

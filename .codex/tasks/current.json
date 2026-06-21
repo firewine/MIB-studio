@@ -2,7 +2,7 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M6-002 Docker local API export for CUDA/lora_adapter packages, MLX docker 409 evidence, Dockerfile security checks, and focused Docker export tests.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m6-002-docker-export",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
@@ -100,14 +100,14 @@
     "audit": "Read WORKING, CONTEXT, M6 handoff, IMPLEMENTATION_GUIDE M6-002/M6-001 materialization rules, AGENT_CONTRACT_SPEC OpenAI-compatible endpoint notes, existing zip export service/worker/tests, Dockerfile placeholder, and export secret scanner.",
     "build": "Implemented Docker export API unlock for CUDA/lora_adapter packages, MLX DOCKER_UNAVAILABLE rejection, Docker export worker, digest-enforced non-root Dockerfile, Docker context tar artifact, SBOM/CVE evidence generation, export secret scan coverage, and runtime bearer token startup validation.",
     "check": "Passed task JSON, py_compile, Docker worker focused pytest, Dockerfile security pytest, full tests/export pytest, export secret scan self-test, import boundary, file-size hard-limit, unstaged diff whitespace, and staged diff whitespace checks.",
-    "done": "Pending commit and push after verification passes."
+    "done": "Implementation committed as b6873f5; WORKING closeout prepared and ready for push."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m6-002-docker-export",
     "status": "MIB_STUDIO_M6_002_VERIFIED",
-    "phase_complete": false,
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": true,
@@ -118,6 +118,6 @@
     "audit": "Required references have been read.",
     "build": "Implementation complete.",
     "check": "All required verification passed.",
-    "done": "Pending."
+    "done": "M6-002 verified, implementation committed as b6873f5, and closeout prepared for push."
   }
 }

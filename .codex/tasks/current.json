@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M2-004 Hard negative generation.",
-  "phase": "build",
+  "phase": "done",
   "gate": "mib-studio-m2-004-hard-negative-generation",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "de14577",
+  "head": "34a848e5481e4e546ac93da891a9e745266b2bdb",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -48,7 +48,7 @@
     "foundation/spec/mockup/handoff/review edits",
     "desktop UI beyond generated OpenAPI client updates"
   ],
-  "allowed_edit_paths_scope_note": "M2-003 is pushed. This scope implements M2-004 hard_negative generation/counting/lifecycle metrics on the existing dataset_gen worker and focused tests.",
+  "allowed_edit_paths_scope_note": "M2-003 is pushed. This scope implemented M2-004 hard_negative generation/counting/lifecycle metrics on the existing dataset_gen worker and focused tests.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
@@ -69,34 +69,47 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_hard_negative_review_lifecycle.py tests/dataset/test_dataset_gen_event_payload_redaction.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+    "COREPACK_HOME=/tmp/corepack corepack pnpm test",
     "git diff --check"
   ],
-  "executed_verification_commands": [],
+  "executed_verification_commands": [
+    "python3 -m json.tool .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/dataset_gen.py services/api/app/schemas/job.py services/api/app/services/dataset_service.py services/shared/db/repositories/dataset_store.py tests/dataset/teacher_synthetic_helpers.py tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_hard_negative_review_lifecycle.py tests/dataset/test_dataset_gen_event_payload_redaction.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_hard_negative_review_lifecycle.py tests/dataset/test_dataset_gen_event_payload_redaction.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+    "COREPACK_HOME=/tmp/corepack corepack pnpm test",
+    "git diff --check",
+    "git diff --cached --check"
+  ],
   "failed_verification_commands": [],
-  "warnings": [],
+  "warnings": [
+    "Focused M2-004 pytest emits existing FastAPI ORJSONResponse deprecation warnings.",
+    "Focused M2-004 pytest took 282.62s because tests prepare isolated SQLite migrations and ASGI clients."
+  ],
   "phase_notes": {
     "plan": "Implement M2-004 only: require/count at least 40 schema-valid hard_negative examples in teacher_synthetic dataset_gen output, include hard_negative_count in metrics, enforce same review lifecycle, and keep raw prompts/examples out of JobEvent payloads.",
     "audit": "Read M2 handoff, IMPLEMENTATION_GUIDE M2-004 Done/tests/job params, ARCHITECTURE source enum, and existing M2-003 worker/test structure.",
-    "build": "In progress: extend job params, worker validation/source handling, fake teacher fixtures, generated OpenAPI types, and hard-negative tests.",
-    "check": "Pending: task JSON, py_compile, focused pytest, OpenAPI export, import boundary, and diff whitespace checks.",
-    "done": "Pending: update WORKING closeout, commit, and push after verification passes."
+    "build": "Implemented hard_negative_min_count job params, worker source handling/min-count failure, hard_negative_count metrics, generated OpenAPI type updates, fake teacher fixture updates, and focused hard-negative tests.",
+    "check": "Required M2-004 verification commands passed: task JSON, py_compile, focused pytest, OpenAPI export, import boundary, desktop package tests, and diff whitespace checks.",
+    "done": "M2-004 implementation was verified and committed at 34a848e; closeout updates are ready to commit and push."
   },
   "pabcd": {
-    "active": true,
-    "phase": "build",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m2-004-hard-negative-generation",
-    "status": "MIB_STUDIO_M2_004_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M2_004_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M2-004 hard_negative generation/counting/metrics/tests within listed paths.",
     "blocked_scope": "No credential plaintext, DB schema/model/migration, benchmark report code, training, package, export, playground, docs/spec/foundation/mockup/handoff/review, or desktop UI work beyond generated OpenAPI client.",
-    "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
-    "plan": "Implement M2-004 Hard negative generation.",
-    "audit": "Required references have been read.",
-    "build": "In progress.",
-    "check": "Pending.",
-    "done": "Pending."
+    "phase_completion_git_policy": "Completed: implementation commit 34a848e verified; closeout commit will be pushed to origin/main.",
+    "plan": "Implemented M2-004 Hard negative generation.",
+    "audit": "Required references were read.",
+    "build": "Implemented and committed at 34a848e.",
+    "check": "All required verification commands passed.",
+    "done": "Closeout update is prepared for commit and push."
   }
 }

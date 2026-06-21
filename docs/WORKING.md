@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M2_003_TEACHER_SYNTHETIC_GENERATION
+phase_id: M2_004_HARD_NEGATIVE_GENERATION
 milestone: M2_Eval_Teacher_Pipeline
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-m2-003-teacher-synthetic-generation
+gate_id: mib-studio-m2-004-hard-negative-generation
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -55,24 +55,23 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m2-003-teacher-synthetic-generation
-  implementation_commit: d1f15fd
+  gate: mib-studio-m2-004-hard-negative-generation
+  implementation_commit: 34a848e
   pushed_to_origin_main: true
-  objective: implement M2-003 Teacher synthetic dataset generation
+  objective: implement M2-004 Hard negative generation
   summary:
-    - added POST /projects/{id}/jobs backend route for dataset_gen teacher_synthetic job submission
-    - added strict job DTOs for DatasetGenParams, JobSubmitRequest, and JobAcceptedResponse
-    - reserves approved, unexpired TeacherPacketApproval rows atomically by setting used_job_id when the Job is inserted
-    - copies recomputed packet_sha256 into Job.params_json and rejects packet hash drift
-    - requires a frozen teacher_guard EvalSet with matching route_snapshot_sha256 before queuing teacher_synthetic generation
-    - added worker dataset_gen handler that validates reserved packet/job state before teacher egress
-    - writes sanitized teacher_egress AuditEvent before teacher client invocation
-    - creates a new BUILT dataset with source=teacher examples, review_status=PENDING, approved=false
-    - blocks generated dataset approval until every teacher/hard_negative row has a non-PENDING review decision
-    - blocks exact input_sha256 overlap between teacher_guard artifacts and teacher_synthetic output
-    - added focused M2-003 tests for min-200 schema-valid generation, review completion, and guard overlap
+    - added hard_negative_min_count to DatasetGenParams and generated API contract
+    - teacher_synthetic dataset_gen output now persists source=hard_negative rows from teacher responses
+    - default fake teacher fixture emits 200 generated rows with 40 hard negatives for M2/M3 dataset readiness
+    - worker fails before dataset resource creation when schema-valid hard negatives are below the required count
+    - DatasetGenResult and dataset_gen JobEvent metrics now include hard_negative_count
+    - generated hard negatives use the same PENDING review lifecycle and dataset approval guard as teacher examples
+    - JobEvent and teacher_egress AuditEvent payloads stay count/hash-only and exclude raw prompts/examples/input/output text
+    - added focused tests for hard-negative min count, shortfall failure, review lifecycle, and event payload redaction
 
 m2_previous_work:
+  m2_003_teacher_synthetic_generation: d1f15fd
+  m2_003_closeout: de14577
   m2_002_teacher_packet_preview: 430b32a
   m2_002_closeout: 9a1fe8e
   m2_001_credential_storage: 30bf114
@@ -91,7 +90,7 @@ local_committed_context:
   m1_007_desktop_shell: f45968f
   m1_final_smoke_verification: c13fb6f
   m1_final_smoke_closeout: ccb21eb
-  m2_003_teacher_synthetic_generation: d1f15fd
+  m2_004_hard_negative_generation: 34a848e
 
 do_not_start_without:
   - active PABCD task contract
@@ -103,18 +102,19 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m2_003_verified_and_pushed
+status: m2_004_verified_and_pushed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/routes/jobs.py services/api/app/schemas/job.py services/api/app/services/dataset_service.py services/worker/handlers/dataset_gen.py tests/dataset/teacher_synthetic_helpers.py tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_generated_examples_require_review_decision.py tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_generated_examples_require_review_decision.py tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/dataset_gen.py services/api/app/schemas/job.py services/api/app/services/dataset_service.py services/shared/db/repositories/dataset_store.py tests/dataset/teacher_synthetic_helpers.py tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_hard_negative_review_lifecycle.py tests/dataset/test_dataset_gen_event_payload_redaction.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_hard_negative_review_lifecycle.py tests/dataset/test_dataset_gen_event_payload_redaction.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
+  - COREPACK_HOME=/tmp/corepack corepack pnpm test
   - git diff --check
   - git diff --cached --check
 warnings:
-  - focused teacher synthetic pytest emits existing FastAPI ORJSONResponse deprecation warnings
-  - focused teacher synthetic pytest took 181.90s because tests prepare isolated SQLite migrations and ASGI clients
+  - focused M2-004 pytest emits existing FastAPI ORJSONResponse deprecation warnings
+  - focused M2-004 pytest took 282.62s because tests prepare isolated SQLite migrations and ASGI clients
 failed: []
 ```
 
@@ -129,17 +129,18 @@ recorded_go:
   M2_001_Verified: true
   M2_002_Verified: true
   M2_003_Verified: true
+  M2_004_Verified: true
 
 active_gate:
   id: none
-  cto_decision: ready_for_m2_004_scoped_contract
+  cto_decision: ready_for_m3_000_scoped_contract
   review_bundle: artifacts/review
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: create scoped PABCD contract for M2-004 Hard negative generation
+  next_required_check: create scoped PABCD contract for M3-000 Model cache service
 ```
 
 ## 5. Blockers And Deferred Work
@@ -152,9 +153,9 @@ security_deferred:
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports Gradio 6.x or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - M2-004 hard negative generation
+  - M3 training work
   - worker/training wrapper/benchmark/package/export/runtime work beyond the next scoped gate
-  - DB schema/model/migration changes
+  - DB schema/model/migration changes unless explicitly required by the M3 gate
   - spec/foundation/mockup/handoff/review edits
 ```
 
@@ -162,15 +163,14 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create a new scoped PABCD task contract for M2-004 Hard negative generation
-  - read docs/handoffs/M2.md and docs/specs/IMPLEMENTATION_GUIDE.md M2-004 sections before edits
+  - create a new scoped PABCD task contract for M3-000 Model cache service
+  - read docs/handoffs/M3.md and docs/specs/IMPLEMENTATION_GUIDE.md M3-000 sections before edits
 ```
 
 ## 7. Resume Prompt For Next LLM
 
 ```text
-Read docs/CONTEXT.md and docs/WORKING.md. M1, M2-000, M2-001, M2-002, and
-M2-003 Teacher synthetic generation are committed and pushed. Do not start
-M2-004 until a new scoped PABCD task contract is created. Use .venv for Python
-and COREPACK_HOME=/tmp/corepack.
+Read docs/CONTEXT.md and docs/WORKING.md. M1 and M2 are committed and pushed
+through M2-004 Hard negative generation. Do not start M3-000 until a new scoped
+PABCD task contract is created. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
 ```

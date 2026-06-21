@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M4-003 Benchmark report generation, hash verification, and benchmark read API.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m4-003-benchmark-report",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "fa341cbfa1c2cc23f72715512e63d14e8bcfe3c1",
+  "head": "5c3d3e7",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -94,24 +94,24 @@
     "audit": "Read WORKING, CONTEXT, M4 handoff, IMPLEMENTATION_GUIDE M4-003/API DTO sections, EVAL_SPEC report schema/hash/parity sections, ARCHITECTURE benchmark job/eval model sections, existing Benchmark/EvalRun models, benchmark_report schema, and M4-002 eval runner tests.",
     "build": "Implemented Benchmark DTOs/routes/service, report metric aggregation, canonical report hashing, schema validation, hash_status recompute, automatic report generation from terminal EvalRun rows, local_large skip reporting, and CUDA/MLX parity PASS/FAIL/NA calculation.",
     "check": "Passed task JSON, py_compile, focused benchmark report pytest, M4-002 eval runner regression, import boundary, file-size hard-limit, and diff whitespace checks.",
-    "done": "Pending."
+    "done": "Implementation committed as 5c3d3e7; WORKING closeout prepared for push with this contract."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m4-003-benchmark-report",
-    "status": "MIB_STUDIO_M4_003_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M4_003_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M4-003 Benchmark report generation, hash verification, parity decision, and benchmark read/report API within listed files.",
     "blocked_scope": "No DB schema/model/migration, EvalRun execution, training, dataset generation, FE, package/export/runtime, or docs spec/foundation edits.",
     "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
     "plan": "Implement API-side benchmark report generation and retrieval.",
     "audit": "Required references have been read.",
-    "build": "Implementation complete; pending commit.",
-    "check": "All required verification commands passed before staging; cached diff check pending staged state.",
-    "done": "Pending."
+    "build": "Implementation complete in 5c3d3e7.",
+    "check": "All required verification commands passed, including cached diff check.",
+    "done": "M4-003 verified and ready for closeout commit and push."
   }
 }

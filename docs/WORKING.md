@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: PHI_STRICT_CACHE_RUNTIME_EVIDENCE
+phase_id: REAL_ADAPTER_INFERENCE_EVIDENCE
 milestone: M6_RC_Blocker_Remediation
-phase_status: pushed_complete
+phase_status: real_adapter_evidence_blocker_recorded
 active_slice: none
-gate_id: mib-studio-phi-strict-cache-runtime-evidence
+gate_id: mib-studio-real-adapter-inference-evidence
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -47,31 +47,30 @@ dev_environment:
 
 ```yaml
 mode: none
-status: no_active_work
+status: no_active_product_code_work
 objective: none
-source_gate_packet: none
+source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-phi-strict-cache-runtime-evidence
-  implementation_commit: this_commit
-  closeout_commit: this_commit
-  pushed_to_origin_main: true
-  objective: use accessible locked Phi model to prove strict-cache Docker endpoint path after Gemma access was blocked
+  gate: mib-studio-real-adapter-inference-evidence
+  implementation_commit: pending_commit
+  closeout_commit: pending_commit
+  pushed_to_origin_main: pending
+  objective: verify whether M6-RC can close with real trained CUDA lora_adapter inference evidence
   evidence:
+    real_adapter: artifacts/review/real_adapter_inference_evidence.md
     phi_runtime: artifacts/review/phi_strict_cache_runtime_evidence.md
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - Phi pinned config HEAD returned HTTP 200 with expected repo commit
-    - strict Phi cache materialized under /tmp/mib-strict-model-cache-phi and offline cache-hit verification passed
-    - Phi-based Docker export image built/saved from a temp product-path fixture package
-    - image tar secret scan/SBOM/CVE evidence passed with findings=[]
-    - Docker run used read-only /models mount with RW=false
-    - /healthz returned 200
-    - /agents/eval_runner_project.v1/run returned 200 and verifier_status PASS
-    - /v1/chat/completions returned 200 with equivalent assistant JSON
-    - endpoint evidence used MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 because the fixture AgentPackage adapter is not a real trained adapter
+    - searched repo and /tmp for adapter.safetensors, adapter_config.json, adapter_model.safetensors, and adapter_model.bin
+    - only 12-byte fixture adapter.safetensors and 26-byte fixture adapter_config.json files were found
+    - no real trained CUDA lora_adapter artifact was found
+    - nvidia-smi is not installed or visible on this host
+    - llamafactory-cli is not on PATH, although relevant Python modules exist in .venv
+    - exported Phi Docker image lacks torch, transformers, peft, safetensors, accelerate, and bitsandbytes
+    - no-fake-backend /healthz returned HTTP 500 with TRANSFORMERS_BACKEND_UNAVAILABLE caused by missing peft
     - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
 
 m6_previous_work:
@@ -111,26 +110,22 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: phi_strict_cache_endpoint_path_verified_with_fixture_adapter
+status: real_adapter_inference_blocked
 passed:
   - python3 -m json.tool .codex/tasks/current.json
+  - adapter artifact search across /home/firewine/MIB-studio and /tmp
+  - hardware/tooling checks for nvidia-smi and llamafactory-cli
+  - .venv import availability check for torch/transformers/peft/bitsandbytes/llamafactory/accelerate/safetensors
+  - Docker image import availability check for torch/transformers/peft/safetensors/accelerate/bitsandbytes
+  - Docker run without MIB_RUNTIME_ALLOW_FAKE_BACKEND reached runtime loader and failed with TRANSFORMERS_BACKEND_UNAVAILABLE
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json
-  - Phi config HEAD request to pinned HF revision returned HTTP 200
-  - Phi strict cache materialization through services.worker.model_cache.ensure_model
-  - MIB_OFFLINE=1 Phi cache-hit verification
-  - Phi Docker build/save via run_docker_export_job
-  - scripts/scan_export_artifact.py --artifact <phi-image-tar> --sbom <sbom> --cve-report <cve> --require-docker-evidence
-  - docker run with /tmp/mib-strict-model-cache-phi/model_cache:/models:ro
-  - docker inspect mount RW=false
-  - curl -i /healthz returned 200
-  - curl -i /agents/eval_runner_project.v1/run returned 200
-  - curl -i /v1/chat/completions returned 200
   - git diff --check
   - git diff --cached --check
 warnings:
   - M6-RC decision remains NOT_GO
-  - endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
-  - Gemma remains blocked without authenticated HF access or a user-provided Gemma strict cache
+  - no real trained CUDA lora_adapter artifact was found
+  - current exported Docker image does not include real transformers/peft runtime dependencies
+  - previous endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
 failed: []
 ```
 
@@ -150,21 +145,24 @@ recorded_go:
   Docker_Runtime_Import_And_ImageTarScan_Remediated: true
   Phi_Strict_Cache_Materialized: true
   Phi_Docker_Endpoint_Path_With_Fixture_Adapter: true
+  Real_Adapter_Evidence_Search_Completed: true
 
 recorded_not_go:
   M6_RC_Signoff: true
   Docker_Runtime_Real_Trained_Adapter_Inference: true
+  Real_Trained_Adapter_Artifact_Available: true
+  Exported_Runtime_Real_Backend_Dependencies: true
 
 active_gate:
-  id: none
+  id: mib-studio-real-adapter-inference-evidence
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/phi_strict_cache_runtime_evidence.md
+  review_bundle: artifacts/review/real_adapter_inference_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: produce real trained adapter endpoint evidence or explicitly scope release acceptance for fixture-adapter endpoint evidence
+  next_required_check: provide/train a real CUDA lora_adapter and package real backend dependencies into Docker, or explicitly scope release acceptance for fixture-adapter endpoint evidence
 ```
 
 ## 5. Blockers And Deferred Work
@@ -172,6 +170,9 @@ known_project_state:
 ```yaml
 operator_blockers:
   - real trained CUDA lora_adapter endpoint evidence is not yet present
+  - no real trained CUDA lora_adapter artifact was found in repo or current /tmp artifacts
+  - exported Docker runtime image lacks peft/transformers/torch/safetensors for real adapter loading
+  - fake-backend-disabled /healthz currently fails with TRANSFORMERS_BACKEND_UNAVAILABLE
   - Gemma remains gated without credentials, but Phi strict cache is available under /tmp/mib-strict-model-cache-phi
 
 security_deferred:
@@ -187,9 +188,8 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create scoped PABCD for real adapter inference evidence or release-policy review
-  - inspect whether an existing training artifact can provide a real CUDA lora_adapter
-  - if no real adapter exists, decide whether fixture-adapter endpoint evidence is acceptable for current v0 RC or whether a real train job must be run
+  - decide whether to run/provide a real CUDA training artifact or change release policy for v0 RC
+  - if real adapter evidence is still required, add/export real backend dependencies and rerun no-fake-backend Docker endpoints
   - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
@@ -202,7 +202,11 @@ strict cache is blocked by gated unauthenticated access. Phi strict cache was
 materialized outside the repo and Phi Docker endpoint path evidence is recorded
 in artifacts/review/phi_strict_cache_runtime_evidence.md. The endpoints passed
 with MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 because the temp fixture adapter is not a
-real trained adapter. M6-RC remains NOT_GO until real trained adapter inference
-evidence exists or the release policy explicitly accepts fixture-adapter endpoint
-evidence. Use .venv for Python.
+real trained adapter. Real adapter evidence is recorded in
+artifacts/review/real_adapter_inference_evidence.md: no real trained adapter was
+found, nvidia-smi is unavailable, and the exported image fails /healthz without
+fake backend due TRANSFORMERS_BACKEND_UNAVAILABLE from missing peft. M6-RC
+remains NOT_GO until real trained adapter inference evidence exists or the
+release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
+for Python.
 ```

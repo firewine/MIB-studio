@@ -1,12 +1,12 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Use the accessible locked v0 Phi model as an alternative strict-cache path for final Docker runtime evidence: materialize or prove inability to materialize microsoft/Phi-3.5-mini-instruct strict cache outside the repo, then if cache succeeds create Phi-based exported Docker runtime evidence with read-only MIB_MODEL_CACHE_DIR and native/OpenAI-compatible endpoint transcripts. Do not change product code, do not fake cache files, do not bundle base-model weights, and do not claim M6-RC GO until endpoint evidence actually passes.",
+  "goal": "Resolve the remaining M6-RC blocker by auditing and, if feasible, collecting evidence for real trained CUDA lora_adapter inference without MIB_RUNTIME_ALLOW_FAKE_BACKEND. Search for an existing real adapter artifact, inspect hardware/dependency feasibility for producing one, and record either passing real-adapter Docker endpoint evidence or a concrete blocker. Do not change product code, do not fake adapters, do not weaken validation, and do not claim M6-RC GO without real adapter inference evidence or an explicit release-policy decision.",
   "phase": "done",
-  "gate": "mib-studio-phi-strict-cache-runtime-evidence",
+  "gate": "mib-studio-real-adapter-inference-evidence",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "57353ef",
+  "head": "efecb80",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -30,13 +30,14 @@
   "blocked_scope": [
     "Product code changes",
     "Runtime, loader, verifier, schema, API, DB, worker, FE, or benchmark changes",
-    "Bundling base-model weights in git, export artifacts, or Docker image",
-    "Creating fake strict-cache files or weakening hash/size validation",
-    "M6-RC GO/sign-off changes before endpoint transcripts pass"
+    "Creating fake adapters or pretending a fixture adapter is trained",
+    "Weakening output validation or model cache validation",
+    "M6-RC GO/sign-off changes before real adapter evidence or release-policy decision"
   ],
-  "allowed_edit_paths_scope_note": "This gate may write large Phi model files only outside the repo under /tmp/mib-strict-model-cache-phi. Repo edits are limited to evidence and operational handoff files.",
+  "allowed_edit_paths_scope_note": "This evidence gate may read product code and create temporary probes under /tmp. Repo edits are limited to evidence and operational handoff files.",
   "external_runtime_paths": [
     "/tmp/mib-strict-model-cache-phi",
+    "/tmp/mib-real-adapter-evidence",
     "/tmp/mib-docker-evidence"
   ],
   "reference_only_paths": [
@@ -46,15 +47,12 @@
     "docs/specs/IMPLEMENTATION_GUIDE.md",
     "docs/specs/AGENT_CONTRACT_SPEC.md",
     "presets/model_catalog.yaml",
-    "services/worker/model_cache.py",
-    "services/shared/model_catalog.py",
+    "services/worker/handlers/train_cuda.py",
+    "services/worker/runtime/llamafactory.py",
     "services/worker/handlers/export_docker.py",
-    "packages/agent-runtime/templates/zip_runtime/agents/run.py",
     "packages/agent-runtime/loaders/transformers_lora.py",
-    "tests/agent_package/test_verifier.py",
-    "tests/export/test_export_api.py",
-    "tests/export/test_docker_export_security.py",
-    "artifacts/review/strict_model_cache_evidence.md"
+    "packages/agent-runtime/templates/zip_runtime/agents/run.py",
+    "artifacts/review/phi_strict_cache_runtime_evidence.md"
   ],
   "run_required_commands": true,
   "required_commands": [
@@ -64,67 +62,58 @@
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Phi catalog-required cache_subdir and required file list",
-    "Network HEAD result for pinned Phi config",
-    "Phi cache materialization command result with strict hash/size verification or concrete failure",
-    "If Phi cache succeeds, exported Docker image build/save evidence for a Phi CUDA/lora_adapter package",
-    "If Phi cache succeeds, Docker run with read-only MIB_MODEL_CACHE_DIR mount",
-    "If Phi cache succeeds, HTTP transcript for /healthz",
-    "If Phi cache succeeds, HTTP transcript for /agents/{agent_id}/run",
-    "If Phi cache succeeds, HTTP transcript for /v1/chat/completions",
-    "If endpoint evidence fails after strict cache succeeds, concrete next blocker"
+    "Search result for existing non-fixture adapter artifacts",
+    "Hardware/GPU availability check",
+    "Runtime dependency availability check for transformers/peft/torch/LLaMA-Factory",
+    "If a real adapter exists, Docker endpoint transcript without MIB_RUNTIME_ALLOW_FAKE_BACKEND",
+    "If no real adapter exists, concrete next required action and exact missing condition",
+    "If a generated adapter probe is attempted, explicitly classify it as real-loader evidence or not-trained evidence, not trained-adapter acceptance"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
+    "find /home/firewine/MIB-studio /tmp -maxdepth 10 -type f \\( -name 'adapter.safetensors' -o -name 'adapter_config.json' -o -name 'adapter_model.safetensors' -o -name 'adapter_model.bin' \\) -printf '%s %p\\n'",
+    "which nvidia-smi",
+    "nvidia-smi",
+    "which llamafactory-cli",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c \"import importlib.util, json; mods=['torch','transformers','peft','bitsandbytes','llamafactory','accelerate','safetensors']; print(json.dumps({m: importlib.util.find_spec(m) is not None for m in mods}, sort_keys=True))\"",
+    "docker run --rm mib-export-989c1bbe5246469a8a9839cf4c5340ef:latest python -c \"import importlib.util, json; mods=['torch','transformers','peft','safetensors','accelerate','bitsandbytes']; print(json.dumps({m: importlib.util.find_spec(m) is not None for m in mods}, sort_keys=True))\"",
+    "docker run -d --name mib-phi-real-backend-989c -p 127.0.0.1:18083:8000 -v /tmp/mib-strict-model-cache-phi/model_cache:/models:ro -e MIB_MODEL_CACHE_DIR=/models -e MIB_RUNTIME_BEARER_TOKEN=<redacted-32-char-test-token> mib-export-989c1bbe5246469a8a9839cf4c5340ef:latest",
+    "GET http://127.0.0.1:18083/healthz",
+    "docker logs mib-phi-real-backend-989c",
+    "docker rm -f mib-phi-real-backend-989c",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
-    "df -h /tmp",
-    "curl -sS -I -L --max-time 30 https://huggingface.co/microsoft/Phi-3.5-mini-instruct/resolve/2fe192450127e6a83f7441aef6e3ca586c338b77/config.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -c '<ensure_model microsoft/Phi-3.5-mini-instruct cuda runtime_evidence>'",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. MIB_OFFLINE=1 ./.venv/bin/python -c '<ensure_model microsoft/Phi-3.5-mini-instruct cuda runtime_evidence>'",
-    "python3 -m py_compile /tmp/mib_phi_docker_export_evidence.py",
-    "MIB_DOCKER_EXPORT_REAL_BUILD=1 MIB_DOCKER_BASE_IMAGE_WITH_DIGEST=getbeta-backend@sha256:95792b6d22c23bd9b95e91b1e53365ebaa31b12847a242fdac63e8f4434034f1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python /tmp/mib_phi_docker_export_evidence.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --artifact <phi-image-tar> --sbom <sbom> --cve-report <cve-report> --require-docker-evidence",
-    "docker run -d --name mib-phi-evidence-989c -p 127.0.0.1:18082:8000 -v /tmp/mib-strict-model-cache-phi/model_cache:/models:ro -e MIB_MODEL_CACHE_DIR=/models -e MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 -e MIB_RUNTIME_BEARER_TOKEN=<redacted> mib-export-989c1bbe5246469a8a9839cf4c5340ef:latest",
-    "docker ps -a --filter name=mib-phi-evidence-989c --format '{{.ID}} {{.Status}} {{.Ports}}'",
-    "curl -sS -i http://127.0.0.1:18082/healthz",
-    "curl -sS -i -X POST http://127.0.0.1:18082/agents/eval_runner_project.v1/run <native-json>",
-    "curl -sS -i -X POST http://127.0.0.1:18082/v1/chat/completions <openai-json>",
-    "docker logs mib-phi-evidence-989c",
-    "docker inspect mib-phi-evidence-989c --format '{{json .Mounts}}'",
-    "docker inspect mib-export-989c1bbe5246469a8a9839cf4c5340ef:latest --format '{{.Id}} {{.Size}} {{json .RepoDigests}}'",
-    "docker rm -f mib-phi-evidence-989c",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
-    "Phi cache files are large and remain outside git under /tmp/mib-strict-model-cache-phi.",
-    "This evidence gate does not change product code and does not make M6-RC GO unless endpoint evidence actually passes.",
-    "Endpoint evidence used MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 because the fixture adapter is not a real trained adapter."
+    "M6 acceptance requires real adapter inference; fixture or fake backend evidence is insufficient for GO.",
+    "Do not run destructive cleanup on user or temp artifacts.",
+    "Large model/cache/adapter artifacts must remain outside git."
   ],
   "phase_notes": {
-    "plan": "Open scoped Phi strict-cache/runtime evidence gate after Gemma was blocked by gated unauthenticated access.",
-    "audit": "Focused read completed for Phi strict catalog, cache service, package/export fixture path, and runtime behavior.",
-    "build": "Materialized Phi strict cache under /tmp/mib-strict-model-cache-phi, built Phi Docker export image, scanned image artifact, and captured Docker endpoint transcripts with read-only cache mount.",
-    "check": "Strict cache, image scan, /healthz, native endpoint, OpenAI-compatible endpoint, and read-only mount evidence passed with fixture adapter fake backend enabled.",
-    "done": "Evidence recorded in artifacts/review/phi_strict_cache_runtime_evidence.md. M6-RC remains NOT_GO pending real trained adapter inference evidence or explicit release-policy acceptance."
+    "plan": "Open scoped evidence contract for real adapter inference feasibility and blocker resolution.",
+    "audit": "Focused read completed for M6 acceptance, CUDA training wrapper/runtime, loader behavior, and current artifacts.",
+    "build": "Searched for real adapters and collected hardware/dependency/runtime feasibility evidence. Only fixture adapter files were found, no NVIDIA CLI was visible, and the exported Docker image lacks real transformers/peft dependencies.",
+    "check": "Contract JSON, strict model catalog verification, git diff --check, and git diff --cached --check are required for closeout.",
+    "done": "Evidence recorded in artifacts/review/real_adapter_inference_evidence.md. M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   },
   "pabcd": {
-    "active": false,
+    "active": true,
     "phase": "done",
-    "gate": "mib-studio-phi-strict-cache-runtime-evidence",
-    "status": "MIB_STUDIO_PHI_ENDPOINT_PATH_VERIFIED_FIXTURE_ADAPTER",
+    "gate": "mib-studio-real-adapter-inference-evidence",
+    "status": "MIB_STUDIO_REAL_ADAPTER_EVIDENCE_DONE_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Phi strict cache materialization evidence, Phi exported Docker runtime endpoint evidence if cache succeeds, and operational docs/artifacts.",
-    "blocked_scope": "No product code changes, no fake cache, no bundled model weights, no release GO changes.",
+    "approved_scope": "Real adapter artifact discovery, feasibility probes, endpoint evidence if possible, and evidence/operational docs.",
+    "blocked_scope": "No product code changes, no fake trained-adapter claims, no release GO changes.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Create scoped Phi strict-cache/runtime evidence contract.",
-    "audit": "Focused read completed for Phi strict catalog, cache service, package/export fixture path, and runtime behavior.",
-    "build": "Materialized Phi strict cache and captured Phi Docker endpoint path evidence.",
-    "check": "Required verification passed; limitation is fixture adapter fake backend.",
-    "done": "Stage, commit, and push this evidence phase."
+    "plan": "Create scoped real-adapter inference evidence contract.",
+    "audit": "Focused read completed for M6 acceptance, CUDA training wrapper/runtime, loader behavior, and current artifacts.",
+    "build": "Searched for real adapters and collected hardware/dependency/runtime feasibility evidence. Only fixture adapter files were found, no NVIDIA CLI was visible, and the exported Docker image lacks real transformers/peft dependencies.",
+        "check": "Contract JSON, strict model catalog verification, git diff --check, and git diff --cached --check are required for closeout.",
+    "done": "Evidence recorded in artifacts/review/real_adapter_inference_evidence.md. M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   }
 }

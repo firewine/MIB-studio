@@ -31,8 +31,8 @@ write_policy:
 ```yaml
 phase_id: M2_000_EVALSET_FREEZE
 milestone: M2_Eval_Teacher_Pipeline
-phase_status: verified_ready_to_commit_and_push
-active_slice: M2-000
+phase_status: pushed_complete
+active_slice: none
 gate_id: mib-studio-m2-000-evalset-freeze
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
@@ -48,24 +48,42 @@ dev_environment:
 ## 2. Current Work
 
 ```yaml
-mode: implement
-status: verification_passed
-objective: implement M2-000 EvalSet freeze prework
-source_gate_packet: docs/handoffs/M2.md
-review_tier: focused_api_service_test
-
-implemented:
-  - added EvalSet DTO validation for teacher_guard, benchmark_gold, and finance_reference quality gates
-  - added EvalSet repository artifact writer for immutable JSONL freeze files under .mib-home/projects/{project_id}/eval_sets/{version}/eval_set.jsonl
-  - added EvalSet service guards for project/dataset ownership, approval state, pre-teacher teacher_guard source, benchmark overlap, frozen_at, sha256, purpose, labeler_ids, kappa, and route_snapshot_sha256
-  - added POST /projects/{id}/eval-sets, GET /projects/{id}/eval-sets, and GET /eval-sets/{id}
-  - added focused tests in tests/eval/test_eval_set_freeze.py
+mode: none
+status: no_active_work
+objective: none
+source_gate_packet: none
+review_tier: none
 
 last_completed_work:
+  gate: mib-studio-m2-000-evalset-freeze
+  implementation_commit: a8b0846
+  pushed_to_origin_main: true
+  objective: implement M2-000 EvalSet freeze prework
+  summary:
+    - added EvalSet DTO validation for teacher_guard, benchmark_gold, and finance_reference quality gates
+    - added EvalSet repository artifact writer for immutable JSONL freeze files under .mib-home/projects/{project_id}/eval_sets/{version}/eval_set.jsonl
+    - added EvalSet service guards for project/dataset ownership, approval state, pre-teacher teacher_guard source, benchmark overlap, frozen_at, sha256, purpose, labeler_ids, kappa, and route_snapshot_sha256
+    - added POST /projects/{id}/eval-sets, GET /projects/{id}/eval-sets, and GET /eval-sets/{id}
+    - added focused tests in tests/eval/test_eval_set_freeze.py
+
+m1_completed_work:
   gate: mib-studio-m1-final-smoke
   verification_commit: c13fb6f
   closeout_commit: ccb21eb
   pushed_to_origin_main: true
+
+local_committed_context:
+  day0_ready: 89b346f
+  m1_001_api_bootstrap: 33a326f
+  m1_002_db_migration_seed: 1020a90
+  m1_003_project_api: 9606ef5
+  m1_004_preset_api: d896b7f
+  m1_005_dataset_builder: 1c45957
+  m1_006_hardware_doctor: 260693d
+  m1_007_desktop_shell: f45968f
+  m1_final_smoke_verification: c13fb6f
+  m1_final_smoke_closeout: ccb21eb
+  m2_000_evalset_freeze: a8b0846
 
 do_not_start_without:
   - active PABCD task contract
@@ -77,7 +95,7 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m2_000_verified_ready_to_push
+status: m2_000_verified_and_pushed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/routes/eval_sets.py services/api/app/schemas/eval.py services/api/app/services/eval_service.py services/shared/db/repositories/eval_store.py tests/eval/test_eval_set_freeze.py
@@ -101,15 +119,15 @@ recorded_go:
   M2_000_Verified: true
 
 active_gate:
-  id: mib-studio-m2-000-evalset-freeze
-  cto_decision: verified_ready_to_commit_and_push
+  id: none
+  cto_decision: ready_for_m2_001_scoped_contract
   review_bundle: artifacts/review
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: after push, create scoped PABCD contract for M2-001 Credential storage
+  next_required_check: create scoped PABCD contract for M2-001 Credential storage
 ```
 
 ## 5. Blockers And Deferred Work
@@ -135,16 +153,14 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - stage explicit M2-000 files
-  - commit and push M2-000
-  - after push, update this file to pushed_complete or create the next scoped PABCD contract for M2-001
+  - create a new scoped PABCD task contract for M2-001 Credential storage
+  - read docs/handoffs/M2.md and docs/specs/IMPLEMENTATION_GUIDE.md M2-001 sections before edits
 ```
 
 ## 7. Resume Prompt For Next LLM
 
 ```text
-Read docs/CONTEXT.md and docs/WORKING.md. M1 is pushed. M2-000 EvalSet freeze is
-implemented and verified but must be committed and pushed if not already present
-on origin/main. Do not start M2-001 until a new scoped PABCD task contract is
-created. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
+Read docs/CONTEXT.md and docs/WORKING.md. M1 and M2-000 EvalSet freeze are
+committed and pushed. Do not start M2-001 until a new scoped PABCD task contract
+is created. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
 ```

@@ -6,7 +6,7 @@
   "gate": "mib-studio-m2-000-evalset-freeze",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "ccb21eb",
+  "head": "a8b0846",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -84,24 +84,24 @@
     "audit": "Read M2 handoff, IMPLEMENTATION_GUIDE M2-000 and endpoint/DTO sections, EVAL_SPEC freeze requirements, ARCHITECTURE EvalSet schema, existing dataset service and tests.",
     "build": "Implemented EvalSet schema, service, route, repository helper, and focused freeze tests.",
     "check": "All required M2-000 verification commands passed; import boundary check also passed with no violations.",
-    "done": "M2-000 is verified and ready for explicit stage, commit, and push."
+    "done": "M2-000 was verified, committed at a8b0846, and pushed to origin/main."
   },
   "pabcd": {
     "active": false,
     "phase": "done",
     "gate": "mib-studio-m2-000-evalset-freeze",
-    "status": "MIB_STUDIO_M2_000_VERIFIED_READY_TO_PUSH",
+    "status": "MIB_STUDIO_M2_000_PUSHED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": true,
     "approved_scope": "M2-000 EvalSet freeze API/service/schema/test using existing DB model.",
     "blocked_scope": "No M2-001+ credential, teacher packet, synthetic generation, hard-negative, worker, training, benchmark, package, export, or DB schema/model/migration work.",
-    "phase_completion_git_policy": "Verification passed; stage explicit files, commit, and push.",
+    "phase_completion_git_policy": "Completed: implementation commit a8b0846 was pushed to origin/main.",
     "plan": "Implement M2-000 EvalSet freeze prework.",
     "audit": "M2-000 references have been read.",
     "build": "Implemented EvalSet freeze API/service/test.",
     "check": "All required verification commands passed.",
-    "done": "M2-000 verified and ready for commit/push."
+    "done": "M2-000 implementation commit a8b0846 was pushed to origin/main."
   }
 }

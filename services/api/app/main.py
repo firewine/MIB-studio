@@ -21,6 +21,7 @@ from services.api.app.core.errors import (
     http_error_handler,
     validation_error_handler,
 )
+from services.api.app.routes.presets import router as presets_router
 from services.api.app.routes.projects import router as projects_router
 from services.shared.db.session import create_sqlite_engine, session_factory
 from services.shared.security.auth import SecurityError, format_bootstrap_line, validate_bearer_header
@@ -141,6 +142,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok", "version": app_settings.version}
 
     app.include_router(projects_router)
+    app.include_router(presets_router)
 
     @app.api_route("/{path:path}", methods=ROUTE_METHODS)
     async def milestone_locked(request: Request, path: str) -> ORJSONResponse:

@@ -30,11 +30,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M1_003_PROJECT_API
+phase_id: M1_004_PRESET_API
 milestone: M1_Core
-phase_status: m1_003_complete
-active_slice: project_api_crud_archive_guard
-gate_id: mib-studio-m1-003-project-api
+phase_status: m1_004_complete
+active_slice: preset_api_router_only
+gate_id: mib-studio-m1-004-preset-api
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment: python_venv
 venv_path: .venv
@@ -45,25 +45,20 @@ venv_gitignored: true
 
 ```yaml
 mode: implement
-status: m1_003_complete
-objective: implement M1-003 Project API CRUD and archive guards
+status: m1_004_complete
+objective: implement M1-004 Preset API
 source_gate_packet: user_goal_final_program_development_docs_based_v6_fe
 review_tier: focused
 
 allowed_edit_paths:
   - docs/WORKING.md
   - .codex/tasks/current.json
-  - .gitignore
   - services/api/app/main.py
-  - services/api/app/core/config.py
-  - services/api/app/core/errors.py
-  - services/api/app/routes/
+  - services/api/app/routes/presets.py
   - services/api/app/schemas/
-  - services/api/app/services/
+  - services/api/app/services/preset_service.py
   - tests/api/test_auth_bootstrap.py
-  - tests/api/test_projects.py
-  - schemas/openapi.json
-  - apps/desktop/src/lib/generated.ts
+  - tests/api/test_presets.py
   - artifacts/review/
   - artifacts/security/
 blocked_edit_paths:
@@ -82,20 +77,17 @@ blocked_edit_paths:
   - scripts/
 
 changed:
-  - .gitignore
-  - services/api/app/core/config.py
-  - services/api/app/core/errors.py
+  - .codex/tasks/current.json
+  - docs/WORKING.md
   - services/api/app/main.py
-  - services/api/app/routes/
-  - services/api/app/schemas/
-  - services/api/app/services/
+  - services/api/app/routes/presets.py
+  - services/api/app/schemas/preset.py
+  - services/api/app/services/preset_service.py
   - tests/api/test_auth_bootstrap.py
-  - tests/api/test_projects.py
-  - schemas/openapi.json
-  - apps/desktop/src/lib/generated.ts
+  - tests/api/test_presets.py
   - artifacts/review/file_size_report.json
 local_uncommitted_context:
-  note: M1-002 DB migration + seed was committed and pushed at 1020a90
+  note: M1-004 Preset API is verified and ready for closeout commit/push
   do_not_revert_without_user_request: true
 
 result_so_far:
@@ -109,28 +101,31 @@ result_so_far:
   - M1-002 DB migration + seed is implemented, verified, committed, and pushed.
   - SQLAlchemy metadata now covers the ARCHITECTURE section 24.2 canonical SQLite schema and indexes.
   - Alembic upgrade/downgrade, FK/integrity checks, router.basic.v1 seed, model_catalog load, and critical partial unique constraints are covered by tests/db.
-  - M1-003 Project API is implemented and verified.
+  - M1-003 Project API is implemented, verified, committed, and pushed.
   - Project CRUD, preset existence check, route count/duplicate validation, include_archived list behavior, soft archive, archived mutation guard, and route taxonomy lock are covered by tests.
-  - .gitignore may be repaired only to keep the default local sqlite runtime file out of git.
+  - M1-004 Preset API is implemented and verified.
+  - /presets and /presets/{id} expose router.basic.v1 from the seeded preset table.
+  - Auth locked-stub regression now targets /model-catalog because /presets is implemented.
 ```
 
 ## 3. Verification State
 
 ```yaml
-status: m1_003_complete
+status: m1_004_complete
 passed:
   - python3 -m json.tool .codex/tasks/current.json
   - test -d .venv
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c "import fastapi, sqlalchemy, pydantic, httpx, pytest; print('m1-project-deps-ok')"
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile services/api/app/core/config.py services/api/app/core/errors.py services/api/app/main.py services/api/app/schemas/project.py services/api/app/services/project_service.py services/api/app/routes/projects.py tests/api/test_projects.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/api/test_auth_bootstrap.py tests/db tests/api/test_projects.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c "import fastapi, sqlalchemy, pydantic, httpx, pytest; print('m1-preset-deps-ok')"
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/schemas/preset.py services/api/app/services/preset_service.py services/api/app/routes/presets.py tests/api/test_presets.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/api/test_presets.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/api/test_auth_bootstrap.py tests/db tests/api/test_projects.py tests/api/test_presets.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py
   - PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --verify-only --skip-install
   - git diff --check
 failed: []
 not_run: []
 required_before_done:
-  - explicit git stage, commit, and push for M1-003
+  - explicit git stage, commit, and push for M1-004
 ```
 
 ## 4. Gate State
@@ -141,17 +136,17 @@ recorded_go:
   M1_Authorized: true
 
 active_gate:
-  id: mib-studio-m1-003-project-api
-  cto_decision: m1_003_complete
+  id: mib-studio-m1-004-preset-api
+  cto_decision: m1_004_complete
   review_bundle:
-    - tests/api/test_projects.py
+    - tests/api/test_presets.py
     - artifacts/review/file_size_report.json
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: scoped M1-004 Preset API task contract
+  next_required_check: scoped M1-005 Dataset Builder API task contract
 ```
 
 ## 5. Blockers And Deferred Work
@@ -160,7 +155,7 @@ known_project_state:
 operator_blockers: []
 
 blocked_until_later_gate:
-  - M1-004+ endpoint implementation before M1-003 is complete
+  - M1-005+ endpoint implementation before a scoped M1-005 contract exists
   - frontend screen implementation beyond bootstrap API helpers
   - worker/training/eval/export runtime implementation
   - milestone review bundles
@@ -171,15 +166,15 @@ blocked_until_later_gate:
 
 ```yaml
 immediate:
-  - stage explicit M1-003 files
-  - commit and push M1-003
-  - create a scoped M1-004 Preset API task contract before editing preset API files
+  - stage explicit M1-004 files
+  - commit and push M1-004
+  - create a scoped M1-005 Dataset Builder API task contract before editing dataset API files
 
 do_not_start_without:
   - explicit user task or approved gate packet
   - relevant SSOT/spec sections
   - clear file scope
-  - M1-001 allowed_edit_paths and verification commands
+  - phase-specific allowed_edit_paths and verification commands
   - verification plan for phase closeout commit/push
 ```
 
@@ -188,9 +183,9 @@ do_not_start_without:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md. Day-0 Bootstrap readiness, M1-001 API
 bootstrap, M1-002 DB migration + seed, and M1-003 Project API have been
-implemented, verified, committed/pushed except for the current M1-003 closeout
-commit if it has not yet happened. Finish closeout, then create a scoped M1-004
-Preset API task contract before editing preset API files. Do not start FE
-screens, worker, training, eval, export, or teacher runtime work before the
+committed and pushed. M1-004 Preset API is implemented and verified; finish the
+closeout commit/push if it has not happened yet. Then create a scoped M1-005
+Dataset Builder API task contract before editing dataset API files. Do not start
+FE screens, worker, training, eval, export, or teacher runtime work before the
 proper gate. Use .venv for Python work.
 ```

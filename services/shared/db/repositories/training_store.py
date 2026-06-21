@@ -4,10 +4,10 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
-from services.shared.db.models import Job, JobResource, ModelRun
+from services.shared.db.models import Job, JobEvent, JobResource, ModelRun
 from services.shared.db.repositories.dataset_store import canonical_json, new_id, sha256_text
 
 
@@ -93,6 +93,79 @@ class TrainingStore:
         )
         row = self.session.scalars(statement).first()
         return row.job_id if row is not None else None
+
+    def mark_running(self, *, job: Job, model_run: ModelRun, ts: str) -> None:
+        job.status = "RUNNING"
+        job.started_at = job.started_at or ts
+        job.attempt_count = job.attempt_count + 1
+        model_run.status = "RUNNING"
+        model_run.started_at = model_run.started_at or ts
+        self.append_event(job=job, ts=ts, level="info", event_type="status_change", payload={"status": "RUNNING"})
+        self.session.flush()
+
+    def mark_succeeded(
+        self,
+        *,
+        job: Job,
+        model_run: ModelRun,
+        adapter_path: str,
+        adapter_sha256: str,
+        artifact_manifest_sha256: str,
+        ts: str,
+    ) -> None:
+        model_run.status = "SUCCEEDED"
+        model_run.adapter_path = adapter_path
+        model_run.adapter_sha256 = adapter_sha256
+        model_run.artifact_manifest_sha256 = artifact_manifest_sha256
+        model_run.resumable = 1
+        model_run.ended_at = ts
+        job.status = "SUCCEEDED"
+        job.ended_at = ts
+        self.append_event(
+            job=job,
+            ts=ts,
+            level="info",
+            event_type="artifact",
+            payload={
+                "phase": "completed",
+                "model_run_id": model_run.id,
+                "adapter_sha256": adapter_sha256,
+                "artifact_manifest_sha256": artifact_manifest_sha256,
+            },
+        )
+        self.session.flush()
+
+    def mark_failed(self, *, job: Job, model_run: ModelRun, error_class: str, error_message: str, ts: str) -> None:
+        job.status = "FAILED"
+        job.error_class = error_class
+        job.error_message = error_message
+        job.ended_at = ts
+        model_run.status = "FAILED"
+        model_run.ended_at = ts
+        self.append_event(
+            job=job,
+            ts=ts,
+            level="error",
+            event_type="error",
+            payload={"phase": "failed", "model_run_id": model_run.id, "error_class": error_class, "message": error_message},
+        )
+        self.session.flush()
+
+    def append_event(self, *, job: Job, ts: str, level: str, event_type: str, payload: dict[str, Any]) -> None:
+        next_seq = int(self.session.scalar(select(func.max(JobEvent.seq)).where(JobEvent.job_id == job.id)) or 0) + 1
+        self.session.add(
+            JobEvent(
+                id=new_id(),
+                job_id=job.id,
+                seq=next_seq,
+                ts=ts,
+                level=level,
+                event_type=event_type,
+                payload_json=canonical_json(payload),
+                trace_id=job.trace_id,
+            )
+        )
+        self.session.flush()
 
     def list_model_runs(
         self,

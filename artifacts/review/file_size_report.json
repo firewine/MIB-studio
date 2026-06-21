@@ -1,0 +1,50 @@
+{
+  "budgets": {
+    "api_route": {
+      "hard": 320,
+      "soft": 220
+    },
+    "core_security": {
+      "hard": 320,
+      "soft": 220
+    },
+    "default": {
+      "hard": 400,
+      "soft": 260
+    },
+    "react_component": {
+      "hard": 250,
+      "soft": 180
+    },
+    "react_page": {
+      "hard": 320,
+      "soft": 240
+    },
+    "runtime_adapter": {
+      "hard": 320,
+      "soft": 220
+    },
+    "service": {
+      "hard": 400,
+      "soft": 260
+    },
+    "sqlalchemy_model": {
+      "hard": 650,
+      "soft": 400
+    },
+    "test": {
+      "hard": 600,
+      "soft": 350
+    },
+    "worker_handler": {
+      "hard": 400,
+      "soft": 260
+    },
+    "worker_loop_store": {
+      "hard": 360,
+      "soft": 240
+    }
+  },
+  "files_checked": 12,
+  "violations": []
+}

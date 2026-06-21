@@ -1,0 +1,148 @@
+name: security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "scaffold, m1, m2, m3, m4, m5, or m6"
+        required: false
+        default: scaffold
+
+env:
+  MIB_CI_PHASE: ${{ inputs.phase || vars.MIB_CI_PHASE || 'scaffold' }}
+
+jobs:
+  python-audit-cuda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: python -m pip install pip-audit==2.8.0
+      - run: pip-audit -r requirements.txt -r requirements-dev.txt
+
+  python-audit-mlx:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: python -m pip install pip-audit==2.8.0
+      - run: pip-audit -r requirements-mlx.txt -r requirements-dev.txt
+
+  model-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_verification.json
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: python -m pip install detect-secrets==1.5.0
+      - run: detect-secrets scan --all-files
+
+  node-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm audit --audit-level high
+      - run: mkdir -p artifacts/security && corepack pnpm dlx @cyclonedx/cyclonedx-npm@2.1.0 --output-file artifacts/security/npm-sbom.json
+
+  rust-tauri-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          if [ -f src-tauri/Cargo.lock ]; then
+            cargo install cargo-audit --locked
+            cargo audit --file src-tauri/Cargo.lock
+          else
+            echo "M0/M1 before Tauri scaffold: src-tauri/Cargo.lock not present."
+          fi
+
+  export-secret-scan-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: python scripts/scan_export_artifact.py --self-test
+
+  openapi-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: |
+          python scripts/export_openapi.py
+          git diff --exit-code schemas/openapi.json
+
+  code-shape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
+      - run: python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
+
+  pii-holdout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: python scripts/verify_pii_holdout.py --phase "$MIB_CI_PHASE" --json-output artifacts/security/pii_holdout_report.json
+
+  m1-security-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: |
+          if [ "$MIB_CI_PHASE" = "scaffold" ]; then
+            echo "M1 security smoke is skipped for M0 scaffold."
+            exit 0
+          fi
+          test -d tests/security
+          python -m pytest tests/security
+
+  m6-export-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - run: |
+          if [ "$MIB_CI_PHASE" != "m6" ]; then
+            echo "M6 export security gate is active only for MIB_CI_PHASE=m6."
+            exit 0
+          fi
+          test -d tests/export
+          python -m pytest tests/export

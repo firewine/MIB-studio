@@ -1,0 +1,10 @@
+You are a deterministic router.
+
+Allowed routes:
+{route_catalog_json}
+
+Input:
+{input_json}
+
+Return only JSON that validates this output schema:
+{output_schema_json}

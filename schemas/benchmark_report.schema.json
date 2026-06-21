@@ -1,0 +1,453 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MIB Benchmark Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "project_id",
+    "eval_set",
+    "overlap_check",
+    "targets",
+    "parity",
+    "cost_assumptions",
+    "artifact_hashes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "benchmark_report.v1"
+    },
+    "benchmark_id": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "eval_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "purpose",
+        "sha256",
+        "route_snapshot_sha256",
+        "sample_count",
+        "frozen_at",
+        "kappa"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "purpose": {
+          "enum": [
+            "benchmark_gold",
+            "finance_reference"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "route_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 300
+        },
+        "frozen_at": {
+          "type": "string"
+        },
+        "kappa": {
+          "type": "number",
+          "minimum": 0.7,
+          "maximum": 1
+        }
+      }
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 4,
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "target_type"
+            ],
+            "properties": {
+              "target_type": {
+                "const": "prompt_only"
+              }
+            }
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "target_type"
+            ],
+            "properties": {
+              "target_type": {
+                "const": "fine_tuned"
+              }
+            }
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "target_type"
+            ],
+            "properties": {
+              "target_type": {
+                "const": "teacher"
+              }
+            }
+          }
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "target_type"
+            ],
+            "properties": {
+              "target_type": {
+                "const": "rule_based"
+              }
+            }
+          }
+        }
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target_key",
+          "target_type",
+          "target_status",
+          "model_run_id",
+          "model",
+          "backend",
+          "seeds"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "target_status": {
+                  "const": "COMPLETED"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "mean_metrics",
+                "std_metrics",
+                "ci95"
+              ],
+              "properties": {
+                "seeds": {
+                  "minItems": 3,
+                  "uniqueItems": true
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "target_status": {
+                  "const": "FAILED"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "error_reason"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "mean_metrics"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "std_metrics"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "ci95"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "target_status": {
+                  "const": "SKIPPED_OPTIONAL"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "skip_reason"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "mean_metrics"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "std_metrics"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "ci95"
+                    ]
+                  }
+                ]
+              },
+              "properties": {
+                "target_type": {
+                  "const": "local_large"
+                },
+                "seeds": {
+                  "minItems": 1,
+                  "maxItems": 1,
+                  "items": {
+                    "const": 0
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "target_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9_:-]{1,80}$"
+          },
+          "target_type": {
+            "enum": [
+              "prompt_only",
+              "fine_tuned",
+              "teacher",
+              "local_large",
+              "rule_based"
+            ]
+          },
+          "target_status": {
+            "enum": [
+              "COMPLETED",
+              "FAILED",
+              "SKIPPED_OPTIONAL"
+            ]
+          },
+          "model_run_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "backend": {
+            "enum": [
+              "cuda",
+              "mlx",
+              "teacher",
+              "rule_based",
+              "prompt_only",
+              "local_large"
+            ]
+          },
+          "seeds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "uniqueItems": true
+          },
+          "skip_reason": {
+            "type": "string"
+          },
+          "error_reason": {
+            "type": "string"
+          },
+          "mean_metrics": {
+            "$ref": "#/definitions/metric_object"
+          },
+          "std_metrics": {
+            "$ref": "#/definitions/metric_object"
+          },
+          "ci95": {
+            "$ref": "#/definitions/metric_object"
+          }
+        }
+      }
+    },
+    "parity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "metrics"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NA"
+          ]
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "delta_pp",
+              "p_value"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "delta_pp": {
+                "type": "number"
+              },
+              "p_value": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "cost_assumptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currency",
+        "pricing_date",
+        "fallback_provider"
+      ],
+      "properties": {
+        "currency": {
+          "const": "USD"
+        },
+        "pricing_date": {
+          "type": "string"
+        },
+        "fallback_provider": {
+          "type": "string"
+        }
+      }
+    },
+    "artifact_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_sha256",
+        "eval_set_sha256"
+      ],
+      "properties": {
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "eval_set_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "overlap_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_duplicate_count",
+        "semantic_flag_count",
+        "encoder_version",
+        "threshold",
+        "passed"
+      ],
+      "properties": {
+        "exact_duplicate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "semantic_flag_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "encoder_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "passed": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "metric_object": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      },
+      "required": [
+        "route_accuracy",
+        "route_accuracy_macro",
+        "task_type_accuracy",
+        "unsafe_recall",
+        "safe_precision",
+        "requires_calculation_accuracy",
+        "requires_calculation_f1",
+        "requires_human_review_accuracy",
+        "requires_human_review_f1",
+        "json_valid_rate",
+        "schema_adherence",
+        "verifier_pass_rate",
+        "fallback_rate",
+        "latency_p50_ms",
+        "latency_p95_ms",
+        "latency_p99_ms",
+        "cost_per_task_usd",
+        "effective_cost_per_task_usd"
+      ]
+    }
+  }
+}

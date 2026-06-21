@@ -1,0 +1,40 @@
+{
+  "roots": ["services", "packages", "apps/desktop/src"],
+  "generated_markers": ["@generated", "generated from schemas/openapi.json"],
+  "budgets": {
+    "react_component": { "soft": 180, "hard": 250 },
+    "react_page": { "soft": 240, "hard": 320 },
+    "api_route": { "soft": 220, "hard": 320 },
+    "service": { "soft": 260, "hard": 400 },
+    "core_security": { "soft": 220, "hard": 320 },
+    "worker_handler": { "soft": 260, "hard": 400 },
+    "worker_loop_store": { "soft": 240, "hard": 360 },
+    "runtime_adapter": { "soft": 220, "hard": 320 },
+    "sqlalchemy_model": { "soft": 400, "hard": 650 },
+    "test": { "soft": 350, "hard": 600 },
+    "default": { "soft": 260, "hard": 400 }
+  },
+  "import_boundaries": [
+    ["services/api/app/routes", "services.worker"],
+    ["services/api/app/routes", "services.shared.db.models"],
+    ["services/api/app/routes", "services.shared.db.repositories"],
+    ["services/api/app/routes", "services.shared.db.session"],
+    ["services/api/app/routes", "packages"],
+    ["services/api/app/services", "services.api.app.routes"],
+    ["services/api/app/services", "services.worker"],
+    ["services/api/app/services", "fastapi"],
+    ["services/api/app/services", "starlette"],
+    ["services/worker", "services.api.app.services"],
+    ["services/worker", "services.api.app.routes"],
+    ["services/shared/db/models", "services.api"],
+    ["services/shared/db/models", "services.worker"],
+    ["services/shared/db/models", "fastapi"],
+    ["services/shared/db/models", "tauri"],
+    ["services/shared", "services.api"],
+    ["services/shared", "services.worker"],
+    ["packages", "services.api"],
+    ["packages", "services.worker"],
+    ["packages", "fastapi"],
+    ["packages", "tauri"]
+  ]
+}

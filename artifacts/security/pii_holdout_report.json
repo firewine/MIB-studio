@@ -1,0 +1,16 @@
+{
+  "entity_counts": {
+    "email": 1,
+    "phone": 1,
+    "rrn": 1
+  },
+  "errors": [],
+  "full_gate": false,
+  "path": "examples/security/pii_holdout.v1.jsonl",
+  "phase": "scaffold",
+  "row_count": 3,
+  "source_counts": {
+    "red_team": 1,
+    "synthetic": 2
+  }
+}

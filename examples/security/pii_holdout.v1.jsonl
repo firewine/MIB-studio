@@ -1,0 +1,3 @@
+{"id":"pii_sample_email_001","locale":"ko-KR","text":"문의는 kim@example.com 으로 주세요.","entities":[{"type":"email","start":4,"end":19,"text":"kim@example.com"}],"source":"synthetic","notes":"Day-0 schema sample; M2 expands to n>=300"}
+{"id":"pii_sample_phone_001","locale":"ko-KR","text":"제 번호는 010-1234-5678입니다.","entities":[{"type":"phone","start":6,"end":19,"text":"010-1234-5678"}],"source":"synthetic","notes":"Day-0 schema sample; M2 expands to n>=300"}
+{"id":"pii_sample_rrn_001","locale":"ko-KR","text":"주민번호 900101-1234567 은 마스킹해야 합니다.","entities":[{"type":"rrn","start":5,"end":19,"text":"900101-1234567"}],"source":"red_team","notes":"Day-0 schema sample; M2 expands to n>=300"}

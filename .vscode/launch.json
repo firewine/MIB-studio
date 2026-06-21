@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API daemon",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/services/api/app/main.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Worker loop",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/services/worker/worker/main.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}

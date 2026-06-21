@@ -1,0 +1,4279 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MIB Studio Local Daemon",
+    "version": "0.0.0-day0"
+  },
+  "components": {
+    "parameters": {
+      "ProjectId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Id"
+        }
+      },
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Id"
+        }
+      },
+      "JobId": {
+        "name": "job_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Id"
+        }
+      },
+      "AgentPackageId": {
+        "name": "agent_package_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Id"
+        }
+      },
+      "Provider": {
+        "name": "provider",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 50
+        }
+      },
+      "DatasetStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "enum": [
+            "DRAFT",
+            "BUILT",
+            "REVIEWED",
+            "APPROVED",
+            "ARCHIVED"
+          ]
+        }
+      },
+      "JobStatusQuery": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/JobStatus"
+        }
+      },
+      "JobTypeQuery": {
+        "name": "type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "enum": [
+            "dataset_gen",
+            "train",
+            "eval",
+            "benchmark",
+            "export",
+            "hardware_scan"
+          ]
+        }
+      },
+      "BackendQuery": {
+        "name": "backend",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "enum": [
+            "cuda",
+            "mlx"
+          ]
+        }
+      },
+      "EvalSetPurpose": {
+        "name": "purpose",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "enum": [
+            "teacher_guard",
+            "benchmark_gold",
+            "finance_reference"
+          ]
+        }
+      },
+      "BenchmarkIdQuery": {
+        "name": "benchmark_id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/Id"
+        }
+      },
+      "TargetKeyQuery": {
+        "name": "target_key",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "TargetStatusQuery": {
+        "name": "target_status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "enum": [
+            "QUEUED",
+            "RUNNING",
+            "COMPLETED",
+            "FAILED",
+            "CANCELLED",
+            "INTERRUPTED",
+            "SKIPPED_OPTIONAL"
+          ]
+        }
+      },
+      "BenchmarkStatusQuery": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "enum": [
+            "QUEUED",
+            "RUNNING",
+            "COMPLETED",
+            "FAILED",
+            "CANCELLED",
+            "INTERRUPTED"
+          ]
+        }
+      },
+      "LastEventId": {
+        "name": "Last-Event-ID",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "description": "Last received JobEvent.seq for SSE replay"
+      }
+    },
+    "schemas": {
+      "Id": {
+        "type": "string",
+        "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "ModelId": {
+        "enum": [
+          "google/gemma-2b-it",
+          "microsoft/Phi-3.5-mini-instruct"
+        ]
+      },
+      "IsoDatetime": {
+        "type": "string"
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error_code",
+          "message",
+          "details",
+          "trace_id"
+        ],
+        "properties": {
+          "error_code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "trace_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RouteInput": {
+        "type": "object",
+        "required": [
+          "route_id",
+          "description",
+          "is_unsafe"
+        ],
+        "properties": {
+          "route_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "is_unsafe": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectCreate": {
+        "type": "object",
+        "required": [
+          "name",
+          "preset_id",
+          "routes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "preset_id": {
+            "type": "string",
+            "default": "router.basic.v1"
+          },
+          "routes": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 12,
+            "items": {
+              "$ref": "#/components/schemas/RouteInput"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectPatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "routes": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 12,
+            "items": {
+              "$ref": "#/components/schemas/RouteInput"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "preset_id",
+          "routes",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "name": {
+            "type": "string"
+          },
+          "preset_id": {
+            "type": "string"
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteRead"
+            }
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "route_taxonomy_locked": {
+            "type": "boolean",
+            "default": false
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PresetRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "preset_type",
+          "version",
+          "schema_refs",
+          "config_json",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "preset_type": {
+            "enum": [
+              "router"
+            ]
+          },
+          "version": {
+            "type": "integer"
+          },
+          "schema_refs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "config_json": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RouterExamplePayload": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "ExampleInput": {
+        "type": "object",
+        "required": [
+          "input",
+          "output",
+          "source"
+        ],
+        "properties": {
+          "input": {
+            "$ref": "#/components/schemas/RouterExamplePayload"
+          },
+          "output": {
+            "$ref": "#/components/schemas/RouterExamplePayload"
+          },
+          "source": {
+            "enum": [
+              "user",
+              "teacher",
+              "import",
+              "hard_negative",
+              "eval_gold"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "DatasetBuildRequest": {
+        "type": "object",
+        "required": [
+          "examples",
+          "status"
+        ],
+        "properties": {
+          "examples": {
+            "type": "array",
+            "minItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/ExampleInput"
+            }
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "BUILT"
+            ],
+            "default": "BUILT"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DatasetPatch": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "DRAFT",
+              "BUILT",
+              "REVIEWED",
+              "APPROVED",
+              "ARCHIVED"
+            ]
+          },
+          "approved_example_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DatasetRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "status",
+          "version",
+          "path",
+          "sample_count",
+          "sha256",
+          "schema_version",
+          "route_snapshot_sha256",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "BUILT",
+              "REVIEWED",
+              "APPROVED",
+              "ARCHIVED"
+            ]
+          },
+          "version": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "schema_version": {
+            "type": "string"
+          },
+          "route_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "frozen_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "DatasetWithExamples": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DatasetRead"
+          },
+          {
+            "type": "object",
+            "required": [
+              "examples"
+            ],
+            "properties": {
+              "examples": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ExampleRead"
+                }
+              },
+              "next_cursor": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "RowValidationError": {
+        "type": "object",
+        "required": [
+          "field",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExamplePatch": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "$ref": "#/components/schemas/RouterExamplePayload"
+          },
+          "output": {
+            "$ref": "#/components/schemas/RouterExamplePayload"
+          },
+          "review_status": {
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "EDITED"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExampleRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "dataset_id",
+          "source",
+          "input",
+          "output",
+          "review_status",
+          "approved",
+          "validation_errors",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "dataset_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "source": {
+            "enum": [
+              "user",
+              "teacher",
+              "import",
+              "hard_negative",
+              "eval_gold"
+            ]
+          },
+          "input": {
+            "$ref": "#/components/schemas/RouterExamplePayload"
+          },
+          "output": {
+            "$ref": "#/components/schemas/RouterExamplePayload"
+          },
+          "review_status": {
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "EDITED"
+            ]
+          },
+          "approved": {
+            "type": "boolean"
+          },
+          "validation_errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RowValidationError"
+            }
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobStatus": {
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELLED",
+          "INTERRUPTED"
+        ]
+      },
+      "JobAcceptedResponse": {
+        "type": "object",
+        "required": [
+          "job_id",
+          "status",
+          "type",
+          "events_url",
+          "created_resource_type",
+          "idempotency_replayed"
+        ],
+        "properties": {
+          "job_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "type": {
+            "type": "string"
+          },
+          "events_url": {
+            "type": "string"
+          },
+          "created_resource_type": {
+            "enum": [
+              "model_run",
+              "benchmark",
+              "export",
+              "hardware_scan",
+              "dataset",
+              "none"
+            ]
+          },
+          "created_resource_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "idempotency_replayed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "status",
+          "resource_class",
+          "priority",
+          "params_json",
+          "progress_json",
+          "attempt_count",
+          "events_url",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent_job_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "enum": [
+              "dataset_gen",
+              "train",
+              "eval",
+              "benchmark",
+              "export",
+              "hardware_scan"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "resource_class": {
+            "enum": [
+              "cpu_shared",
+              "gpu_exclusive"
+            ]
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "params_json": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "progress_json": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "error_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancel_requested_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attempt_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "events_url": {
+            "type": "string"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobControlResponse": {
+        "type": "object",
+        "required": [
+          "job_id",
+          "status",
+          "events_url"
+        ],
+        "properties": {
+          "job_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "child_job_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "cancel_requested": {
+            "type": "boolean"
+          },
+          "events_url": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResumeJobRequest": {
+        "type": "object",
+        "required": [
+          "checkpoint_id"
+        ],
+        "properties": {
+          "checkpoint_id": {
+            "$ref": "#/components/schemas/Id"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobRetryRequest": {
+        "type": "object",
+        "properties": {
+          "teacher_packet_approval_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "DatasetGenParams": {
+        "type": "object",
+        "required": [
+          "generation_mode",
+          "target_count"
+        ],
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generation_mode": {
+            "enum": [
+              "build_from_user_examples",
+              "teacher_synthetic"
+            ]
+          },
+          "teacher_packet_approval_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "packet_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_count": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 5000,
+            "default": 200
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrainParams": {
+        "type": "object",
+        "required": [
+          "preset_id",
+          "dataset_id",
+          "base_model",
+          "backend",
+          "training_preset",
+          "seed"
+        ],
+        "properties": {
+          "preset_id": {
+            "type": "string",
+            "default": "router.basic.v1"
+          },
+          "dataset_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "base_model": {
+            "$ref": "#/components/schemas/ModelId"
+          },
+          "backend": {
+            "enum": [
+              "cuda",
+              "mlx"
+            ]
+          },
+          "training_preset": {
+            "enum": [
+              "quick",
+              "balanced",
+              "production"
+            ],
+            "default": "balanced"
+          },
+          "seed": {
+            "type": "integer",
+            "default": 42
+          }
+        },
+        "additionalProperties": false
+      },
+      "BenchmarkTargetConfig": {
+        "type": "object",
+        "required": [
+          "target_key",
+          "target_type",
+          "backend"
+        ],
+        "properties": {
+          "target_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9_:-]{1,80}$"
+          },
+          "target_type": {
+            "enum": [
+              "prompt_only",
+              "fine_tuned",
+              "teacher",
+              "rule_based",
+              "local_large"
+            ]
+          },
+          "backend": {
+            "enum": [
+              "cuda",
+              "mlx",
+              "teacher",
+              "rule_based",
+              "prompt_only",
+              "local_large"
+            ]
+          },
+          "model_run_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "base_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prompt_template_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "credential_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teacher_base_url_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "routing_rules_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "routing_rules_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "local_large_config": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "EvalParams": {
+        "type": "object",
+        "required": [
+          "eval_set_id",
+          "target",
+          "seed"
+        ],
+        "properties": {
+          "eval_set_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "target": {
+            "$ref": "#/components/schemas/BenchmarkTargetConfig"
+          },
+          "seed": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BenchmarkParams": {
+        "type": "object",
+        "required": [
+          "eval_set_id",
+          "targets",
+          "seeds"
+        ],
+        "properties": {
+          "eval_set_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkTargetConfig"
+            }
+          },
+          "seeds": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "JobSubmitRequest": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "params"
+            ],
+            "properties": {
+              "type": {
+                "const": "dataset_gen"
+              },
+              "params": {
+                "$ref": "#/components/schemas/DatasetGenParams"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "params"
+            ],
+            "properties": {
+              "type": {
+                "const": "train"
+              },
+              "params": {
+                "$ref": "#/components/schemas/TrainParams"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "params"
+            ],
+            "properties": {
+              "type": {
+                "const": "eval"
+              },
+              "params": {
+                "$ref": "#/components/schemas/EvalParams"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "params"
+            ],
+            "properties": {
+              "type": {
+                "const": "benchmark"
+              },
+              "params": {
+                "$ref": "#/components/schemas/BenchmarkParams"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "EvalSetCreate": {
+        "type": "object",
+        "required": [
+          "purpose",
+          "dataset_id",
+          "example_ids",
+          "labeler_ids"
+        ],
+        "properties": {
+          "purpose": {
+            "enum": [
+              "teacher_guard",
+              "benchmark_gold",
+              "finance_reference"
+            ],
+            "default": "benchmark_gold"
+          },
+          "dataset_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "example_ids": {
+            "type": "array",
+            "minItems": 20,
+            "maxItems": 300,
+            "items": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          "labeler_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "kappa": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "EvalSetRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "dataset_id",
+          "purpose",
+          "version",
+          "path",
+          "sha256",
+          "sample_count",
+          "route_snapshot_sha256",
+          "labeler_ids_json",
+          "frozen_at",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "dataset_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "purpose": {
+            "enum": [
+              "teacher_guard",
+              "benchmark_gold",
+              "finance_reference"
+            ]
+          },
+          "version": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "sample_count": {
+            "type": "integer"
+          },
+          "route_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "labeler_ids_json": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kappa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "frozen_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EvalRunRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "benchmark_id",
+          "target_key",
+          "target_type",
+          "backend",
+          "target_status",
+          "target_config_json",
+          "seed",
+          "metrics_json",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "benchmark_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "model_run_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_key": {
+            "type": "string"
+          },
+          "target_type": {
+            "enum": [
+              "prompt_only",
+              "fine_tuned",
+              "teacher",
+              "local_large",
+              "rule_based"
+            ]
+          },
+          "backend": {
+            "enum": [
+              "cuda",
+              "mlx",
+              "teacher",
+              "rule_based",
+              "prompt_only",
+              "local_large"
+            ]
+          },
+          "target_status": {
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "SKIPPED_OPTIONAL"
+            ]
+          },
+          "target_config_json": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "seed": {
+            "type": "integer"
+          },
+          "credential_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metrics_json": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BenchmarkRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "job_id",
+          "eval_set_id",
+          "status",
+          "hash_status",
+          "parity_status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "job_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "eval_set_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "status": {
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED",
+              "INTERRUPTED"
+            ]
+          },
+          "report_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hash_status": {
+            "enum": [
+              "VALID",
+              "MISMATCH",
+              "MISSING"
+            ]
+          },
+          "parity_status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NA"
+            ]
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "BenchmarkReportRead": {
+        "type": "object",
+        "required": [
+          "benchmark_id",
+          "hash_status"
+        ],
+        "properties": {
+          "benchmark_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "report_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hash_status": {
+            "enum": [
+              "VALID",
+              "MISMATCH",
+              "MISSING"
+            ]
+          },
+          "report": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ModelRunRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "dataset_id",
+          "base_model",
+          "backend",
+          "method",
+          "status",
+          "seed",
+          "config_hash",
+          "resumable",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "dataset_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "base_model": {
+            "$ref": "#/components/schemas/ModelId"
+          },
+          "backend": {
+            "enum": [
+              "cuda",
+              "mlx"
+            ]
+          },
+          "method": {
+            "enum": [
+              "qlora",
+              "mlx_lora"
+            ]
+          },
+          "adapter_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "adapter_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "artifact_manifest_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "seed": {
+            "type": "integer"
+          },
+          "config_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "best_checkpoint_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resumable": {
+            "type": "boolean"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CheckpointRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "job_id",
+          "model_run_id",
+          "dataset_id",
+          "dataset_version",
+          "step",
+          "path",
+          "training_config_hash",
+          "weights_sha256",
+          "resume_enabled",
+          "resume_disabled_reason_code",
+          "resume_disabled_reason_message",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "job_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "model_run_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "dataset_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "dataset_version": {
+            "type": "integer"
+          },
+          "step": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "training_config_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "weights_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "resume_enabled": {
+            "type": "boolean"
+          },
+          "resume_disabled_reason_code": {
+            "enum": [
+              "NONE",
+              "DATASET_VERSION_MISMATCH",
+              "CONFIG_HASH_MISMATCH",
+              "MISSING_ARTIFACT",
+              "JOB_NOT_RESUMABLE"
+            ]
+          },
+          "resume_disabled_reason_message": {
+            "type": "string"
+          },
+          "metrics_json": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FallbackConfigInput": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "provider"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "provider": {
+            "enum": [
+              "openai",
+              "openai_compatible",
+              "none"
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FallbackConditionInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "AgentPackageCreate": {
+        "type": "object",
+        "required": [
+          "model_run_id",
+          "benchmark_id",
+          "fallback"
+        ],
+        "properties": {
+          "model_run_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "benchmark_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "agent_slug": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9_]{1,48}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fallback": {
+            "$ref": "#/components/schemas/FallbackConfigInput"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AgentPackageRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "agent_id",
+          "project_id",
+          "model_run_id",
+          "benchmark_id",
+          "route_catalog_sha256",
+          "contract_version",
+          "contract_yaml",
+          "contract_sha256",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "model_run_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "benchmark_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "route_catalog_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "contract_version": {
+            "type": "integer"
+          },
+          "contract_yaml": {
+            "type": "string"
+          },
+          "contract_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PlaygroundRunRequest": {
+        "type": "object",
+        "required": [
+          "input"
+        ],
+        "properties": {
+          "input": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "approve_fallback": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "PlaygroundRunResponse": {
+        "type": "object",
+        "required": [
+          "output",
+          "verifier_status",
+          "verifier_errors",
+          "fallback_required",
+          "fallback_used"
+        ],
+        "properties": {
+          "output": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "verifier_status": {
+            "enum": [
+              "PASS",
+              "FAIL"
+            ]
+          },
+          "verifier_errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fallback_required": {
+            "type": "boolean",
+            "default": false
+          },
+          "fallback_used": {
+            "type": "boolean",
+            "default": false
+          },
+          "audit_event_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExportParams": {
+        "type": "object",
+        "required": [
+          "agent_package_id",
+          "export_type"
+        ],
+        "properties": {
+          "agent_package_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "export_type": {
+            "enum": [
+              "zip",
+              "docker"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExportRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "job_id",
+          "agent_package_id",
+          "export_type",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "job_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "agent_package_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "export_type": {
+            "enum": [
+              "zip",
+              "docker"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "manifest_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manifest_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "artifact_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "artifact_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "artifact_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reveal_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "RevealExportResponse": {
+        "type": "object",
+        "required": [
+          "artifact_path",
+          "revealed"
+        ],
+        "properties": {
+          "artifact_path": {
+            "type": "string"
+          },
+          "revealed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HardwareScanRequest": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": true
+          },
+          "target_backend": {
+            "enum": [
+              "cuda",
+              "mlx",
+              "auto"
+            ],
+            "default": "auto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HardwareProfileRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "machine_id",
+          "os",
+          "gpu_vendor",
+          "ram_gb",
+          "capability_gate",
+          "backend_recommendation",
+          "training_enabled",
+          "training_disabled_reason_code",
+          "training_disabled_reason_message",
+          "allowed_backends",
+          "unlock_requirements",
+          "dry_run_result_json",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "machine_id": {
+            "type": "string"
+          },
+          "os": {
+            "type": "string"
+          },
+          "cpu": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gpu_vendor": {
+            "enum": [
+              "nvidia",
+              "apple",
+              "amd",
+              "intel",
+              "none",
+              "unknown"
+            ]
+          },
+          "gpu_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "vram_gb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unified_ram_gb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ram_gb": {
+            "type": "number"
+          },
+          "cuda_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ok",
+                  "missing",
+                  "unsupported",
+                  "na"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mlx_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ok",
+                  "missing",
+                  "unsupported",
+                  "na"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capability_gate": {
+            "enum": [
+              "G0",
+              "G1",
+              "G2"
+            ]
+          },
+          "gate": {
+            "enum": [
+              "G0",
+              "G1",
+              "G2"
+            ],
+            "deprecated": true
+          },
+          "backend_recommendation": {
+            "enum": [
+              "cuda",
+              "mlx",
+              "cpu",
+              "unsupported"
+            ]
+          },
+          "training_enabled": {
+            "type": "boolean"
+          },
+          "training_disabled_reason_code": {
+            "enum": [
+              "NO_GPU",
+              "LOW_VRAM",
+              "UNSUPPORTED_VENDOR",
+              "MISSING_DRIVER",
+              "PYTHON_UNSUPPORTED",
+              "NONE"
+            ]
+          },
+          "training_disabled_reason_message": {
+            "type": "string"
+          },
+          "allowed_backends": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "cuda",
+                "mlx"
+              ]
+            }
+          },
+          "unlock_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dry_run_result_json": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "reason_code": {
+            "type": "string",
+            "deprecated": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ModelCatalogEntryRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "license",
+          "trust_remote_code",
+          "context_length",
+          "train_seq_len",
+          "chat_template",
+          "system_role",
+          "allowed_backends",
+          "lora_target",
+          "strict_manifest_ready",
+          "available",
+          "disabled_reason_code",
+          "disabled_reason_message",
+          "required_weight_files"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ModelId"
+          },
+          "license": {
+            "type": "string"
+          },
+          "trust_remote_code": {
+            "type": "boolean"
+          },
+          "context_length": {
+            "type": "integer"
+          },
+          "train_seq_len": {
+            "type": "integer"
+          },
+          "chat_template": {
+            "type": "string"
+          },
+          "system_role": {
+            "type": "string"
+          },
+          "allowed_backends": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "cuda",
+                "mlx"
+              ]
+            }
+          },
+          "lora_target": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hf_commit_sha": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "strict_manifest_ready": {
+            "type": "boolean"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "disabled_reason_code": {
+            "enum": [
+              "NONE",
+              "STRICT_MANIFEST_MISSING",
+              "LICENSE_NOT_ACCEPTED",
+              "BACKEND_UNSUPPORTED",
+              "LOCAL_CACHE_MISSING"
+            ]
+          },
+          "disabled_reason_message": {
+            "type": "string"
+          },
+          "terms_required": {
+            "type": "boolean",
+            "default": false
+          },
+          "required_weight_files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256",
+                "size_bytes",
+                "present_in_cache"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string"
+                },
+                "size_bytes": {
+                  "type": "integer"
+                },
+                "present_in_cache": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ModelCatalogRead": {
+        "type": "object",
+        "required": [
+          "items",
+          "strict_ready"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelCatalogEntryRead"
+            }
+          },
+          "strict_ready": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CredentialUpsert": {
+        "type": "object",
+        "required": [
+          "base_url",
+          "api_key"
+        ],
+        "properties": {
+          "base_url": {
+            "type": "string"
+          },
+          "api_key": {
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "CredentialRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "provider",
+          "base_url_origin",
+          "keychain_ref",
+          "is_revoked",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "provider": {
+            "enum": [
+              "openai",
+              "openai_compatible"
+            ]
+          },
+          "base_url_origin": {
+            "type": "string"
+          },
+          "keychain_ref": {
+            "type": "string"
+          },
+          "is_revoked": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeacherPacketPreviewRequest": {
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "example_ids",
+          "instruction"
+        ],
+        "properties": {
+          "dataset_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "example_ids": {
+            "type": "array",
+            "minItems": 20,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          "instruction": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeacherPacketPreviewRead": {
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "packet_sha256",
+          "packet_preview",
+          "pii_summary",
+          "expires_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "packet_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "packet_preview": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "pii_summary": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IsoDatetime"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeacherPacketApprovalRead": {
+        "type": "object",
+        "required": [
+          "approval_id",
+          "project_id",
+          "approved_at",
+          "expires_at",
+          "packet_sha256"
+        ],
+        "properties": {
+          "approval_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "approved_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "packet_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HealthRead": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "version"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "ok"
+            ]
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "RouteRead": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "route_id",
+          "description",
+          "is_unsafe",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "route_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "is_unsafe": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          }
+        }
+      },
+      "JobEventType": {
+        "enum": [
+          "status_change",
+          "heartbeat",
+          "step",
+          "loss",
+          "vram",
+          "log",
+          "artifact",
+          "metric",
+          "error"
+        ]
+      },
+      "JobEventEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "job_id",
+          "seq",
+          "ts",
+          "level",
+          "event_type",
+          "payload",
+          "trace_id"
+        ],
+        "properties": {
+          "job_id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "ts": {
+            "$ref": "#/components/schemas/IsoDatetime"
+          },
+          "level": {
+            "enum": [
+              "debug",
+              "info",
+              "warn",
+              "error"
+            ]
+          },
+          "event_type": {
+            "$ref": "#/components/schemas/JobEventType"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "trace_id": {
+            "type": "string"
+          }
+        }
+      },
+      "FallbackConditionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "threshold"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "confidence_below"
+            ]
+          },
+          "threshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Standard error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NoContent": {
+        "description": "No content"
+      },
+      "EventGap": {
+        "description": "SSE replay gap",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "healthz",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "operationId": "listProjects",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProjectRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProject",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "operationId": "getProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "archiveProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          }
+        }
+      }
+    },
+    "/presets": {
+      "get": {
+        "operationId": "listPresets",
+        "responses": {
+          "200": {
+            "description": "Preset page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PresetRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/presets/{id}": {
+      "get": {
+        "operationId": "getPreset",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/model-catalog": {
+      "get": {
+        "operationId": "getModelCatalog",
+        "responses": {
+          "200": {
+            "description": "Model catalog availability and strict-manifest state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelCatalogRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}/datasets": {
+      "get": {
+        "operationId": "listDatasets",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/DatasetStatus"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dataset page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DatasetRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createDataset",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetBuildRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dataset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/datasets/{id}": {
+      "get": {
+        "operationId": "getDataset",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dataset with paged examples",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetWithExamples"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateDataset",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dataset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/examples/{id}": {
+      "patch": {
+        "operationId": "updateExample",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExamplePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Example",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}/jobs": {
+      "get": {
+        "operationId": "listProjectJobs",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/JobStatusQuery"
+          },
+          {
+            "$ref": "#/components/parameters/JobTypeQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/JobRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "submitProjectJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "JobAcceptedResponse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAcceptedResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/jobs": {
+      "get": {
+        "operationId": "listGlobalJobs",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/JobStatusQuery"
+          },
+          {
+            "$ref": "#/components/parameters/JobTypeQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Global job page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/JobRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "operationId": "getJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JobId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRead"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JobId"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Cancel accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobControlResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/events": {
+      "get": {
+        "operationId": "streamJobEvents",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JobId"
+          },
+          {
+            "$ref": "#/components/parameters/LastEventId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream of JobEventEnvelope objects",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events; each data line is a JobEventEnvelope JSON object"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/EventGap"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/retry": {
+      "post": {
+        "operationId": "retryJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JobId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobRetryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "JobControlResponse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobControlResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/resume": {
+      "post": {
+        "operationId": "resumeJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JobId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "JobControlResponse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobControlResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/projects/{id}/eval-sets": {
+      "get": {
+        "operationId": "listEvalSets",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/EvalSetPurpose"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "EvalSet page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EvalSetRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createEvalSet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvalSetCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "EvalSet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalSetRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/projects/{id}/eval-runs": {
+      "get": {
+        "operationId": "listEvalRuns",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/BenchmarkIdQuery"
+          },
+          {
+            "$ref": "#/components/parameters/TargetKeyQuery"
+          },
+          {
+            "$ref": "#/components/parameters/TargetStatusQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "EvalRun page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EvalRunRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eval-runs/{id}": {
+      "get": {
+        "operationId": "getEvalRun",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "EvalRun",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalRunRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eval-sets/{id}": {
+      "get": {
+        "operationId": "getEvalSet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "EvalSet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalSetRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/projects/{id}/benchmarks": {
+      "get": {
+        "operationId": "listBenchmarks",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/BenchmarkStatusQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Benchmark page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BenchmarkRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/benchmarks/{id}": {
+      "get": {
+        "operationId": "getBenchmark",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "BenchmarkRead with hash_status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/benchmarks/{id}/report": {
+      "get": {
+        "operationId": "getBenchmarkReport",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "BenchmarkReportRead",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkReportRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/projects/{id}/model-runs": {
+      "get": {
+        "operationId": "listModelRuns",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/JobStatusQuery"
+          },
+          {
+            "$ref": "#/components/parameters/BackendQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ModelRun page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ModelRunRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/model-runs/{id}": {
+      "get": {
+        "operationId": "getModelRun",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ModelRun",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelRunRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/model-runs/{id}/checkpoints": {
+      "get": {
+        "operationId": "listModelRunCheckpoints",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Checkpoint page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CheckpointRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}/agent-packages": {
+      "get": {
+        "operationId": "listAgentPackages",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AgentPackage page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AgentPackageRead"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAgentPackage",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentPackageCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "AgentPackage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPackageRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/agent-packages/{agent_package_id}": {
+      "get": {
+        "operationId": "getAgentPackage",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentPackageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AgentPackage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPackageRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-packages/{agent_package_id}/playground-runs": {
+      "post": {
+        "operationId": "runPlayground",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentPackageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaygroundRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "PlaygroundRun",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaygroundRunResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}/export": {
+      "post": {
+        "operationId": "createExport",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "JobAcceptedResponse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAcceptedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exports/{job_id}": {
+      "get": {
+        "operationId": "getExport",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JobId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ExportRead",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exports/{job_id}/artifact": {
+      "get": {
+        "operationId": "downloadExportArtifact",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JobId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zip or Docker tar artifact bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/exports/{job_id}/reveal": {
+      "post": {
+        "operationId": "revealExportArtifact",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JobId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revealed local artifact path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevealExportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hardware-doctor/scan": {
+      "post": {
+        "operationId": "submitHardwareScan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HardwareScanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "JobAcceptedResponse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAcceptedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hardware-doctor/result": {
+      "get": {
+        "operationId": "getHardwareDoctorResult",
+        "responses": {
+          "200": {
+            "description": "HardwareProfile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HardwareProfileRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{id}/teacher-packets/preview": {
+      "post": {
+        "operationId": "previewTeacherPacket",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeacherPacketPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "TeacherPacketPreview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherPacketPreviewRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teacher-packets/{id}/approve": {
+      "post": {
+        "operationId": "approveTeacherPacket",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TeacherPacketApproval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherPacketApprovalRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/credentials": {
+      "get": {
+        "operationId": "listCredentials",
+        "responses": {
+          "200": {
+            "description": "Credential providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CredentialRead"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/credentials/{provider}": {
+      "put": {
+        "operationId": "upsertCredential",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Provider"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredentialUpsert"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCredential",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Provider"
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          }
+        }
+      }
+    }
+  }
+}

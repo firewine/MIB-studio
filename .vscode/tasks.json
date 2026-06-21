@@ -1,0 +1,73 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "bootstrap: scaffold (cuda)",
+      "type": "shell",
+      "command": "scripts/bootstrap_dev.sh --profile cuda --phase scaffold",
+      "windows": {
+        "command": "powershell -ExecutionPolicy Bypass -File scripts/bootstrap_dev.ps1 -Profile cuda -Phase scaffold"
+      }
+    },
+    {
+      "label": "bootstrap: scaffold (mlx)",
+      "type": "shell",
+      "command": "scripts/bootstrap_dev.sh --profile mlx --phase scaffold",
+      "windows": {
+        "command": "powershell -ExecutionPolicy Bypass -File scripts/bootstrap_dev.ps1 -Profile mlx -Phase scaffold"
+      }
+    },
+    {
+      "label": "bootstrap: m1-smoke (cuda)",
+      "type": "shell",
+      "command": "scripts/bootstrap_dev.sh --profile cuda --phase m1-smoke",
+      "windows": {
+        "command": "powershell -ExecutionPolicy Bypass -File scripts/bootstrap_dev.ps1 -Profile cuda -Phase m1-smoke"
+      }
+    },
+    {
+      "label": "bootstrap: m1-smoke (mlx)",
+      "type": "shell",
+      "command": "scripts/bootstrap_dev.sh --profile mlx --phase m1-smoke",
+      "windows": {
+        "command": "powershell -ExecutionPolicy Bypass -File scripts/bootstrap_dev.ps1 -Profile mlx -Phase m1-smoke"
+      }
+    },
+    {
+      "label": "api: test",
+      "type": "shell",
+      "command": ". .venv/bin/activate && pytest services packages",
+      "windows": {
+        "command": ".venv\\Scripts\\python -m pytest services packages"
+      }
+    },
+    {
+      "label": "ui: test",
+      "type": "shell",
+      "command": "corepack pnpm test"
+    },
+    {
+      "label": "tauri: dev",
+      "type": "shell",
+      "command": "corepack pnpm tauri dev",
+      "problemMatcher": [],
+      "detail": "Available after M1-007 creates the Tauri/Vite scaffold."
+    },
+    {
+      "label": "security: audit (cuda)",
+      "type": "shell",
+      "command": ". .venv/bin/activate && pip-audit -r requirements.txt -r requirements-dev.txt",
+      "windows": {
+        "command": ".venv\\Scripts\\python -m pip_audit -r requirements.txt -r requirements-dev.txt"
+      }
+    },
+    {
+      "label": "security: audit (mlx)",
+      "type": "shell",
+      "command": ". .venv/bin/activate && pip-audit -r requirements-mlx.txt -r requirements-dev.txt",
+      "windows": {
+        "command": ".venv\\Scripts\\python -m pip_audit -r requirements-mlx.txt -r requirements-dev.txt"
+      }
+    }
+  ]
+}

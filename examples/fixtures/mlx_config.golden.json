@@ -1,0 +1,12 @@
+{
+  "model": "{resolved_hf_model_path}",
+  "train": true,
+  "data": "runs/{model_run_id}/dataset/mlx",
+  "adapter_path": "runs/{model_run_id}/adapter",
+  "iters": "{computed from epochs * rows / batch_size}",
+  "batch_size": 1,
+  "learning_rate": 0.0001,
+  "max_seq_length": 1024,
+  "seed": 42,
+  "trust_remote_code": false
+}

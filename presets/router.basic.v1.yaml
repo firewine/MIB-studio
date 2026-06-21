@@ -1,0 +1,62 @@
+id: router.basic.v1
+name: Basic Router
+preset_type: router
+version: 1
+base_model_options:
+  - google/gemma-2b-it
+  - microsoft/Phi-3.5-mini-instruct
+route_rules:
+  min_routes: 2
+  max_routes: 12
+  route_id_pattern: ^[a-z0-9_]+$
+  reserved_routes:
+    - human_review
+    - blocked
+dataset:
+  format: jsonl
+  min_user_examples: 20
+  input_schema: schemas/router_input.schema.json
+  output_schema: schemas/router_output.schema.json
+training_defaults:
+  quick:
+    epochs: 1
+    lora_rank: 8
+    max_seq_length: 1024
+    gradient_accumulation_steps: 8
+  balanced:
+    epochs: 3
+    lora_rank: 8
+    max_seq_length: 1024
+    gradient_accumulation_steps: 8
+  production:
+    epochs: 3
+    lora_rank: 16
+    max_seq_length: 1024
+    gradient_accumulation_steps: 16
+eval_options:
+  metrics:
+    - route_accuracy
+    - task_type_accuracy
+    - unsafe_recall
+    - json_valid_rate
+    - latency_p50
+    - cost_per_task
+  required_seeds: [42, 123, 456]
+export_options:
+  - zip
+  - docker
+benchmark_taxonomy:
+  route_ids:
+    - finance_income
+    - risk_summary
+    - investment_advice_block
+    - human_review
+    - blocked_pii
+    - blocked_unsupported
+schemas:
+  input: schemas/router_input.schema.json
+  output: schemas/router_output.schema.json
+prompts:
+  prompt_only: prompts/router.prompt_only.v1.txt
+rules:
+  routing_rules: rules/router.routing_rules.v1.yaml

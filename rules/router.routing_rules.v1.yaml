@@ -1,0 +1,73 @@
+schema_version: routing_rules.v1
+default_route_id: human_review
+rules:
+  - rule_id: pii_resident_id_block
+    priority: 10
+    route_id: blocked_pii
+    when:
+      type: regex
+      field: /text
+      pattern: "\\b\\d{6}-\\d{7}\\b"
+  - rule_id: pii_account_block
+    priority: 20
+    route_id: blocked_pii
+    when:
+      type: contains
+      field: /text
+      value: account number
+  - rule_id: direct_buy_sell_block
+    priority: 30
+    route_id: investment_advice_block
+    when:
+      type: regex
+      field: /text
+      pattern: "(buy|sell|매수|매도|추천)"
+  - rule_id: unsupported_crypto_block
+    priority: 40
+    route_id: blocked_unsupported
+    when:
+      type: regex
+      field: /text
+      pattern: "(crypto|bitcoin|코인|비트코인)"
+  - rule_id: unsupported_tax_filing_block
+    priority: 50
+    route_id: blocked_unsupported
+    when:
+      type: regex
+      field: /text
+      pattern: "(tax filing|세무 신고|절세 구조)"
+  - rule_id: human_review_legal
+    priority: 60
+    route_id: human_review
+    when:
+      type: regex
+      field: /text
+      pattern: "(lawsuit|소송|분쟁|regulator|금감원)"
+  - rule_id: income_report_dividend
+    priority: 100
+    route_id: finance_income
+    when:
+      type: regex
+      field: /text
+      pattern: "(income|dividend|cash flow|월배당|인컴|현금흐름)"
+  - rule_id: income_report_after_tax
+    priority: 110
+    route_id: finance_income
+    when:
+      type: contains
+      field: /text
+      value: after tax
+  - rule_id: risk_summary_drawdown
+    priority: 200
+    route_id: risk_summary
+    when:
+      type: regex
+      field: /text
+      pattern: "(risk|drawdown|volatility|위험|변동성|손실)"
+  - rule_id: risk_summary_concentration
+    priority: 210
+    route_id: risk_summary
+    when:
+      type: regex
+      field: /text
+      pattern: "(concentration|sector|exposure|편중|섹터|비중)"

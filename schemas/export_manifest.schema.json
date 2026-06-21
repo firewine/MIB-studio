@@ -1,0 +1,257 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MIB Export Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "agent_package_id",
+    "agent_id",
+    "contract_sha256",
+    "route_catalog_sha256",
+    "benchmark_report_sha256",
+    "export_type",
+    "created_at",
+    "adapter",
+    "base_model",
+    "runtime",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "export_manifest.v1"
+    },
+    "agent_package_id": {
+      "type": "string"
+    },
+    "agent_id": {
+      "type": "string"
+    },
+    "contract_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "route_catalog_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "benchmark_report_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "export_type": {
+      "enum": ["zip", "docker"]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "required_paths"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": { "const": "lora_adapter" }
+            }
+          },
+          "then": {
+            "properties": {
+              "required_paths": {
+                "allOf": [
+                  { "contains": { "const": "adapter/adapter.safetensors" } },
+                  { "contains": { "const": "adapter/adapter_config.json" } }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "format": { "const": "mlx_lora_adapter" }
+            }
+          },
+          "then": {
+            "properties": {
+              "required_paths": {
+                "allOf": [
+                  { "contains": { "const": "adapter/adapters.npz" } },
+                  { "contains": { "const": "adapter/adapter_config.json" } }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "format": {
+          "enum": ["lora_adapter", "mlx_lora_adapter"]
+        },
+        "required_paths": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "pattern": "^adapter/"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "base_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "hf_commit_sha",
+        "materialization",
+        "cache_env",
+        "cache_subdir",
+        "required_files"
+      ],
+      "properties": {
+        "id": {
+          "enum": ["google/gemma-2b-it", "microsoft/Phi-3.5-mini-instruct"]
+        },
+        "hf_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "materialization": {
+          "const": "external_cache"
+        },
+        "cache_env": {
+          "const": "MIB_MODEL_CACHE_DIR"
+        },
+        "cache_subdir": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+__[A-Za-z0-9_.-]+@[0-9a-f]{40}$"
+        },
+        "required_files": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "size_bytes"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^(?!/)(?!.*\\.\\.).+"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "native_endpoint",
+        "openai_endpoint",
+        "entrypoint",
+        "run_command",
+        "compatible_backends",
+        "requires_bearer_token_env",
+        "requires_bearer_token_min_length"
+      ],
+      "properties": {
+        "native_endpoint": {
+          "const": "/agents/{agent_id}/run"
+        },
+        "openai_endpoint": {
+          "const": "/v1/chat/completions"
+        },
+        "entrypoint": {
+          "const": "agents.run:app"
+        },
+        "run_command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compatible_backends": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": ["cuda", "mlx", "cpu"]
+          },
+          "uniqueItems": true
+        },
+        "requires_bearer_token_env": {
+          "const": "MIB_RUNTIME_BEARER_TOKEN"
+        },
+        "requires_bearer_token_min_length": {
+          "const": 32
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 11,
+      "allOf": [
+        { "contains": { "type": "object", "properties": { "role": { "const": "agent_contract" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "route_catalog" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "input_schema" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "output_schema" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "benchmark_report" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "model_manifest" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "adapter" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "adapter_config" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "runtime_entrypoint" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "runtime_code" } }, "required": ["role"] } },
+        { "contains": { "type": "object", "properties": { "role": { "const": "runtime_requirements" } }, "required": ["role"] } }
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "sha256", "size_bytes", "required"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*\\.\\.).+"
+          },
+          "role": {
+            "enum": [
+              "agent_contract",
+              "route_catalog",
+              "input_schema",
+              "output_schema",
+              "benchmark_report",
+              "model_manifest",
+              "adapter",
+              "adapter_config",
+              "runtime_code",
+              "runtime_requirements",
+              "runtime_entrypoint",
+              "license_notice",
+              "manifest",
+              "other"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

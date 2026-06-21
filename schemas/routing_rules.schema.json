@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MIB Routing Rules",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "default_route_id", "rules"],
+  "properties": {
+    "schema_version": {
+      "const": "routing_rules.v1"
+    },
+    "default_route_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]{1,64}$"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "priority", "route_id", "when"],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,80}$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "route_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,64}$"
+          },
+          "when": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["type", "field"],
+            "properties": {
+              "type": {
+                "enum": ["contains", "equals", "in", "regex", "exists", "gt", "lt"]
+              },
+              "field": {
+                "type": "string",
+                "pattern": "^/"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

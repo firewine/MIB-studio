@@ -124,13 +124,11 @@ class EvalSetService:
             )
 
     def _guard_teacher_source(self, purpose: str, examples: list[Example]) -> None:
-        if purpose != "teacher_guard":
-            return
         generated = [example.id for example in examples if example.source in {"teacher", "hard_negative"}]
         if generated:
             raise APIError(
                 "EVAL_SET_PRE_TEACHER_REQUIRED",
-                "teacher_guard EvalSet must use pre-teacher examples.",
+                f"{purpose} EvalSet must use pre-teacher gold examples.",
                 status_code=409,
                 details={"example_ids": generated},
             )

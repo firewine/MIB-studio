@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from pydantic import ValidationError
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
-from services.api.app.core.errors import APIError, json_safe_errors
+from services.api.app.core.errors import APIError
 from services.api.app.schemas.dataset import (
     DatasetBuildRequest,
     DatasetPage,
@@ -19,135 +17,21 @@ from services.api.app.schemas.dataset import (
     ExamplePatch,
     ExampleRead,
 )
-from services.api.app.schemas.job import DatasetGenParams, JobAcceptedResponse, JobSubmitRequest
 from services.api.app.schemas.router_validation import validate_router_example
-from services.shared.db.models import Dataset, EvalSet, Example, Job, JobResource, Project, TeacherPacketApproval
+from services.api.app.services.dataset_job_service import DatasetJobServiceMixin, utc_now
+from services.shared.db.models import Dataset, Example, Project
 from services.shared.db.repositories.dataset_store import (
     DatasetExampleInput,
     DatasetStore,
     canonical_json,
-    new_id,
     sha256_text,
 )
 
 
-def utc_now() -> str:
-    return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
-
-
-class DatasetService:
+class DatasetService(DatasetJobServiceMixin):
     def __init__(self, session: Session, mib_home: Path) -> None:
         self.session = session
         self.store = DatasetStore(session, mib_home)
-
-    def submit_project_job(
-        self,
-        project_id: str,
-        payload: JobSubmitRequest,
-        *,
-        idempotency_key: str | None,
-        trace_id: str,
-    ) -> JobAcceptedResponse:
-        project = self._project_or_404(project_id)
-        if project.archived_at is not None:
-            raise APIError("PROJECT_ARCHIVED", "Archived projects are read-only.", status_code=409, details={"project_id": project_id})
-
-        body_hash = sha256_text(canonical_json(payload.model_dump()))
-        if idempotency_key:
-            existing = self._job_by_project_idempotency_key(project_id, idempotency_key)
-            if existing is not None:
-                if existing.idempotency_body_sha256 != body_hash:
-                    raise APIError(
-                        "IDEMPOTENCY_CONFLICT",
-                        "Idempotency-Key was already used with a different project job request.",
-                        status_code=409,
-                        details={"idempotency_key": idempotency_key},
-                    )
-                return self._accepted_response(existing, idempotency_replayed=True)
-
-        if payload.type != "dataset_gen":
-            raise APIError(
-                "MILESTONE_LOCKED",
-                "This job type is locked until its implementation milestone.",
-                status_code=409,
-                details={"type": payload.type, "current_milestone": "M2-003"},
-            )
-
-        params = self._dataset_gen_params(payload.params)
-        if params.generation_mode != "teacher_synthetic":
-            raise APIError(
-                "MILESTONE_LOCKED",
-                "build_from_user_examples jobs are not used by M2-003; use the synchronous dataset endpoint.",
-                status_code=409,
-                details={"generation_mode": params.generation_mode, "current_milestone": "M2-003"},
-            )
-
-        approval = self._teacher_packet_ready(params.teacher_packet_approval_id or "")
-        dataset = self._dataset_or_404(approval.dataset_id)
-        if dataset.project_id != project_id:
-            raise APIError(
-                "DATASET_PROJECT_MISMATCH",
-                "Teacher Packet approval does not belong to the requested project.",
-                status_code=409,
-                details={"project_id": project_id, "dataset_id": dataset.id},
-            )
-        if params.dataset_id is not None and params.dataset_id != dataset.id:
-            raise APIError(
-                "DATASET_PROJECT_MISMATCH",
-                "Dataset id does not match the approved Teacher Packet dataset.",
-                status_code=409,
-                details={"request_dataset_id": params.dataset_id, "approval_dataset_id": dataset.id},
-            )
-        if dataset.status != "APPROVED":
-            raise APIError(
-                "DATASET_NOT_APPROVED",
-                "Teacher synthetic generation requires an approved source dataset.",
-                status_code=409,
-                details={"dataset_id": dataset.id, "status": dataset.status},
-            )
-
-        packet_sha256 = sha256_text(approval.packet_json)
-        if approval.packet_sha256 != packet_sha256:
-            raise APIError(
-                "TEACHER_PACKET_HASH_MISMATCH",
-                "Teacher Packet hash does not match the stored packet snapshot.",
-                status_code=409,
-                details={"approval_id": approval.id},
-            )
-        teacher_guard = self._teacher_guard_for_dataset(dataset)
-        if teacher_guard is None:
-            raise APIError(
-                "TEACHER_GUARD_REQUIRED",
-                "teacher_synthetic generation requires a frozen teacher_guard EvalSet for this dataset snapshot.",
-                status_code=409,
-                details={"dataset_id": dataset.id, "route_snapshot_sha256": dataset.route_snapshot_sha256},
-            )
-
-        now = utc_now()
-        job_params = params.model_dump()
-        job_params["dataset_id"] = dataset.id
-        job_params["packet_sha256"] = packet_sha256
-        job = Job(
-            id=new_id(),
-            project_id=project_id,
-            type="dataset_gen",
-            resource_class="cpu_shared",
-            status="QUEUED",
-            priority=0,
-            params_json=canonical_json(job_params),
-            idempotency_key=idempotency_key,
-            idempotency_body_sha256=body_hash if idempotency_key else None,
-            idempotency_expires_at=_format_ts(datetime.now(UTC) + timedelta(hours=24)) if idempotency_key else None,
-            attempt_count=0,
-            eval_set_id=teacher_guard.id,
-            trace_id=trace_id,
-            created_at=now,
-        )
-        self.session.add(job)
-        self.session.flush()
-        approval.used_job_id = job.id
-        self.session.flush()
-        return self._accepted_response(job, idempotency_replayed=False)
 
     def build_dataset(self, project_id: str, payload: DatasetBuildRequest) -> DatasetRead:
         project = self._project_or_404(project_id)
@@ -378,71 +262,3 @@ class DatasetService:
             validation_errors=[],
             created_at=example.created_at,
         )
-
-    def _dataset_gen_params(self, raw_params: dict[str, Any]) -> DatasetGenParams:
-        try:
-            return DatasetGenParams.model_validate(raw_params)
-        except ValidationError as exc:
-            raise APIError(
-                "VALIDATION_ERROR",
-                "Request validation failed.",
-                status_code=422,
-                details={"errors": json_safe_errors(exc.errors())},
-            ) from exc
-
-    def _teacher_packet_ready(self, approval_id: str) -> TeacherPacketApproval:
-        approval = self.session.get(TeacherPacketApproval, approval_id)
-        now_dt = datetime.now(UTC)
-        if approval is None or approval.approved_at is None or _parse_ts(approval.expires_at) <= now_dt:
-            raise APIError(
-                "TEACHER_PACKET_APPROVAL_REQUIRED",
-                "teacher_synthetic generation requires an approved, unexpired Teacher Packet.",
-                status_code=409,
-                details={"approval_id": approval_id},
-            )
-        if approval.used_job_id is not None:
-            raise APIError(
-                "TEACHER_PACKET_APPROVAL_REQUIRED",
-                "Teacher Packet approval has already been reserved by a job.",
-                status_code=409,
-                details={"approval_id": approval.id, "used_job_id": approval.used_job_id},
-            )
-        return approval
-
-    def _teacher_guard_for_dataset(self, dataset: Dataset) -> EvalSet | None:
-        statement = (
-            select(EvalSet)
-            .where(
-                EvalSet.project_id == dataset.project_id,
-                EvalSet.purpose == "teacher_guard",
-                EvalSet.route_snapshot_sha256 == dataset.route_snapshot_sha256,
-                EvalSet.frozen_at.is_not(None),
-            )
-            .order_by(EvalSet.version.desc())
-            .limit(1)
-        )
-        return self.session.scalars(statement).first()
-
-    def _job_by_project_idempotency_key(self, project_id: str, idempotency_key: str) -> Job | None:
-        statement = select(Job).where(Job.project_id == project_id, Job.idempotency_key == idempotency_key).limit(1)
-        return self.session.scalars(statement).first()
-
-    def _accepted_response(self, job: Job, *, idempotency_replayed: bool) -> JobAcceptedResponse:
-        resource = self.session.get(JobResource, job.id)
-        return JobAcceptedResponse(
-            job_id=job.id,
-            status=job.status,  # type: ignore[arg-type]
-            type=job.type,
-            events_url=f"/jobs/{job.id}/events",
-            created_resource_type=resource.resource_type if resource is not None else "none",  # type: ignore[arg-type]
-            created_resource_id=resource.resource_id if resource is not None else None,
-            idempotency_replayed=idempotency_replayed,
-        )
-
-
-def _format_ts(value: datetime) -> str:
-    return value.isoformat(timespec="milliseconds").replace("+00:00", "Z")
-
-
-def _parse_ts(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))

@@ -45,6 +45,31 @@
       "soft": 240
     }
   },
-  "files_checked": 56,
-  "violations": []
+  "files_checked": 84,
+  "violations": [
+    {
+      "hard_limit": 400,
+      "kind": "worker_handler",
+      "loc": 331,
+      "path": "services/worker/handlers/dataset_gen.py",
+      "severity": "soft",
+      "soft_limit": 260
+    },
+    {
+      "hard_limit": 400,
+      "kind": "service",
+      "loc": 264,
+      "path": "services/api/app/services/dataset_service.py",
+      "severity": "soft",
+      "soft_limit": 260
+    },
+    {
+      "hard_limit": 400,
+      "kind": "service",
+      "loc": 277,
+      "path": "services/api/app/services/training_service.py",
+      "severity": "soft",
+      "soft_limit": 260
+    }
+  ]
 }

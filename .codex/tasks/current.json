@@ -1,21 +1,21 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Implement M3-002 CUDA wrapper.",
-  "phase": "done",
-  "gate": "mib-studio-m3-002-cuda-wrapper",
+  "goal": "Implement M3-003 MLX wrapper and clear the required m1-smoke file-size blocker.",
+  "phase": "check",
+  "gate": "mib-studio-m3-003-mlx-wrapper",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "e8c8fc9390e8db714683a6a39088993d1321b498",
+  "head": "7ac54e4",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
-    "services/worker/handlers/train_cuda.py",
-    "services/worker/runtime/__init__.py",
-    "services/worker/runtime/llamafactory.py",
-    "services/shared/db/repositories/training_store.py",
-    "tests/training/test_cuda_wrapper.py",
-    "examples/fixtures/llamafactory_config.golden.yaml",
+    "services/worker/handlers/train_mlx.py",
+    "services/worker/runtime/mlx_lm.py",
+    "services/api/app/services/dataset_service.py",
+    "services/api/app/services/dataset_job_service.py",
+    "tests/training/test_mlx_wrapper.py",
+    "examples/fixtures/mlx_config.golden.json",
     "artifacts/review/",
     "artifacts/security/"
   ],
@@ -27,21 +27,23 @@
     "docs/reviews",
     "services/shared/db/migrations",
     "services/shared/db/models",
-    "services/api/app",
-    "services/worker/handlers/train_mlx.py",
-    "services/worker/runtime/mlx_lm.py",
+    "services/api/app/routes",
+    "services/api/app/core",
+    "services/api/app/schemas",
+    "services/worker/handlers/train_cuda.py",
+    "services/worker/runtime/llamafactory.py",
     "packages",
     ".github"
   ],
   "blocked_scope": [
-    "MLX wrapper",
+    "CUDA wrapper changes",
     "checkpoint/resume and job control",
-    "training preflight API changes",
+    "API route/schema changes",
     "DB schema, migration, or model changes",
     "benchmark, package, export, or playground runtime changes",
     "foundation/spec/mockup/handoff/review edits"
   ],
-  "allowed_edit_paths_scope_note": "M3-001 is pushed. This scope implemented M3-002 CUDA worker wrapper around LLaMA-Factory config/dataset conversion, runner protocol, sanitized job events, and ModelRun terminal artifact updates.",
+  "allowed_edit_paths_scope_note": "M3-002 is pushed. This scope implements M3-003 MLX worker wrapper around mlx-lm config/dataset conversion, runner protocol, sanitized job events, and ModelRun terminal artifact updates. It also allows a behavior-preserving dataset service extraction because the required m1-smoke bootstrap currently fails the file-size hard limit on that existing service.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
@@ -52,56 +54,76 @@
     "services/shared/db/models/training.py",
     "services/shared/db/models/job.py",
     "services/shared/db/repositories/dataset_store.py",
+    "services/shared/db/repositories/training_store.py",
+    "services/api/app/services/dataset_service.py",
     "services/worker/model_cache.py",
-    "tests/training/test_training_preflight.py"
+    "services/worker/handlers/train_cuda.py",
+    "services/worker/runtime/llamafactory.py",
+    "tests/training/test_cuda_wrapper.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/train_cuda.py services/worker/runtime/llamafactory.py services/shared/db/repositories/training_store.py tests/training/test_cuda_wrapper.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/train_mlx.py services/worker/runtime/mlx_lm.py services/api/app/services/dataset_service.py services/api/app/services/dataset_job_service.py tests/training/test_mlx_wrapper.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_mlx_wrapper.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_dataset_builder.py tests/security/test_teacher_packet.py tests/smoke/test_m1_smoke.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+    "PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/train_cuda.py services/worker/runtime/llamafactory.py services/shared/db/repositories/training_store.py tests/training/test_cuda_wrapper.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/worker/handlers/train_mlx.py services/worker/runtime/mlx_lm.py services/api/app/services/dataset_service.py services/api/app/services/dataset_job_service.py tests/training/test_mlx_wrapper.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_mlx_wrapper.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_dataset_builder.py tests/security/test_teacher_packet.py tests/smoke/test_m1_smoke.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
-    "git diff --check",
-    "git diff --cached --check"
+    "PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+    "git diff --check"
   ],
   "failed_verification_commands": [
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py -q",
+      "command": "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
       "status": "fixed",
-      "reason": "Initial test setup inserted Dataset before flushing Project FK; test setup was fixed and pytest passed."
+      "reason": "Initial run used ambient Node/Rust PATH and failed strict toolchain; rerun with documented /tmp/mib-toolchain PATH passed."
+    },
+    {
+      "command": "PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+      "status": "fixed",
+      "reason": "Corepack attempted latest pnpm lookup; rerun with COREPACK_DEFAULT_TO_LATEST=0 used the cached packageManager pin."
+    },
+    {
+      "command": "PATH=/tmp/mib-toolchain/node-v20.18.1-linux-x64/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin:/tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin:$PATH COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+      "status": "fixed",
+      "reason": "Sandboxed pip-audit temp venv upgrade failed; escalated rerun passed."
     }
   ],
-  "warnings": [],
+  "warnings": [
+    "m1-smoke file_size_report.json still records soft warnings for services/worker/handlers/dataset_gen.py, services/api/app/services/dataset_service.py, and services/api/app/services/training_service.py; no hard violations remain.",
+    "FastAPI ORJSONResponse deprecation warnings remain in API regression tests."
+  ],
   "phase_notes": {
-    "plan": "Implement M3-002 only: CUDA train handler, LLaMA-Factory YAML/dataset conversion, runner protocol, log/metric JobEvents, adapter manifest/hash terminal updates. Keep MLX, checkpoint/resume, API, and DB schema out of scope.",
-    "audit": "Read M3 handoff, IMPLEMENTATION_GUIDE M3-002 Done notes, ARCHITECTURE Trainer Wrapper Contract and LLaMA-Factory YAML/dataset conversion requirements, existing ModelRun/Job schemas, and M3-001 TrainingStore.",
-    "build": "Implemented runtime adapter, CUDA handler, TrainingStore worker update helpers, config fixture, and focused tests.",
-    "check": "Required M3-002 verification commands passed: task JSON, py_compile, focused pytest, import boundary, and diff whitespace checks.",
-    "done": "M3-002 implementation was verified and committed at e8c8fc9; closeout updates are ready to commit and push."
+    "plan": "Implement M3-003: MLX train handler, mlx-lm JSON/dataset conversion, runner protocol, log/metric JobEvents, adapter manifest/hash terminal updates. Also clear the required m1-smoke hard file-size blocker with a behavior-preserving dataset service extraction. Keep CUDA, checkpoint/resume, API routes/schemas, and DB schema out of scope.",
+    "audit": "Read M3 handoff, IMPLEMENTATION_GUIDE M3-003 Done notes, ARCHITECTURE MLX command/config/dataset requirements, existing ModelRun/Job schemas, M3-001 TrainingStore, M3-002 CUDA wrapper patterns, bootstrap_dev.sh, code_shape rules, and the dataset_service hard-limit report.",
+    "build": "Implemented MLX runtime adapter, MLX handler, config fixture, focused tests, and dataset-gen job submission helper extraction without API contract changes.",
+    "check": "Passed task JSON, py_compile, focused MLX pytest, dataset/API regression pytest, import boundary, m1-smoke bootstrap, and diff whitespace checks.",
+    "done": "Pending: commit implementation, update WORKING closeout, and push after closeout commit."
   },
   "pabcd": {
-    "active": false,
-    "phase": "done",
-    "gate": "mib-studio-m3-002-cuda-wrapper",
-    "status": "MIB_STUDIO_M3_002_VERIFIED",
-    "phase_complete": true,
+    "active": true,
+    "phase": "check",
+    "gate": "mib-studio-m3-003-mlx-wrapper",
+    "status": "MIB_STUDIO_M3_003_IN_PROGRESS",
+    "phase_complete": false,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": true,
-    "approved_scope": "M3-002 CUDA wrapper worker/runtime/tests within listed paths.",
-    "blocked_scope": "No MLX wrapper, checkpoint/resume, job control, API changes, DB schema/model/migration, benchmark, package, export, playground, or docs/spec/foundation/mockup/handoff/review edits.",
-    "phase_completion_git_policy": "Completed: implementation commit e8c8fc9 verified; closeout commit will be pushed to origin/main.",
-    "plan": "Implemented M3-002 CUDA wrapper.",
-    "audit": "Required references were read.",
-    "build": "Implemented and committed at e8c8fc9.",
+    "all_required_teams_go": false,
+    "approved_scope": "M3-003 MLX wrapper worker/runtime/tests within listed paths plus dataset service extraction needed to clear the required m1-smoke file-size blocker.",
+    "blocked_scope": "No CUDA wrapper changes, checkpoint/resume, job control, API route/schema changes, DB schema/model/migration, benchmark, package, export, playground, or docs/spec/foundation/mockup/handoff/review edits.",
+    "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
+    "plan": "Implement M3-003 MLX wrapper and required m1-smoke hard-limit remediation.",
+    "audit": "Required MLX and bootstrap/file-size references have been read.",
+    "build": "Implementation complete.",
     "check": "All required verification commands passed.",
-    "done": "Closeout update is prepared for commit and push."
+    "done": "Pending implementation commit and closeout."
   }
 }

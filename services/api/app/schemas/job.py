@@ -30,6 +30,15 @@ class DatasetGenParams(StrictModel):
         return self
 
 
+class TrainParams(StrictModel):
+    preset_id: str = "router.basic.v1"
+    dataset_id: str
+    base_model: Literal["google/gemma-2b-it", "microsoft/Phi-3.5-mini-instruct"]
+    backend: Literal["cuda", "mlx"]
+    training_preset: Literal["quick", "balanced", "production"] = "balanced"
+    seed: int = 42
+
+
 class JobSubmitRequest(StrictModel):
     type: Literal["dataset_gen", "train", "eval", "benchmark"]
     params: dict[str, Any]

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from services.api.app.schemas.job import JobAcceptedResponse, JobSubmitRequest
 from services.api.app.services.dataset_service import DatasetService
+from services.api.app.services.training_service import TrainingService
 
 
 router = APIRouter()
@@ -40,6 +41,13 @@ async def submit_project_job(
     home: Path = Depends(mib_home),
 ) -> JobAcceptedResponse:
     trace_id = str(getattr(request.state, "trace_id", "missing-trace-id"))
+    if payload.type == "train":
+        return TrainingService(session, home).submit_train_job(
+            id,
+            payload,
+            idempotency_key=idempotency_key,
+            trace_id=trace_id,
+        )
     return DatasetService(session, home).submit_project_job(
         id,
         payload,

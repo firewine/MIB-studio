@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M6_RC_EVIDENCE_REFRESH
+phase_id: REAL_ADAPTER_ENDPOINT_CAPTURE_TOOLING
 milestone: M6_RC_Blocker_Remediation
-phase_status: m6_rc_evidence_current_not_go
+phase_status: real_adapter_endpoint_capture_tooling_verified
 active_slice: none
-gate_id: mib-studio-m6-rc-evidence-refresh
+gate_id: mib-studio-real-adapter-endpoint-capture-tooling
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,13 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m6-rc-evidence-refresh
+  gate: mib-studio-real-adapter-endpoint-capture-tooling
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: refresh M6 RC signoff against current evidence and add machine-readable evidence verifier
+  objective: add standard no-fake real adapter Docker endpoint evidence capture tooling
   evidence:
+    real_adapter_endpoint_capture_tooling: artifacts/review/real_adapter_endpoint_capture_tooling_evidence.md
     m6_rc_evidence_verification: artifacts/review/m6_rc_evidence_verification.json
     exported_adapter_load_guard: artifacts/review/exported_adapter_load_guard_evidence.md
     m1_smoke_recertification: artifacts/review/m1_smoke_recertification_evidence.md
@@ -74,11 +75,11 @@ last_completed_work:
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - scripts/verify_m6_rc_evidence.py records current M6 RC decision as NOT_GO
-    - m6_rc_evidence_verification.json has verification_ok true and unexpected_blockers []
-    - FE v6 review/signoff is refreshed to GO using artifacts/review/fe_v6_evidence.md
-    - current acceptable NOT_GO blocker is real_trained_adapter_no_fake_endpoint only
-    - LLM/Training, Security, DevEx, CTO remain NO_GO/NOT_GO for missing real adapter no-fake endpoint evidence
+    - scripts/capture_real_adapter_endpoint_evidence.py can collect the required live Docker endpoint transcripts when a real adapter image exists
+    - capture tooling refuses parent MIB_RUNTIME_ALLOW_FAKE_BACKEND and never passes that env into Docker
+    - capture tooling verifies /healthz, native /agents/{agent_id}/run, OpenAI /v1/chat/completions, output equivalence, and read-only /models mount
+    - capture self-test writes marker-shaped output with self_test true, and verify_m6_rc_evidence.py rejects self-test as RC GO evidence
+    - m6_rc_evidence_verification.json still has decision NOT_GO, verification_ok true, unexpected_blockers []
     - no real trained CUDA lora_adapter artifact is still available in this environment
     - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
 
@@ -119,9 +120,12 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m6_rc_evidence_current_not_go
+status: real_adapter_endpoint_capture_tooling_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json
   - python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json
   - git diff --check
@@ -160,6 +164,7 @@ recorded_go:
   Export_Adapter_Lineage_Validation: true
   Exported_Runtime_Adapter_Load_Guard: true
   M6_RC_Evidence_Current_Not_Go: true
+  Real_Adapter_Endpoint_Capture_Tooling: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -167,9 +172,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 active_gate:
-  id: mib-studio-m6-rc-evidence-refresh
+  id: mib-studio-real-adapter-endpoint-capture-tooling
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/m6_rc_evidence_verification.json
+  review_bundle: artifacts/review/real_adapter_endpoint_capture_tooling_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -245,6 +250,14 @@ is NOT_GO, verification_ok is true, unexpected_blockers is empty, and the only
 acceptable blocker is real_trained_adapter_no_fake_endpoint. FE v6 review is now
 GO; LLM/Training, Security, DevEx, and CTO remain blocked by missing real
 adapter no-fake endpoint evidence.
+Real adapter endpoint capture tooling is recorded in
+artifacts/review/real_adapter_endpoint_capture_tooling_evidence.md. Use
+scripts/capture_real_adapter_endpoint_evidence.py against a real exported CUDA
+lora_adapter image and strict model cache to generate
+artifacts/review/real_trained_adapter_endpoint_evidence.md. The script refuses
+MIB_RUNTIME_ALLOW_FAKE_BACKEND and verifies health/native/OpenAI endpoints,
+output equivalence, and read-only model-cache mount. Its self-test output is
+rejected by verify_m6_rc_evidence.py as RC GO evidence.
 M6-RC remains NOT_GO until real trained adapter inference evidence exists or the
 release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
 for Python.

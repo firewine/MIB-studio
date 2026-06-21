@@ -1,16 +1,17 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Refresh the M6/v0-RC sign-off state against current evidence and add a machine-readable evidence verifier so stale FE/Docker blockers cannot mask the actual remaining blocker. Record that FE v6, Docker dependency packaging, adapter structural/lineage validation, and adapter-load guard evidence are now present, while M6-RC remains NOT_GO because real trained adapter no-fake Docker endpoint transcripts are still missing.",
+  "goal": "Add a standard real trained adapter Docker endpoint evidence capture tool so the remaining M6-RC blocker can be closed reproducibly when a real CUDA lora_adapter image/artifact is available. The tool must run exported Docker runtime without MIB_RUNTIME_ALLOW_FAKE_BACKEND, verify read-only model-cache mount, capture /healthz, /agents/{agent_id}/run, and /v1/chat/completions transcripts, write the exact GO markers consumed by scripts/verify_m6_rc_evidence.py, and include self-test coverage. This gate does not provide a real adapter and must preserve current M6-RC NOT_GO.",
   "phase": "done",
-  "gate": "mib-studio-m6-rc-evidence-refresh",
+  "gate": "mib-studio-real-adapter-endpoint-capture-tooling",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "8b44eeb",
+  "head": "159bfb7",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
+    "scripts/capture_real_adapter_endpoint_evidence.py",
     "scripts/verify_m6_rc_evidence.py",
-    "docs/reviews/M6/",
+    "tests/scripts/",
     "docs/WORKING.md",
     "artifacts/review/"
   ],
@@ -19,21 +20,30 @@
     "schemas",
     "services",
     "packages",
-    "tests",
+    "tests/api",
+    "tests/agent_package",
+    "tests/benchmark",
+    "tests/dataset",
+    "tests/eval",
+    "tests/export",
+    "tests/security",
+    "tests/smoke",
+    "tests/training",
     "docs/foundation",
     "docs/specs",
     "docs/mockup",
     "docs/handoffs",
+    "docs/reviews",
     ".github",
     "artifacts/security"
   ],
   "blocked_scope": [
-    "Product runtime, API, UI, DB, schema, training, export implementation, or test behavior changes",
+    "Product runtime, API, UI, DB, schema, training, export implementation, or model behavior changes",
     "Creating or committing model weights or adapter artifacts",
-    "Claiming M6-RC GO before real trained adapter endpoint evidence or release-policy decision",
-    "Weakening M6 acceptance criteria"
+    "Running fake-backend endpoint evidence as RC GO evidence",
+    "Claiming M6-RC GO before real trained adapter endpoint evidence exists"
   ],
-  "allowed_edit_paths_scope_note": "This gate is evidence/sign-off alignment only. It may add a verifier script and generated review artifact, and update M6 review docs and WORKING.md.",
+  "allowed_edit_paths_scope_note": "This gate may add endpoint evidence capture tooling, focused tests, a generated tooling evidence note, and handoff updates only.",
   "external_runtime_paths": [
     "/tmp"
   ],
@@ -42,34 +52,31 @@
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/specs/IMPLEMENTATION_GUIDE.md",
-    "docs/reviews/M6/SIGNOFF_MATRIX.md",
-    "docs/reviews/M6/CTO_DECISION.md",
-    "docs/reviews/M6/FE_REVIEW.md",
-    "artifacts/review/fe_v6_evidence.md",
-    "artifacts/review/phi_strict_cache_runtime_evidence.md",
-    "artifacts/review/real_adapter_inference_evidence.md",
-    "artifacts/review/docker_real_backend_deps_evidence.md",
-    "artifacts/review/export_adapter_validation_evidence.md",
-    "artifacts/review/export_adapter_lineage_evidence.md",
-    "artifacts/review/exported_adapter_load_guard_evidence.md"
+    "scripts/verify_m6_rc_evidence.py",
+    "artifacts/review/m6_rc_evidence_verification.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
     "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Machine-readable M6 evidence verification artifact",
-    "M6 FE review updated from stale NO_GO to current GO with fe_v6_evidence.md",
-    "M6 signoff/CTO decision updated so NOT_GO is caused by real trained adapter no-fake endpoint evidence only",
-    "Explicit note that this does not change product code or M6-RC status"
+    "Capture tool documents and enforces no MIB_RUNTIME_ALLOW_FAKE_BACKEND env in Docker run",
+    "Capture tool writes GO markers expected by verify_m6_rc_evidence.py",
+    "Self-test covers evidence marker shape without claiming real endpoint success",
+    "M6-RC remains NOT_GO because real endpoint evidence file is not generated from a live real adapter"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_m6_rc_evidence.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
     "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
     "git diff --check",
@@ -78,32 +85,32 @@
   "failed_verification_commands": [],
   "warnings": [
     "This gate does not provide a real trained adapter.",
-    "This gate does not run no-fake Docker endpoint transcripts.",
-    "M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
+    "This gate does not run a real Docker endpoint transcript.",
+    "M6-RC remains NOT_GO until the capture tool is run against a real trained adapter export without MIB_RUNTIME_ALLOW_FAKE_BACKEND."
   ],
   "phase_notes": {
-    "plan": "Open scoped evidence/sign-off refresh contract for M6 RC.",
-    "audit": "Read current WORKING.md, M6 signoff matrix, CTO decision, FE review, FE v6 evidence, Docker/runtime/adapter evidence, and SSOT M6 criteria. Found stale FE blocker in review docs after FE v6 evidence was committed.",
-    "build": "Add verifier script, generate current evidence JSON, and update M6 review docs/handoff without changing product code.",
-    "check": "Contract JSON validation, verifier syntax check, M6 RC evidence verifier, generated JSON validation, git diff --check, and git diff --cached --check passed.",
-    "done": "M6 review docs and WORKING.md are refreshed against current evidence. artifacts/review/m6_rc_evidence_verification.json records decision NOT_GO, verification_ok true, unexpected_blockers empty, and the sole acceptable blocker real_trained_adapter_no_fake_endpoint."
+    "plan": "Open scoped tooling contract for real adapter endpoint evidence capture.",
+    "audit": "Read WORKING.md, verify_m6_rc_evidence.py, M6 review docs, and current evidence. Confirmed the remaining blocker is real_trained_adapter_no_fake_endpoint and no standard capture script exists.",
+    "build": "Add capture script, tests, and tooling evidence without changing product runtime behavior.",
+    "check": "Contract JSON validation, capture/verifier py_compile, focused script tests, capture self-test, M6 RC verifier, generated JSON validation, git diff --check, and git diff --cached --check passed.",
+    "done": "Capture tooling and evidence note are recorded. The self-test produces marker-shaped evidence with self_test true and verify_m6_rc_evidence.py rejects self-test evidence as RC GO. Current M6-RC remains NOT_GO until live real adapter endpoint evidence is generated."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-m6-rc-evidence-refresh",
-    "status": "MIB_STUDIO_M6_RC_EVIDENCE_REFRESH_DONE_NOT_GO",
+    "gate": "mib-studio-real-adapter-endpoint-capture-tooling",
+    "status": "MIB_STUDIO_REAL_ADAPTER_ENDPOINT_CAPTURE_TOOLING_DONE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "M6 sign-off evidence refresh, verifier artifact, docs/WORKING.md handoff, and PABCD contract only.",
+    "approved_scope": "Endpoint evidence capture tooling, focused tests, generated tooling evidence, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no M6 GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped evidence/sign-off refresh contract for M6 RC.",
-    "audit": "Read current WORKING.md, M6 signoff matrix, CTO decision, FE review, FE v6 evidence, Docker/runtime/adapter evidence, and SSOT M6 criteria. Found stale FE blocker in review docs after FE v6 evidence was committed.",
-    "build": "Add verifier script, generate current evidence JSON, and update M6 review docs/handoff without changing product code.",
-    "check": "Contract JSON validation, verifier syntax check, M6 RC evidence verifier, generated JSON validation, git diff --check, and git diff --cached --check passed.",
-    "done": "M6 review docs and WORKING.md are refreshed against current evidence. artifacts/review/m6_rc_evidence_verification.json records decision NOT_GO, verification_ok true, unexpected_blockers empty, and the sole acceptable blocker real_trained_adapter_no_fake_endpoint."
+    "plan": "Open scoped tooling contract for real adapter endpoint evidence capture.",
+    "audit": "Read WORKING.md, verify_m6_rc_evidence.py, M6 review docs, and current evidence. Confirmed the remaining blocker is real_trained_adapter_no_fake_endpoint and no standard capture script exists.",
+    "build": "Add capture script, tests, and tooling evidence without changing product runtime behavior.",
+    "check": "Contract JSON validation, capture/verifier py_compile, focused script tests, capture self-test, M6 RC verifier, generated JSON validation, git diff --check, and git diff --cached --check passed.",
+    "done": "Capture tooling and evidence note are recorded. The self-test produces marker-shaped evidence with self_test true and verify_m6_rc_evidence.py rejects self-test evidence as RC GO. Current M6-RC remains NOT_GO until live real adapter endpoint evidence is generated."
   }
 }

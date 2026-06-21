@@ -84,14 +84,16 @@ def real_endpoint_check(path: str) -> dict[str, object]:
     ]
     missing = [marker for marker in required_markers if marker not in text]
     fake_backend_present = "MIB_RUNTIME_ALLOW_FAKE_BACKEND=1" in text or "MIB_RUNTIME_ALLOW_FAKE_BACKEND: present" in text
+    self_test = "self_test: true" in text
     return {
         "id": "real_trained_adapter_no_fake_endpoint",
         "path": path,
         "present": bool(text),
-        "ok": bool(text) and not missing and not fake_backend_present,
+        "ok": bool(text) and not missing and not fake_backend_present and not self_test,
         "rc_required": True,
         "missing_markers": missing,
         "fake_backend_present": fake_backend_present,
+        "self_test": self_test,
     }
 
 

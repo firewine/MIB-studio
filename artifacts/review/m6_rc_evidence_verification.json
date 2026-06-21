@@ -75,7 +75,8 @@
       "ok": false,
       "path": "artifacts/review/real_trained_adapter_endpoint_evidence.md",
       "present": false,
-      "rc_required": true
+      "rc_required": true,
+      "self_test": false
     },
     {
       "id": "m6_review_docs_current",

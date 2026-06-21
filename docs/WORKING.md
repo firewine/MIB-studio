@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: STRICT_MODEL_CACHE_EVIDENCE
-milestone: M6_RC_Blocker_Evidence
+phase_id: PHI_STRICT_CACHE_RUNTIME_EVIDENCE
+milestone: M6_RC_Blocker_Remediation
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-strict-model-cache-runtime-evidence
+gate_id: mib-studio-phi-strict-cache-runtime-evidence
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -41,10 +41,6 @@ dev_environment:
     - .venv/
   frontend_package_manager: cached pnpm 9.15.0 via strict Node
   corepack_home: /tmp/corepack
-  strict_toolchain_path:
-    node: /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin
-    rustc: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin
-    cargo: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin
 ```
 
 ## 2. Current Work
@@ -57,26 +53,29 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-strict-model-cache-runtime-evidence
+  gate: mib-studio-phi-strict-cache-runtime-evidence
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: determine whether strict Gemma cache can be used for exported Docker endpoint evidence
+  objective: use accessible locked Phi model to prove strict-cache Docker endpoint path after Gemma access was blocked
   evidence:
-    strict_model_cache: artifacts/review/strict_model_cache_evidence.md
+    phi_runtime: artifacts/review/phi_strict_cache_runtime_evidence.md
+    gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - strict model catalog verification passed with errors=[]
-    - required Gemma cache subdir is google__gemma-2b-it@96988410cbdaeb8d5093d1ebdc5a8fb563e02bad
-    - local searches found no matching strict cache and no Hugging Face cache directory
-    - only fake 0000... fixture caches were found under /tmp and must not be used as evidence
-    - HF_TOKEN, HUGGING_FACE_HUB_TOKEN, HUGGINGFACE_TOKEN, HF token files, and netrc are absent
-    - network HEAD request to Gemma config returned HTTP 401 GatedRepo
-    - model_cache.ensure_model in offline mode returns MODEL_CACHE_MISS_OFFLINE with all five required files missing
-    - endpoint success transcripts remain blocked by missing authenticated Gemma access or user-provided strict cache
-    - no product code, model catalog, runtime, loader, API, DB, FE, benchmark, or release sign-off files were changed
+    - Phi pinned config HEAD returned HTTP 200 with expected repo commit
+    - strict Phi cache materialized under /tmp/mib-strict-model-cache-phi and offline cache-hit verification passed
+    - Phi-based Docker export image built/saved from a temp product-path fixture package
+    - image tar secret scan/SBOM/CVE evidence passed with findings=[]
+    - Docker run used read-only /models mount with RW=false
+    - /healthz returned 200
+    - /agents/eval_runner_project.v1/run returned 200 and verifier_status PASS
+    - /v1/chat/completions returned 200 with equivalent assistant JSON
+    - endpoint evidence used MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 because the fixture AgentPackage adapter is not a real trained adapter
+    - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
 
 m6_previous_work:
+  strict_gemma_cache_blocker: 57353ef
   docker_runtime_remediation: caf9c0f
   docker_runtime_evidence_not_go: 860f5d6
   fe_v6_mockup: d7a68bf
@@ -112,20 +111,26 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: strict_model_cache_access_blocked
+status: phi_strict_cache_endpoint_path_verified_with_fixture_adapter
 passed:
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json
-  - local search for matching Gemma cache root
-  - HF credential presence check without printing secrets
-  - MIB_OFFLINE=1 model_cache.ensure_model miss check
-  - network HEAD check to Gemma config returned authenticated-gated response
+  - Phi config HEAD request to pinned HF revision returned HTTP 200
+  - Phi strict cache materialization through services.worker.model_cache.ensure_model
+  - MIB_OFFLINE=1 Phi cache-hit verification
+  - Phi Docker build/save via run_docker_export_job
+  - scripts/scan_export_artifact.py --artifact <phi-image-tar> --sbom <sbom> --cve-report <cve> --require-docker-evidence
+  - docker run with /tmp/mib-strict-model-cache-phi/model_cache:/models:ro
+  - docker inspect mount RW=false
+  - curl -i /healthz returned 200
+  - curl -i /agents/eval_runner_project.v1/run returned 200
+  - curl -i /v1/chat/completions returned 200
   - git diff --check
   - git diff --cached --check
 warnings:
-  - M6-RC decision remains NOT_GO until strict model cache exists and endpoint transcripts pass in a scoped re-review
-  - /healthz success, /agents/{agent_id}/run success, and /v1/chat/completions success are not proven
-  - Gemma requires authenticated HF access with accepted terms, or an externally supplied strict cache
+  - M6-RC decision remains NOT_GO
+  - endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
+  - Gemma remains blocked without authenticated HF access or a user-provided Gemma strict cache
 failed: []
 ```
 
@@ -143,67 +148,61 @@ recorded_go:
   M6_002_Verified: true
   FE_V6_Mockup_Verified: true
   Docker_Runtime_Import_And_ImageTarScan_Remediated: true
-  Strict_Model_Catalog_Verified: true
+  Phi_Strict_Cache_Materialized: true
+  Phi_Docker_Endpoint_Path_With_Fixture_Adapter: true
 
 recorded_not_go:
   M6_RC_Signoff: true
-  Docker_Runtime_Endpoint_Success_With_Strict_Model_Cache: true
-  Strict_Gemma_Model_Cache_Available: true
+  Docker_Runtime_Real_Trained_Adapter_Inference: true
 
 active_gate:
   id: none
-  cto_decision: waiting_for_authenticated_gemma_access_or_user_supplied_strict_cache
-  review_bundle: artifacts/review/strict_model_cache_evidence.md
+  cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
+  review_bundle: artifacts/review/phi_strict_cache_runtime_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: provide strict Gemma cache, rerun Docker runtime endpoint transcripts, then rerun M6-RC sign-off
+  next_required_check: produce real trained adapter endpoint evidence or explicitly scope release acceptance for fixture-adapter endpoint evidence
 ```
 
 ## 5. Blockers And Deferred Work
 
 ```yaml
 operator_blockers:
-  - no HF token or local HF credential exists in this environment
-  - Hugging Face returns HTTP 401 GatedRepo for google/gemma-2b-it without authentication
-  - no strict external Gemma cache root is present
+  - real trained CUDA lora_adapter endpoint evidence is not yet present
+  - Gemma remains gated without credentials, but Phi strict cache is available under /tmp/mib-strict-model-cache-phi
 
 security_deferred:
   - cuda pip-audit ignores upstream-blocked training dependency advisories under the existing project exception policy
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports newer safe transitive dependency versions or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - materialize google__gemma-2b-it@96988410cbdaeb8d5093d1ebdc5a8fb563e02bad outside repo with exact strict catalog hashes
-  - successful /healthz transcript with strict model cache
-  - successful /agents/{agent_id}/run transcript with strict model cache
-  - successful /v1/chat/completions transcript with strict model cache
-  - M6-RC re-review after endpoint runtime evidence is complete
+  - successful Docker endpoint transcripts without MIB_RUNTIME_ALLOW_FAKE_BACKEND if real adapter evidence is required
+  - M6-RC re-review after endpoint runtime evidence policy is satisfied
 ```
 
 ## 6. Next Work
 
 ```yaml
 immediate:
-  - get an HF token for an account that accepted google/gemma-2b-it terms, or provide a prebuilt strict cache root
-  - create a scoped PABCD contract for cache materialization and endpoint evidence
-  - run services.worker.model_cache.ensure_model for google/gemma-2b-it cuda runtime_evidence with the cache outside git
-  - mount the cache root read-only into the remediated Docker image
-  - capture /healthz, /agents/{agent_id}/run, and /v1/chat/completions transcripts
-  - rerun M6-RC sign-off only after endpoint runtime evidence passes
+  - create scoped PABCD for real adapter inference evidence or release-policy review
+  - inspect whether an existing training artifact can provide a real CUDA lora_adapter
+  - if no real adapter exists, decide whether fixture-adapter endpoint evidence is acceptable for current v0 RC or whether a real train job must be run
+  - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
 ## 7. Resume Prompt For Next LLM
 
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md. FE v6 mockup is committed at d7a68bf.
-Docker runtime import/image-tar scan remediation is committed at caf9c0f. Strict
-model cache evidence is in artifacts/review/strict_model_cache_evidence.md.
-M6-RC remains NOT_GO because the environment has no authenticated Gemma access
-and no strict cache root. Do not fake cache files or claim endpoint success.
-Next work requires HF_TOKEN/HUGGING_FACE_HUB_TOKEN/HUGGINGFACE_TOKEN for an
-account with accepted google/gemma-2b-it terms, or a user-provided cache root
-containing google__gemma-2b-it@96988410cbdaeb8d5093d1ebdc5a8fb563e02bad with
-strict catalog hashes. Use .venv for Python.
+Docker runtime import/image-tar scan remediation is committed at caf9c0f. Gemma
+strict cache is blocked by gated unauthenticated access. Phi strict cache was
+materialized outside the repo and Phi Docker endpoint path evidence is recorded
+in artifacts/review/phi_strict_cache_runtime_evidence.md. The endpoints passed
+with MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 because the temp fixture adapter is not a
+real trained adapter. M6-RC remains NOT_GO until real trained adapter inference
+evidence exists or the release policy explicitly accepts fixture-adapter endpoint
+evidence. Use .venv for Python.
 ```

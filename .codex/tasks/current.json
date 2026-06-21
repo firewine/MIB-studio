@@ -1,12 +1,12 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Provision or conclusively discover the strict external Gemma model cache required by the exported Docker runtime, then collect /healthz, /agents/{agent_id}/run, and /v1/chat/completions evidence with a read-only MIB_MODEL_CACHE_DIR mount if the cache is available. Do not fake model files, do not bundle base-model weights into the repo or image, and do not claim M6-RC GO unless endpoint evidence actually passes.",
+  "goal": "Use the accessible locked v0 Phi model as an alternative strict-cache path for final Docker runtime evidence: materialize or prove inability to materialize microsoft/Phi-3.5-mini-instruct strict cache outside the repo, then if cache succeeds create Phi-based exported Docker runtime evidence with read-only MIB_MODEL_CACHE_DIR and native/OpenAI-compatible endpoint transcripts. Do not change product code, do not fake cache files, do not bundle base-model weights, and do not claim M6-RC GO until endpoint evidence actually passes.",
   "phase": "done",
-  "gate": "mib-studio-strict-model-cache-runtime-evidence",
+  "gate": "mib-studio-phi-strict-cache-runtime-evidence",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "caf9c0f",
+  "head": "57353ef",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -34,11 +34,10 @@
     "Creating fake strict-cache files or weakening hash/size validation",
     "M6-RC GO/sign-off changes before endpoint transcripts pass"
   ],
-  "allowed_edit_paths_scope_note": "This gate records strict model cache discovery/provisioning and exported Docker endpoint evidence only. It may write large model files only outside the repo, under an explicit external cache path such as /tmp/mib-strict-model-cache or an existing user-provided cache root.",
+  "allowed_edit_paths_scope_note": "This gate may write large Phi model files only outside the repo under /tmp/mib-strict-model-cache-phi. Repo edits are limited to evidence and operational handoff files.",
   "external_runtime_paths": [
-    "/tmp/mib-strict-model-cache",
-    "/tmp/mib-docker-evidence",
-    "existing user-provided model cache roots if discovered"
+    "/tmp/mib-strict-model-cache-phi",
+    "/tmp/mib-docker-evidence"
   ],
   "reference_only_paths": [
     "docs/CONTEXT.md",
@@ -49,10 +48,13 @@
     "presets/model_catalog.yaml",
     "services/worker/model_cache.py",
     "services/shared/model_catalog.py",
+    "services/worker/handlers/export_docker.py",
     "packages/agent-runtime/templates/zip_runtime/agents/run.py",
     "packages/agent-runtime/loaders/transformers_lora.py",
-    "artifacts/review/docker_runtime_evidence.md",
-    "artifacts/review/docker_runtime_remediation_evidence.md"
+    "tests/agent_package/test_verifier.py",
+    "tests/export/test_export_api.py",
+    "tests/export/test_docker_export_security.py",
+    "artifacts/review/strict_model_cache_evidence.md"
   ],
   "run_required_commands": true,
   "required_commands": [
@@ -62,65 +64,67 @@
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Strict catalog-required Gemma cache_subdir and required file list",
-    "Search result for existing matching cache roots",
-    "HF token/terms availability check without exposing secret values",
-    "If network/cache provisioning is possible, downloader command result and required file hash verification",
-    "If strict cache exists, Docker run with read-only MIB_MODEL_CACHE_DIR mount",
-    "If strict cache exists, HTTP transcript for /healthz",
-    "If strict cache exists, HTTP transcript for /agents/{agent_id}/run",
-    "If strict cache exists, HTTP transcript for /v1/chat/completions",
-    "If strict cache remains unavailable, concrete blocker with exact missing external condition"
+    "Phi catalog-required cache_subdir and required file list",
+    "Network HEAD result for pinned Phi config",
+    "Phi cache materialization command result with strict hash/size verification or concrete failure",
+    "If Phi cache succeeds, exported Docker image build/save evidence for a Phi CUDA/lora_adapter package",
+    "If Phi cache succeeds, Docker run with read-only MIB_MODEL_CACHE_DIR mount",
+    "If Phi cache succeeds, HTTP transcript for /healthz",
+    "If Phi cache succeeds, HTTP transcript for /agents/{agent_id}/run",
+    "If Phi cache succeeds, HTTP transcript for /v1/chat/completions",
+    "If endpoint evidence fails after strict cache succeeds, concrete next blocker"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
-    "find /home/firewine/.cache/huggingface /home/firewine/MIB-studio /tmp -maxdepth 8 -type d -name 'google__gemma-2b-it@96988410cbdaeb8d5093d1ebdc5a8fb563e02bad'",
-    "find /home/firewine/.cache/huggingface /home/firewine/MIB-studio /tmp -maxdepth 10 -type f -name '<required-cache-file>' -printf '%s %p\\n'",
-    "HF token environment presence check without printing secret values",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. MIB_OFFLINE=1 ./.venv/bin/python -c '<ensure_model google/gemma-2b-it cuda runtime_evidence>'",
-    "df -h /tmp /home/firewine/MIB-studio",
-    "find /tmp/mib-strict-model-cache -maxdepth 4 -type f -printf '%s %p\\n'",
-    "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.Size}}' | rg '^mib-export-71aff|^mib-export-'",
-        "HF credential file presence check without printing secret values",
-        "curl -sS -I -L --max-time 30 https://huggingface.co/google/gemma-2b-it/resolve/96988410cbdaeb8d5093d1ebdc5a8fb563e02bad/config.json",
-        "git diff --check",
-        "git diff --cached --check"
+    "df -h /tmp",
+    "curl -sS -I -L --max-time 30 https://huggingface.co/microsoft/Phi-3.5-mini-instruct/resolve/2fe192450127e6a83f7441aef6e3ca586c338b77/config.json",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -c '<ensure_model microsoft/Phi-3.5-mini-instruct cuda runtime_evidence>'",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. MIB_OFFLINE=1 ./.venv/bin/python -c '<ensure_model microsoft/Phi-3.5-mini-instruct cuda runtime_evidence>'",
+    "python3 -m py_compile /tmp/mib_phi_docker_export_evidence.py",
+    "MIB_DOCKER_EXPORT_REAL_BUILD=1 MIB_DOCKER_BASE_IMAGE_WITH_DIGEST=getbeta-backend@sha256:95792b6d22c23bd9b95e91b1e53365ebaa31b12847a242fdac63e8f4434034f1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python /tmp/mib_phi_docker_export_evidence.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --artifact <phi-image-tar> --sbom <sbom> --cve-report <cve-report> --require-docker-evidence",
+    "docker run -d --name mib-phi-evidence-989c -p 127.0.0.1:18082:8000 -v /tmp/mib-strict-model-cache-phi/model_cache:/models:ro -e MIB_MODEL_CACHE_DIR=/models -e MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 -e MIB_RUNTIME_BEARER_TOKEN=<redacted> mib-export-989c1bbe5246469a8a9839cf4c5340ef:latest",
+    "docker ps -a --filter name=mib-phi-evidence-989c --format '{{.ID}} {{.Status}} {{.Ports}}'",
+    "curl -sS -i http://127.0.0.1:18082/healthz",
+    "curl -sS -i -X POST http://127.0.0.1:18082/agents/eval_runner_project.v1/run <native-json>",
+    "curl -sS -i -X POST http://127.0.0.1:18082/v1/chat/completions <openai-json>",
+    "docker logs mib-phi-evidence-989c",
+    "docker inspect mib-phi-evidence-989c --format '{{json .Mounts}}'",
+    "docker inspect mib-export-989c1bbe5246469a8a9839cf4c5340ef:latest --format '{{.Id}} {{.Size}} {{json .RepoDigests}}'",
+    "docker rm -f mib-phi-evidence-989c",
+    "git diff --check",
+    "git diff --cached --check"
   ],
-  "failed_verification_commands": [
-    {
-      "command": "curl -sS -I -L --max-time 30 https://huggingface.co/google/gemma-2b-it/resolve/96988410cbdaeb8d5093d1ebdc5a8fb563e02bad/config.json",
-      "reason": "Sandbox DNS resolution failed; rerun with network access succeeded and returned HTTP 401 GatedRepo."
-    }
-  ],
+  "failed_verification_commands": [],
   "warnings": [
-    "Gemma is gated by license terms; do not bypass terms or fabricate cache files.",
+    "Phi cache files are large and remain outside git under /tmp/mib-strict-model-cache-phi.",
     "This evidence gate does not change product code and does not make M6-RC GO unless endpoint evidence actually passes.",
-    "Large model files must stay outside git and outside exported images."
+    "Endpoint evidence used MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 because the fixture adapter is not a real trained adapter."
   ],
   "phase_notes": {
-    "plan": "Open a scoped evidence contract for strict model cache discovery/provisioning and exported Docker endpoint evidence.",
-    "audit": "Focused read completed for strict catalog, model cache service, runtime cache validation, loader behavior, M6 export acceptance, and prior Docker evidence.",
-    "build": "Collected strict catalog verification, local cache discovery, HF credential availability, offline model-cache miss, disk, Docker image availability, and HF gated access evidence.",
-    "check": "Strict catalog verification passed. No valid strict Gemma cache or HF credential exists. Hugging Face returned HTTP 401 GatedRepo for unauthenticated Gemma access.",
-    "done": "Evidence recorded in artifacts/review/strict_model_cache_evidence.md. Endpoint success evidence remains blocked by missing authenticated Gemma access or user-provided strict cache."
+    "plan": "Open scoped Phi strict-cache/runtime evidence gate after Gemma was blocked by gated unauthenticated access.",
+    "audit": "Focused read completed for Phi strict catalog, cache service, package/export fixture path, and runtime behavior.",
+    "build": "Materialized Phi strict cache under /tmp/mib-strict-model-cache-phi, built Phi Docker export image, scanned image artifact, and captured Docker endpoint transcripts with read-only cache mount.",
+    "check": "Strict cache, image scan, /healthz, native endpoint, OpenAI-compatible endpoint, and read-only mount evidence passed with fixture adapter fake backend enabled.",
+    "done": "Evidence recorded in artifacts/review/phi_strict_cache_runtime_evidence.md. M6-RC remains NOT_GO pending real trained adapter inference evidence or explicit release-policy acceptance."
   },
   "pabcd": {
     "active": false,
     "phase": "done",
-    "gate": "mib-studio-strict-model-cache-runtime-evidence",
-    "status": "MIB_STUDIO_STRICT_MODEL_CACHE_NOT_GO_ACCESS_BLOCKED",
+    "gate": "mib-studio-phi-strict-cache-runtime-evidence",
+    "status": "MIB_STUDIO_PHI_ENDPOINT_PATH_VERIFIED_FIXTURE_ADAPTER",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Strict model cache discovery/provisioning evidence, exported Docker runtime endpoint evidence if cache exists, and operational docs/artifacts.",
+    "approved_scope": "Phi strict cache materialization evidence, Phi exported Docker runtime endpoint evidence if cache succeeds, and operational docs/artifacts.",
     "blocked_scope": "No product code changes, no fake cache, no bundled model weights, no release GO changes.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Create scoped strict model cache/runtime evidence contract.",
-    "audit": "Focused read completed for strict catalog, model cache service, runtime cache validation, loader behavior, M6 export acceptance, and prior Docker evidence.",
-    "build": "Collected strict model cache discovery/provisioning evidence.",
-    "check": "Required evidence proves strict cache is unavailable in this environment and Gemma access is gated without credentials.",
-    "done": "Stage, commit, and push this NOT_GO evidence phase."
+    "plan": "Create scoped Phi strict-cache/runtime evidence contract.",
+    "audit": "Focused read completed for Phi strict catalog, cache service, package/export fixture path, and runtime behavior.",
+    "build": "Materialized Phi strict cache and captured Phi Docker endpoint path evidence.",
+    "check": "Required verification passed; limitation is fixture adapter fake backend.",
+    "done": "Stage, commit, and push this evidence phase."
   }
 }

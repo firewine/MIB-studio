@@ -69,6 +69,7 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/agent_package/test_verifier.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
+    "COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 corepack pnpm e2e",
     "git diff --check",
     "git diff --cached --check"
   ],
@@ -79,19 +80,21 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/agent_package/test_verifier.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
+    "COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 corepack pnpm e2e",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
     "Focused playground and verifier tests emit existing FastAPI ORJSONResponse deprecation warnings.",
+    "corepack pnpm e2e initially found 127.0.0.1:5173 occupied by a MIB dev-server process; e2e passed after that process was stopped.",
     "file_size_report.json records existing soft warnings only; no hard violations remain."
   ],
   "phase_notes": {
     "plan": "Implement M5-003 only: POST /agent-packages/{agent_package_id}/playground-runs runs local deterministic router inference from the AgentPackage contract, verifies router_output JSON, reports fallback decisions without auto-calling fallback, and records audit metadata without raw credentials or raw prompt text.",
     "audit": "Read WORKING, M5 handoff, IMPLEMENTATION_GUIDE M5-003, OpenAPI PlaygroundRun schemas, router input/output schemas, existing AgentPackage routes, verifier service, credential model/service, and audit model references.",
     "build": "Implemented pure runtime router inference, Playground API DTOs, FastAPI route registration, service wrapper with AgentPackage + ModelRun adapter metadata loading, verifier reuse, fallback credential gate, audit event writes, and focused playground tests.",
-    "check": "Passed task JSON, py_compile, focused playground pytest, verifier regression pytest, import boundary, file-size hard-limit, unstaged diff whitespace, and staged diff whitespace checks.",
+    "check": "Passed task JSON, py_compile, focused playground pytest, verifier regression pytest, import boundary, file-size hard-limit, corepack pnpm e2e, unstaged diff whitespace, and staged diff whitespace checks.",
     "done": "Implementation committed as 269a63a; WORKING closeout prepared for push with this contract."
   },
   "pabcd": {

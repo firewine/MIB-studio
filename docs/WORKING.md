@@ -133,10 +133,12 @@ passed:
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/agent_package/test_verifier.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
+  - COREPACK_HOME=/tmp/corepack COREPACK_DEFAULT_TO_LATEST=0 corepack pnpm e2e
   - git diff --check
   - git diff --cached --check
 warnings:
   - focused playground and verifier tests emit existing FastAPI ORJSONResponse deprecation warnings
+  - corepack pnpm e2e initially found 127.0.0.1:5173 occupied by a MIB dev-server process; e2e passed after that process was stopped
   - file_size_report has existing soft warnings only; no hard file-size violations remain
 failed: []
 ```

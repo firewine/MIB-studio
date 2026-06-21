@@ -27,6 +27,33 @@ if [ "$PHASE" != "scaffold" ] && [ "$PHASE" != "m1-smoke" ]; then
   exit 1
 fi
 
+export COREPACK_DEFAULT_TO_LATEST="${COREPACK_DEFAULT_TO_LATEST:-0}"
+
+prefer_strict_toolchain() {
+  toolchain_root="${MIB_TOOLCHAIN_ROOT:-/tmp/mib-toolchain}"
+  if [ ! -d "$toolchain_root" ]; then
+    return
+  fi
+
+  expected_node="$(tr -d '[:space:]' < .node-version)"
+  node_bin="$toolchain_root/node-v${expected_node}-linux-x64/bin"
+  if [ -x "$node_bin/node" ]; then
+    PATH="$node_bin:$PATH"
+  fi
+
+  expected_rust="$(sed -n 's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' rust-toolchain.toml | head -n 1)"
+  rust_root="$toolchain_root/rust-${expected_rust}-x86_64-unknown-linux-gnu"
+  if [ -x "$rust_root/rustc/bin/rustc" ]; then
+    PATH="$rust_root/rustc/bin:$PATH"
+  fi
+  if [ -x "$rust_root/cargo/bin/cargo" ]; then
+    PATH="$rust_root/cargo/bin:$PATH"
+  fi
+  export PATH
+}
+
+prefer_strict_toolchain
+
 run_pip_audit() {
   mode="${1:-required}"
   mkdir -p artifacts/security
@@ -105,6 +132,27 @@ JSON
   if "$PYTHON_BIN" -m pip_audit --version >/dev/null 2>&1; then
     if "$PYTHON_BIN" -m pip_audit "${audit_args[@]}" "${audit_ignore_args[@]}" --format json > "$report"; then
       echo "pip-audit ${PROFILE} OK"
+      return 0
+    fi
+    if [ "$mode" = "allow-skip" ]; then
+      if "$PYTHON_BIN" - "$report" <<'PY'
+from pathlib import Path
+import json
+import sys
+
+path = Path(sys.argv[1])
+if not path.exists() or not path.read_text(encoding="utf-8").strip():
+    raise SystemExit(1)
+json.loads(path.read_text(encoding="utf-8"))
+PY
+      then
+        cat "$report" >&2 || true
+        exit 4
+      fi
+      cat > "$report" <<JSON
+{"profile":"$PROFILE","status":"skipped","reason":"pip-audit could not complete in this --verify-only/--skip-install environment; run without --skip-install for required network-backed audit","required_files":["${audit_requirements[0]}","${audit_requirements[1]}"]}
+JSON
+      echo "pip-audit ${PROFILE} skipped; see $report"
       return 0
     fi
     cat "$report" >&2 || true
@@ -337,7 +385,11 @@ if [ "$SKIP_INSTALL" = "0" ]; then
 fi
 
 if [ "$VERIFY_ONLY" != "1" ]; then
-  run_pip_audit required
+  if [ "$SKIP_INSTALL" = "1" ]; then
+    run_pip_audit allow-skip
+  else
+    run_pip_audit required
+  fi
 fi
 
 if [ "$PHASE" = "m1-smoke" ]; then

@@ -43,6 +43,10 @@ dev_environment:
     node: /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin
     rustc: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin
     cargo: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin
+  last_bootstrap_smoke:
+    command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+    status: passed
+    note: bootstrap_dev.sh auto-prefers /tmp/mib-toolchain when present; skip-install records pip-audit as skipped if network-backed audit cannot complete
 ```
 
 ## 2. Current Work
@@ -113,9 +117,11 @@ passed:
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
   - git diff --check
   - git diff --cached --check
+  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
 warnings:
   - file_size_report has soft warnings only; no hard file-size violations remain
   - FastAPI ORJSONResponse deprecation warning remains in the job monitor OOM test
+  - skip-install bootstrap records pip-audit cuda as skipped when network-backed audit cannot complete; run without --skip-install for required audit
 failed: []
 ```
 

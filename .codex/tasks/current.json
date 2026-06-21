@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M4-002 Eval runner target planning and EvalRun persistence.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m4-002-eval-runner",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "54a00a4",
+  "head": "ff058d1",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -70,7 +70,8 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
     "git diff --check",
-    "git diff --cached --check"
+    "git diff --cached --check",
+    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
@@ -78,35 +79,38 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/eval/test_eval_runner.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "git diff --check"
+    "git diff --check",
+    "git diff --cached --check",
+    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install"
   ],
   "failed_verification_commands": [],
   "warnings": [
-    "file_size_report.json records soft warnings only; no hard violations remain."
+    "file_size_report.json records soft warnings only; no hard violations remain.",
+    "skip-install bootstrap records pip-audit cuda as skipped when network-backed audit cannot complete."
   ],
   "phase_notes": {
     "plan": "Implement M4-002 only: consume BenchmarkParams-shaped job params, validate target shape/cardinality/seeds, create EvalRun rows for each non-local-large target x seed, persist Router metrics and latency, preserve CUDA/MLX fine_tuned parity target rows, and create seed=0 SKIPPED_OPTIONAL for unavailable local_large.",
     "audit": "Read WORKING, M4 handoff, IMPLEMENTATION_GUIDE M4-002 and BenchmarkTargetConfig sketches, EVAL_SPEC target/local_large/parity rules, ARCHITECTURE Benchmark/EvalRun tables, existing models, and current M4-001 eval tests.",
     "build": "Implemented benchmark_store EvalRun planning/state transitions, worker eval handler target validation/evaluator loop, local_large skip/available handling, Router metrics validation, and focused eval runner tests.",
-    "check": "Passed task JSON, py_compile, focused eval runner pytest, import boundary, file-size hard-limit, and diff whitespace checks.",
-    "done": "Pending implementation commit, WORKING closeout, and push."
+    "check": "Passed task JSON, py_compile, focused eval runner pytest, import boundary, file-size hard-limit, diff whitespace checks, and bootstrap smoke.",
+    "done": "Implementation committed as ff058d1; WORKING closeout prepared for push with this contract."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m4-002-eval-runner",
-    "status": "MIB_STUDIO_M4_002_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M4_002_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M4-002 Eval runner target planning and EvalRun persistence within listed files.",
     "blocked_scope": "No API, DB schema/model/migration, benchmark report, training, dataset, FE, package, or docs spec edits.",
     "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
     "plan": "Implement worker-side EvalRun planning/persistence.",
     "audit": "Required references have been read.",
-    "build": "Implementation complete.",
-    "check": "All required verification commands passed except final cached diff check.",
-    "done": "Pending."
+    "build": "Implementation complete in ff058d1.",
+    "check": "All required verification commands passed, including bootstrap smoke after toolchain mismatch fix.",
+    "done": "M4-002 verified and ready for closeout commit and push."
   }
 }

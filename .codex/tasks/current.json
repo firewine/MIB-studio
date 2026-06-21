@@ -6,7 +6,7 @@
   "gate": "mib-studio-m2-001-credential-storage",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "5975108",
+  "head": "30bf114",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -84,24 +84,24 @@
     "audit": "Read M2 handoff, IMPLEMENTATION_GUIDE credential DTO/endpoint/M2-001 sections, SECURITY_SPEC keychain contract, ARCHITECTURE Credential schema, existing auth/error/route patterns.",
     "build": "Implemented Credential schema, service, route, keyring adapter, and focused security tests.",
     "check": "All required M2-001 verification commands passed; import boundary check also passed with no violations.",
-    "done": "M2-001 is verified and ready for explicit stage, commit, and push."
+    "done": "M2-001 was verified, committed at 30bf114, and pushed to origin/main."
   },
   "pabcd": {
     "active": false,
     "phase": "done",
     "gate": "mib-studio-m2-001-credential-storage",
-    "status": "MIB_STUDIO_M2_001_VERIFIED_READY_TO_PUSH",
+    "status": "MIB_STUDIO_M2_001_PUSHED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": true,
     "approved_scope": "M2-001 Credential storage API/service/schema/keychain adapter/test using existing DB model.",
     "blocked_scope": "No teacher packet, teacher egress, synthetic generation, worker, FE screen, or DB schema/model/migration work.",
-    "phase_completion_git_policy": "Verification passed; stage explicit files, commit, and push.",
+    "phase_completion_git_policy": "Completed: implementation commit 30bf114 was pushed to origin/main.",
     "plan": "Implement M2-001 Credential storage.",
     "audit": "M2-001 references have been read.",
     "build": "Implemented credential storage API/service/test.",
     "check": "All required verification commands passed.",
-    "done": "M2-001 verified and ready for commit/push."
+    "done": "M2-001 implementation commit 30bf114 was pushed to origin/main."
   }
 }

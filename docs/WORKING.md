@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M6_002_DOCKER_EXPORT
+phase_id: M6_RC_SIGNOFF
 milestone: M6_Export_RC
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-m6-002-docker-export
+gate_id: mib-studio-m6-rc-signoff
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -44,9 +44,9 @@ dev_environment:
     rustc: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin
     cargo: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin
   last_bootstrap_smoke:
-    command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+    command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --skip-install --verify-only
     status: passed
-    note: bootstrap_dev.sh auto-prefers /tmp/mib-toolchain when present; skip-install records pip-audit as skipped if network-backed audit cannot complete
+    note: scaffold verify-only records toolchain_report.strict=false by design; skip-install records pip-audit as skipped if isolated pip upgrade cannot complete
 ```
 
 ## 2. Current Work
@@ -59,20 +59,20 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m6-002-docker-export
-  implementation_commit: b6873f5
+  gate: mib-studio-m6-rc-signoff
+  signoff_commit: 841d620
+  closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: implement M6-002 Docker local API export for CUDA/lora_adapter packages, MLX docker 409 evidence, Dockerfile security checks, and focused Docker export tests
+  objective: create M6-RC evidence bundle and CTO decision from current M6 export evidence
   summary:
-    - unlocked docker export submission for CUDA/lora_adapter AgentPackages while preserving zip export behavior
-    - Docker export requests for MLX/mlx_lora_adapter packages return 409 DOCKER_UNAVAILABLE with export_type details
-    - added services/worker/handlers/export_docker.py to create a Docker build context artifact from the same exported runtime contract
-    - Docker export writes manifest.json with export_type=docker, Dockerfile, README_DOCKER.md, context tar artifact, SBOM CycloneDX evidence, and CVE evidence
-    - Dockerfile.cuda now enforces digest-pinned BASE_IMAGE_WITH_DIGEST, non-root mib user, explicit port, healthcheck, external /models cache, and no baked runtime/fallback/local-daemon tokens
-    - exported runtime state validates MIB_RUNTIME_BEARER_TOKEN at startup/health before serving requests
-    - focused tests cover CUDA docker acceptance, MLX docker 409, Docker context artifact/secret scan/SBOM/CVE evidence, Dockerfile security, and runtime token env failures
+    - recorded FE, DB, BE/API, LLM/Training, Eval/QC, Security, Architecture/Code Quality, and DevEx review files under docs/reviews/M6
+    - recorded M6 export evidence from M6-001 and M6-002 without changing product code or specs
+    - CTO decision is NOT_GO for v0 RC because FE v6 mockup implementation evidence is missing
+    - Security and DevEx are also NOT_GO until real digest-pinned Docker image build/save/run evidence is collected
+    - next implementation gate must be FE v6 mockup application, not another sign-off pass
 
 m6_previous_work:
+  m6_rc_signoff: 841d620
   m6_002_docker_export: b6873f5
   m6_001_zip_export: 31971d7
 
@@ -120,6 +120,7 @@ local_committed_context:
   m5_003_playground: 269a63a
   m6_001_zip_export: 31971d7
   m6_002_docker_export: b6873f5
+  m6_rc_signoff: 841d620
 
 do_not_start_without:
   - active PABCD task contract
@@ -131,21 +132,23 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m6_002_verified_and_pushed
+status: m6_rc_signoff_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/services/export_service.py services/worker/handlers/export_docker.py packages/agent-runtime/templates/zip_runtime/agents/run.py packages/agent-runtime/templates/zip_runtime/agents/security.py packages/agent-runtime/tests/test_docker_export_security.py tests/export/test_docker_export_security.py tests/export/test_exported_runtime_smoke.py tests/export/test_export_api.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest packages/agent-runtime/tests/test_docker_export_security.py -q
+  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --skip-install --verify-only
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest packages/agent-runtime/tests/test_docker_export_security.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --self-test
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
   - git diff --check
   - git diff --cached --check
 warnings:
-  - focused API/export tests emit existing FastAPI ORJSONResponse deprecation warnings
-  - default automated Docker export test validates deterministic Docker build context tar plus SBOM/CVE evidence; real docker build/save path is implemented behind MIB_DOCKER_EXPORT_REAL_BUILD=1 and requires MIB_DOCKER_BASE_IMAGE_WITH_DIGEST
+  - M6-RC decision is NOT_GO, not GO
+  - FE v6 mockup implementation evidence is missing
+  - real digest-pinned Docker image build/save/run transcript evidence is missing
+  - tests/export emits existing FastAPI ORJSONResponse deprecation warnings
+  - bootstrap scaffold verify-only records toolchain_report.strict=false by design
   - file_size_report has existing soft warnings only; no hard file-size violations remain
 failed: []
 ```
@@ -177,16 +180,19 @@ recorded_go:
   M6_001_Verified: true
   M6_002_Verified: true
 
+recorded_not_go:
+  M6_RC_Signoff: true
+
 active_gate:
   id: none
-  cto_decision: ready_for_m6_rc_signoff_contract
-  review_bundle: artifacts/review
+  cto_decision: m6_rc_not_go
+  review_bundle: docs/reviews/M6
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: create scoped PABCD contract for M6-RC sign-off
+  next_required_check: create scoped PABCD contract for FE v6 mockup implementation
 ```
 
 ## 5. Blockers And Deferred Work
@@ -199,9 +205,10 @@ security_deferred:
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports Gradio 6.x or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - M6-RC sign-off evidence bundle
   - FE v6 mockup implementation
-  - DB schema/model/migration changes unless explicitly required by the next scoped gate
+  - real digest-pinned Docker image build/save/run evidence
+  - M6-RC re-review after FE v6 and Docker runtime evidence are complete
+  - DB schema/model/migration changes unless explicitly required by a scoped gate
   - spec/foundation/mockup/handoff/review edits
 ```
 
@@ -209,8 +216,9 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create a new scoped PABCD task contract for M6-RC sign-off
-  - read docs/handoffs/M6.md and docs/specs/IMPLEMENTATION_GUIDE.md M6-RC sections before edits
+  - create a new scoped PABCD task contract for FE v6 mockup implementation
+  - read docs/CONTEXT.md, docs/foundation/MIB_Studio_Dev_Plan_v0.3.md, docs/mockup, and relevant frontend app files before edits
+  - after FE v6 is verified, collect real Docker image evidence and rerun M6-RC sign-off
 ```
 
 ## 7. Resume Prompt For Next LLM
@@ -221,6 +229,9 @@ CUDA wrapper, M3-003 MLX wrapper, M3-004 Cancel/resume, M3-005 Dry-run + OOM
 isolation, M4-001 Eval set freeze hardening, M4-002 Eval runner, M4-003
 Benchmark report, M5-001 Agent contract builder, M5-002 Verifier, and M5-003
 Playground, M6-001 Zip export, and M6-002 Docker export are committed and pushed.
-Do not start M6-RC until a new scoped PABCD task contract is created. Use .venv
-for Python and COREPACK_HOME=/tmp/corepack for bootstrap checks.
+M6-RC sign-off evidence is recorded at 841d620 with final CTO decision NOT_GO.
+Do not rerun sign-off as GO until FE v6 mockup implementation and real
+digest-pinned Docker image build/save/run evidence are complete. Next work is a
+new scoped FE v6 implementation PABCD. Use .venv for Python and
+COREPACK_HOME=/tmp/corepack for bootstrap checks.
 ```

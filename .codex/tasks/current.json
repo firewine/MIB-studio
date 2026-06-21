@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Create M6-RC sign-off evidence bundle and CTO decision based on current M6 export evidence, without claiming v0 RC GO while FE v6 mockup implementation remains outstanding.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m6-rc-signoff",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "0517ad0",
+  "head": "841d620",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -86,14 +86,14 @@
     "audit": "Read WORKING, CONTEXT, M6 handoff, Dev Plan M6/v0 RC gates, IMPLEMENTATION_GUIDE review rules and DoD, M0 review formats, and current artifacts/review/security inventory.",
     "build": "Created required M6 review artifacts for FE, DB, BE/API, LLM/Training, Eval/QC, Security, Architecture/Code Quality, DevEx/Environment, sign-off matrix, and CTO decision. Export evidence is recorded, but RC decision is NOT_GO due missing FE v6 and real Docker runtime evidence.",
     "check": "Passed task JSON, scaffold verify-only, tests/export, Dockerfile security test, export secret scan self-test, import boundary, file-size hard-limit, unstaged diff whitespace, and staged diff whitespace checks.",
-    "done": "Pending commit and push after verification passes."
+    "done": "M6-RC sign-off bundle committed as 841d620. WORKING and PABCD closeout are recorded in this follow-up commit before push."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m6-rc-signoff",
-    "status": "MIB_STUDIO_M6_RC_NOT_GO_VERIFIED",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M6_RC_NOT_GO_CLOSED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
@@ -104,6 +104,6 @@
     "audit": "Required references have been read.",
     "build": "Review bundle complete.",
     "check": "All required verification passed.",
-    "done": "Pending."
+    "done": "M6-RC sign-off is closed as NOT_GO; next gate is FE v6 implementation followed by real Docker runtime evidence and M6-RC re-review."
   }
 }

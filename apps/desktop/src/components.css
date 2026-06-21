@@ -157,6 +157,21 @@
   background: #fff;
 }
 
+.field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.teacher-preview {
+  margin-bottom: 12px;
+}
+
+.teacher-preview ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
 .route-list-editor,
 .split-toolbar {
   display: grid;

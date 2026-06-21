@@ -22,6 +22,10 @@ const state = {
   dataset: null,
   hardware: null,
   lastJob: null,
+  credentials: [],
+  teacherPacket: null,
+  teacherApproval: null,
+  teacherInstruction: "Generate schema-valid router examples without personal data.",
   routes: [...initialRoutes],
   examples: [],
   online: false,
@@ -52,14 +56,16 @@ async function refresh() {
   state.apiError = null;
   try {
     await state.api.request("healthz");
-    const [projects, presets, hardware] = await Promise.all([
+    const [projects, presets, hardware, credentials] = await Promise.all([
       state.api.request("listProjects", { params: { include_archived: false } }).catch(() => ({ items: [] })),
       state.api.request("listPresets").catch(() => ({ items: [] })),
       getHardware(),
+      state.api.request("listCredentials").catch(() => ({ items: [] })),
     ]);
     state.projects = projects.items || [];
     state.presets = presets.items || [];
     state.hardware = hardware;
+    state.credentials = credentials.items || [];
     state.online = true;
     await loadRouteData();
   } catch (error) {
@@ -79,6 +85,10 @@ async function loadRouteData() {
   if (route.name === "projectDefine" && state.selectedProject) state.routes = routesFromProject(state.selectedProject);
   if (route.name === "datasetNew" && state.selectedProject) state.examples = createSeedExamples(routesFromProject(state.selectedProject));
   if (route.name === "datasetDetail") state.dataset = await state.api.request("getDataset", { params: { id: route.datasetId } });
+  if (route.name !== "datasetDetail") {
+    state.teacherPacket = null;
+    state.teacherApproval = null;
+  }
   if (route.name === "job" && state.lastJob?.job_id === route.jobId) state.notice = "poll fallback uses last accepted job snapshot";
   render();
 }
@@ -108,13 +118,22 @@ async function onClick(event) {
     return render();
   }
   const action = target.dataset.action;
-  if (action === "refresh") await refresh();
-  if (action === "create-project") await createProject();
-  if (action === "save-routes") await saveRoutes();
-  if (action === "build-dataset") await buildDataset();
-  if (action === "approve-dataset") await approveDataset();
-  if (action === "scan-hardware") await scanHardware();
-  if (action === "poll-job") await pollJob();
+  try {
+    if (action === "refresh") await refresh();
+    if (action === "create-project") await createProject();
+    if (action === "save-routes") await saveRoutes();
+    if (action === "build-dataset") await buildDataset();
+    if (action === "approve-dataset") await approveDataset();
+    if (action === "preview-teacher-packet") await previewTeacherPacket();
+    if (action === "approve-teacher-packet") await approveTeacherPacket();
+    if (action === "save-credential") await saveCredential();
+    if (action === "delete-credential") await deleteCredential();
+    if (action === "scan-hardware") await scanHardware();
+    if (action === "poll-job") await pollJob();
+    state.apiError = null;
+  } catch (error) {
+    state.apiError = errorText(error);
+  }
   render();
 }
 
@@ -122,6 +141,9 @@ function onInput(event) {
   const field = event.target.dataset.field;
   if (!field) return;
   if (field === "project-name") state.projectName = event.target.value;
+  if (field === "teacher-instruction") state.teacherInstruction = event.target.value;
+  if (field === "credential-base-url") state.credentialBaseUrl = event.target.value;
+  if (field === "credential-api-key") state.credentialApiKey = event.target.value;
   const selected = state.routes[state.selectedRoute];
   if (!selected) return;
   if (field === "route-id") selected.route_id = event.target.value;
@@ -175,6 +197,51 @@ async function approveDataset() {
   state.dataset = await state.api.request("getDataset", { params: { id: state.dataset.id } });
 }
 
+async function previewTeacherPacket() {
+  if (!state.dataset) return;
+  const approved = state.dataset.examples.filter((example) => example.approved).slice(0, 50);
+  if (approved.length < 20) {
+    state.notice = "Teacher packet requires at least 20 approved examples.";
+    return;
+  }
+  state.teacherPacket = await state.api.request("previewTeacherPacket", {
+    params: { id: state.dataset.project_id },
+    body: {
+      dataset_id: state.dataset.id,
+      example_ids: approved.map((example) => example.id),
+      instruction: state.teacherInstruction,
+    },
+  });
+  state.teacherApproval = null;
+  state.notice = "Teacher Packet Preview created.";
+}
+
+async function approveTeacherPacket() {
+  if (!state.teacherPacket) return;
+  state.teacherApproval = await state.api.request("approveTeacherPacket", { params: { id: state.teacherPacket.id } });
+  state.teacherPacket = { ...state.teacherPacket, approved_at: state.teacherApproval.approved_at };
+  state.notice = "Teacher Packet approved for one generation job.";
+}
+
+async function saveCredential() {
+  await state.api.request("upsertCredential", {
+    params: { provider: "openai_compatible" },
+    body: {
+      base_url: state.credentialBaseUrl || "https://api.openai.com/v1",
+      api_key: state.credentialApiKey || "",
+    },
+  });
+  state.credentialApiKey = "";
+  state.notice = "Teacher credential saved to OS keychain.";
+  await refresh();
+}
+
+async function deleteCredential() {
+  await state.api.request("deleteCredential", { params: { provider: "openai_compatible" } });
+  state.notice = "Teacher credential revoked.";
+  await refresh();
+}
+
 async function scanHardware() {
   state.lastJob = await state.api.request("submitHardwareScan", {
     body: { dry_run: true, target_backend: "auto" },
@@ -219,7 +286,8 @@ function sidebar() {
 }
 
 function topbar(route) {
-  return `<header class="topbar"><div class="command-bar">cmd ${breadcrumb(route)} <code>Ctrl+K</code></div><div class="connection-row"><span class="top-chip ${state.online ? "ok" : "bad"}">${state.online ? "local daemon" : "offline"}</span><span class="top-chip">teacher locked</span><span class="top-chip mono">${escapeHtml((state.bootstrap?.baseUrl || "").replace("http://", ""))}</span></div><button class="top-chip clickable gate-${String(state.hardware?.capability_gate || "unknown").toLowerCase()}" data-nav="/hardware">${state.hardware?.capability_gate || "unknown"} - ${state.hardware?.backend_recommendation || "scan"}</button><button class="top-chip clickable" ${state.lastJob ? `data-nav="/jobs/${state.lastJob.job_id}"` : ""}>${state.lastJob ? state.lastJob.status : "no jobs"}</button></header>`;
+  const teacherConnected = state.credentials.some((item) => !item.is_revoked);
+  return `<header class="topbar"><div class="command-bar">cmd ${breadcrumb(route)} <code>Ctrl+K</code></div><div class="connection-row"><span class="top-chip ${state.online ? "ok" : "bad"}">${state.online ? "local daemon" : "offline"}</span><span class="top-chip ${teacherConnected ? "ok" : ""}">${teacherConnected ? "teacher keychain" : "teacher setup"}</span><span class="top-chip mono">${escapeHtml((state.bootstrap?.baseUrl || "").replace("http://", ""))}</span></div><button class="top-chip clickable gate-${String(state.hardware?.capability_gate || "unknown").toLowerCase()}" data-nav="/hardware">${state.hardware?.capability_gate || "unknown"} - ${state.hardware?.backend_recommendation || "scan"}</button><button class="top-chip clickable" ${state.lastJob ? `data-nav="/jobs/${state.lastJob.job_id}"` : ""}>${state.lastJob ? state.lastJob.status : "no jobs"}</button></header>`;
 }
 
 function page(route) {
@@ -232,6 +300,7 @@ function page(route) {
   if (route.name === "hardware") return hardwarePage();
   if (route.name === "job") return jobPage(route.jobId);
   if (route.name === "settings") return settingsPage();
+  if (route.name === "teacherSettings") return teacherSettingsPage();
   return lockedPage(route.path || "Teacher settings", "This route is present in the M1 shell and unlocks in a later milestone.");
 }
 
@@ -270,7 +339,9 @@ function examplesPage() {
 function datasetPage() {
   const dataset = state.dataset;
   const rows = dataset?.examples || [];
-  return pageShell("Dataset", "Dataset build result", "Review persisted examples, validation status, hash, and approval readiness.", `<button class="button primary" data-action="approve-dataset" ${rows.length >= 20 ? "" : "disabled"}>Approve 20</button>`, `${notice()}<div class="metric-grid">${metric("status", dataset?.status || "loading", "blue")}${metric("samples", String(dataset?.sample_count || 0), "ok")}${metric("sha256", (dataset?.sha256 || "pending").slice(0, 10), "blue")}</div>${dataset ? examplesTable(rows.map((example) => ({ input: example.input, output: example.output, source: example.source }))) : ""}`);
+  const approved = rows.filter((example) => example.approved).length;
+  const actions = `<button class="button primary" data-action="approve-dataset" ${rows.length >= 20 && dataset?.status !== "APPROVED" ? "" : "disabled"}>Approve 20</button><button class="button" data-action="preview-teacher-packet" ${approved >= 20 ? "" : "disabled"}>Preview teacher packet</button>`;
+  return pageShell("Dataset", "Dataset build result", "Review persisted examples, validation status, hash, and approval readiness.", actions, `${notice()}<div class="metric-grid">${metric("status", dataset?.status || "loading", "blue")}${metric("approved", `${approved}/${rows.length}`, approved >= 20 ? "ok" : "warn")}${metric("sha256", (dataset?.sha256 || "pending").slice(0, 10), "blue")}</div>${teacherPacketPanel()}${dataset ? examplesTable(rows.map((example) => ({ input: example.input, output: example.output, source: example.source }))) : ""}`);
 }
 
 function hardwarePage() {
@@ -284,7 +355,22 @@ function jobPage(jobId) {
 }
 
 function settingsPage() {
-  return pageShell("Settings", "Runtime settings", "M1 exposes local daemon status. Teacher credentials are rendered as locked until M2.", "", `<div class="action-grid"><button class="action-tile"><strong>Local daemon</strong><span>${escapeHtml(state.bootstrap?.baseUrl || "bootstrap pending")}</span></button><button class="action-tile" data-nav="/settings/teacher"><strong>Teacher provider</strong><span>Locked until credential storage lands in M2.</span></button></div>${statePanel("locked", "Credentials locked", "Keys are never echoed in the M1 shell; credential storage starts in M2.")}`);
+  const connected = state.credentials.some((item) => !item.is_revoked);
+  return pageShell("Settings", "Runtime settings", "Configure the local daemon and BYO teacher provider without echoing secrets.", "", `<div class="action-grid"><button class="action-tile"><strong>Local daemon</strong><span>${escapeHtml(state.bootstrap?.baseUrl || "bootstrap pending")}</span></button><button class="action-tile" data-nav="/settings/teacher"><strong>Teacher provider</strong><span>${connected ? "Connected via OS keychain." : "BYO key required before generation."}</span></button></div>${statePanel(connected ? "success" : "empty", connected ? "Credential connected" : "Credential missing", connected ? "Keys are stored in OS keychain and never returned by the daemon." : "Save an OpenAI-compatible key before approving external teacher generation.")}`);
+}
+
+function teacherSettingsPage() {
+  const credential = state.credentials.find((item) => item.provider === "openai_compatible" && !item.is_revoked) || state.credentials.find((item) => !item.is_revoked);
+  return pageShell("Settings", "Teacher provider", "BYO OpenAI-compatible key storage uses OS keychain; the local daemon never echoes the key.", `<button class="button" data-action="delete-credential" ${credential ? "" : "disabled"}>Revoke</button><button class="button primary" data-action="save-credential">Save key</button>`, `${notice()}<div class="two-column"><section class="surface"><label class="field"><span>Base URL</span><input data-field="credential-base-url" value="${escapeHtml(state.credentialBaseUrl || credential?.base_url_origin || "https://api.openai.com/v1")}"></label><label class="field"><span>API key</span><input type="password" autocomplete="off" data-field="credential-api-key" value=""></label></section><section class="surface"><h2>Connection</h2>${credential ? `<div class="compact-list"><div class="check-line"><span class="check ok">ok</span>${escapeHtml(credential.provider)} · ${escapeHtml(credential.base_url_origin)}</div><div class="check-line"><span class="check ok">ok</span>${escapeHtml(credential.keychain_ref)}</div></div>` : statePanel("empty", "No teacher key", "Credential create/update returns only keychain metadata.")}</section></div>`);
+}
+
+function teacherPacketPanel() {
+  const packet = state.teacherPacket;
+  if (!packet) {
+    return `<section class="surface"><h2>Teacher Packet Preview</h2><label class="field"><span>Generation instruction</span><textarea data-field="teacher-instruction">${escapeHtml(state.teacherInstruction)}</textarea></label><p>Preview sends only rule schema, output schema, anonymized approved examples, and this instruction after user approval.</p></section>`;
+  }
+  const examples = packet.packet_preview.anonymized_examples || [];
+  return `<section class="surface teacher-preview"><div class="split-toolbar"><h2>Teacher Packet Preview</h2><button class="button primary" data-action="approve-teacher-packet" ${packet.approved_at ? "disabled" : ""}>Approve packet</button></div><div class="metric-grid">${metric("examples", String(examples.length), "ok")}${metric("masked", String(packet.pii_summary.masked_count || 0), "ok")}${metric("sha256", packet.packet_sha256.slice(0, 10), "blue")}</div><div class="two-column"><div><h3>Sent</h3><ul>${(packet.pii_summary.transmitted || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><h3>Not sent</h3><ul>${(packet.pii_summary.not_transmitted || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div></div><pre class="codebox">${escapeHtml(JSON.stringify(packet.packet_preview, null, 2))}</pre></section>`;
 }
 
 function lockedPage(title, reason) {

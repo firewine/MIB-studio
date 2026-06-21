@@ -12,6 +12,11 @@ const routes = {
   getJob: ["GET", "/jobs/{job_id}"],
   submitHardwareScan: ["POST", "/hardware-doctor/scan"],
   getHardwareDoctorResult: ["GET", "/hardware-doctor/result"],
+  previewTeacherPacket: ["POST", "/projects/{id}/teacher-packets/preview"],
+  approveTeacherPacket: ["POST", "/teacher-packets/{id}/approve"],
+  listCredentials: ["GET", "/credentials"],
+  upsertCredential: ["PUT", "/credentials/{provider}"],
+  deleteCredential: ["DELETE", "/credentials/{provider}"],
 };
 
 export class ApiClientError extends Error {

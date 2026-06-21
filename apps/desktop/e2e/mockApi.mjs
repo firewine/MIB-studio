@@ -6,12 +6,14 @@ export function startMockApi({ port = 8910 } = {}) {
     datasets: [],
     hardware: null,
     job: null,
+    credentials: [],
+    teacherPacket: null,
   };
   const server = createServer(async (request, response) => {
     const url = new URL(request.url || "/", `http://${request.headers.host || "127.0.0.1"}`);
     response.setHeader("Access-Control-Allow-Origin", "*");
     response.setHeader("Access-Control-Allow-Headers", "authorization,content-type,idempotency-key");
-    response.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
+    response.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS");
     if (request.method === "OPTIONS") return json(response, 204);
     try {
       await route(request, response, url, state);
@@ -27,6 +29,17 @@ export function startMockApi({ port = 8910 } = {}) {
 async function route(request, response, url, state) {
   if (url.pathname === "/healthz") return json(response, 200, { status: "ok", version: "test" });
   if (url.pathname === "/presets") return json(response, 200, { items: [preset()], next_cursor: null });
+  if (url.pathname === "/credentials" && request.method === "GET") return json(response, 200, { items: state.credentials });
+  const credentialMatch = url.pathname.match(/^\/credentials\/([^/]+)$/);
+  if (credentialMatch && request.method === "PUT") {
+    const body = await readJson(request);
+    state.credentials = [credentialRead(credentialMatch[1], body.base_url)];
+    return json(response, 204);
+  }
+  if (credentialMatch && request.method === "DELETE") {
+    state.credentials = state.credentials.map((item) => ({ ...item, is_revoked: true }));
+    return json(response, 204);
+  }
   if (url.pathname === "/projects" && request.method === "GET") return json(response, 200, { items: state.projects, next_cursor: null });
   if (url.pathname === "/projects" && request.method === "POST") {
     const body = await readJson(request);
@@ -55,7 +68,25 @@ async function route(request, response, url, state) {
   if (datasetMatch && request.method === "PATCH") {
     state.datasetWithExamples.status = "APPROVED";
     state.datasets[0].status = "APPROVED";
+    state.datasetWithExamples.examples = state.datasetWithExamples.examples.map((example) => ({ ...example, approved: true, review_status: "APPROVED" }));
     return json(response, 200, state.datasets[0]);
+  }
+  const previewMatch = url.pathname.match(/^\/projects\/([^/]+)\/teacher-packets\/preview$/);
+  if (previewMatch && request.method === "POST") {
+    const body = await readJson(request);
+    state.teacherPacket = teacherPacketRead(state, previewMatch[1], body);
+    return json(response, 200, state.teacherPacket);
+  }
+  const approvalMatch = url.pathname.match(/^\/teacher-packets\/([^/]+)\/approve$/);
+  if (approvalMatch && request.method === "POST") {
+    state.teacherPacket = { ...state.teacherPacket, approved_at: now() };
+    return json(response, 200, {
+      approval_id: approvalMatch[1],
+      project_id: state.teacherPacket.project_id,
+      packet_sha256: state.teacherPacket.packet_sha256,
+      approved_at: state.teacherPacket.approved_at,
+      expires_at: state.teacherPacket.expires_at,
+    });
   }
   if (url.pathname === "/hardware-doctor/result" && !state.hardware) return json(response, 404, { error_code: "HARDWARE_PROFILE_NOT_FOUND", message: "No profile", details: {}, trace_id: "mock" });
   if (url.pathname === "/hardware-doctor/result") return json(response, 200, state.hardware);
@@ -78,7 +109,35 @@ function datasetRead(projectId, examples) {
 }
 
 function exampleRead(item, index) {
-  return { id: `example_${index}`, dataset_id: "dataset_1", source: item.source, input: item.input, output: item.output, review_status: "APPROVED", approved: true, validation_errors: [], created_at: now() };
+  return { id: `example_${index}`, dataset_id: "dataset_1", source: item.source, input: item.input, output: item.output, review_status: "PENDING", approved: false, validation_errors: [], created_at: now() };
+}
+
+function credentialRead(provider, baseUrl) {
+  return { id: `cred_${provider}`, provider, base_url_origin: baseUrl.replace(/\/v1$/, ""), keychain_ref: `keyring://MIB%20Studio/credential:${provider}:mock`, is_revoked: false, expires_at: null, created_at: now(), last_used_at: null };
+}
+
+function teacherPacketRead(state, projectId, body) {
+  return {
+    id: "packet_1",
+    project_id: projectId,
+    packet_sha256: "c".repeat(64),
+    packet_preview: {
+      rules: state.projects[0]?.routes || [],
+      schema: { type: "object", required: ["route", "confidence"] },
+      anonymized_examples: body.example_ids.map((id, index) => ({ example_id: id, input: { text: `masked ${index}` }, output: { route: "support" } })),
+      instruction: body.instruction,
+    },
+    pii_summary: {
+      policy_version: "pii.v1",
+      example_count: body.example_ids.length,
+      masked_count: 20,
+      entity_counts: { email: 10, phone: 10 },
+      transmitted: ["rule schema", "output schema", "anonymized_examples", "generation instruction"],
+      not_transmitted: ["raw CSV", "file paths", "personal identifiers", "unapproved samples"],
+    },
+    expires_at: "2026-06-21T00:30:00.000Z",
+    approved_at: null,
+  };
 }
 
 function hardwareRead() {

@@ -1,65 +1,58 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Close out Day-0 Bootstrap readiness before starting M1-001 API bootstrap.",
+  "goal": "Implement M1-001 API bootstrap with local bearer auth and desktop bootstrap client.",
   "phase": "done",
-  "gate": "mib-studio-day0-readiness-audit",
+  "gate": "mib-studio-m1-001-api-bootstrap",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "f0e4583",
+  "head": "89b346d",
   "allowed_edit_paths": [
-    ".codex/",
-    "docs/CONTEXT.md",
+    ".codex/tasks/current.json",
     "docs/WORKING.md",
+    "services/api/app/main.py",
+    "services/api/app/core/",
+    "services/shared/security/",
+    "apps/desktop/src/lib/api.ts",
+    "apps/desktop/src/lib/bootstrap.ts",
+    "apps/desktop/src-tauri/src/bootstrap.rs",
+    "tests/api/",
+    "schemas/openapi.json",
+    "apps/desktop/src/lib/generated.ts",
     "artifacts/review/",
-    "artifacts/security/",
-    "scripts/bootstrap_dev.sh",
-    "scripts/bootstrap_dev.ps1",
-    ".codex/tasks/current.json"
+    "artifacts/security/"
   ],
-  "approved_existing_changed_paths": [
-    ".codex/"
-  ],
-  "approved_source_paths": [
-    "docs/CONTEXT.md",
-    "docs/WORKING.md"
-  ],
-  "approved_doc_paths": [
-    "docs/CONTEXT.md",
-    "docs/WORKING.md"
+  "approved_dependency_commands": [
+    "uv pip install --python .venv/bin/python fastapi==0.115.12 uvicorn==0.34.2 pydantic==2.10.6 pydantic-settings==2.8.1 httpx==0.28.1 pytest==8.3.5 pytest-asyncio==0.25.3 orjson==3.10.16"
   ],
   "blocked_path_prefixes": [
-    "app",
-    "backend",
-    "frontend",
-    "tests",
-    "docs/reviews",
-    "docs/handoffs",
     "docs/specs",
     "docs/foundation",
     "docs/mockup",
-    "alembic",
-    ".github"
+    "docs/handoffs",
+    "docs/reviews",
+    "services/worker",
+    "services/shared/db",
+    "packages",
+    ".github",
+    "scripts"
   ],
   "blocked_scope": [
-    "application code changes",
-    "test changes outside validation commands",
-    "development documentation changes outside docs/CONTEXT.md and docs/WORKING.md",
-    "product source changes before Day-0 readiness decision",
-    "SSOT/spec/foundation/mockup/review/handoff edits",
-    "runtime PABCD state activation",
-    "immediate stage, commit, or push before verified phase closeout",
-    "script changes other than bootstrap verifier repair"
+    "M1-002+ feature implementation",
+    "DB model, migration, repository, or seed changes",
+    "worker, training, eval, package, export, teacher, or credential runtime changes",
+    "foundation/spec/mockup/handoff/review edits",
+    "dependency changes outside the approved pinned M1-001 venv subset",
+    "stage, commit, or push before M1-001 verification passes"
   ],
-  "allowed_edit_paths_scope_note": "User requested final program development per docs and v6 FE mockup. First aligned step is Day-0 Bootstrap readiness verification before M1-001. Scope allows WORKING/task contract updates, verifier artifacts, and bootstrap verifier repair only; product code remains blocked until readiness is decided. Existing uncommitted .codex/ setup files are included so the stop hook can account for prior user-approved work.",
+  "allowed_edit_paths_scope_note": "Day-0 readiness was committed and pushed at 89b346d. This scope opens only M1-001 API bootstrap: FastAPI local daemon auth middleware, bootstrap token plumbing, frontend API/bootstrap helpers, Tauri bootstrap command stub, and API auth tests. Full UI implementation remains deferred to M1-007; future endpoints must be locked no-side-effect stubs.",
   "reference_only_paths": [
-    "/home/firewine/halo-swing/docs/CONTEXT.md",
-    "/home/firewine/halo-swing/docs/WORKING.md",
+    "docs/CONTEXT.md",
+    "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "docs/specs/MVP_SCOPE.md",
+    "docs/specs/IMPLEMENTATION_GUIDE.md",
     "docs/specs/ARCHITECTURE.md",
     "docs/specs/SECURITY_SPEC.md",
-    "docs/specs/IMPLEMENTATION_GUIDE.md",
     "docs/handoffs/M1.md",
     "docs/mockup/mib_fe_mockup_v6_routes_contract.html"
   ],
@@ -67,45 +60,45 @@
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
     "test -d .venv",
-    "test -f docs/CONTEXT.md",
-    "test -f docs/WORKING.md",
-    "rg -n \"phase_status: day0_readiness_complete|status: day0_readiness_complete|Day-0 Bootstrap readiness verification passed\" docs/WORKING.md",
-    "PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --verify-only --skip-install",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c \"import fastapi, pydantic, httpx, pytest; print('m1-deps-ok')\"",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/api/test_auth_bootstrap.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --verify-only --skip-install",
     "git diff --check"
   ],
   "executed_verification_commands": [
-    "python3 -m json.tool .codex/tasks/current.json",
-    "test -d .venv",
-    "test -f docs/CONTEXT.md",
-    "test -f docs/WORKING.md",
-    "rg -n \"phase_status: day0_readiness_complete|status: day0_readiness_complete|Day-0 Bootstrap readiness verification passed\" docs/WORKING.md",
-    "PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --verify-only --skip-install",
+    "uv pip install --python .venv/bin/python fastapi==0.115.12 uvicorn==0.34.2 pydantic==2.10.6 pydantic-settings==2.8.1 httpx==0.28.1 pytest==8.3.5 pytest-asyncio==0.25.3 orjson==3.10.16",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c \"import fastapi, pydantic, httpx, pytest; print('m1-deps-ok')\"",
+    "./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/core/config.py services/api/app/core/errors.py services/shared/security/auth.py services/shared/security/origin.py services/shared/security/redaction.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/api/test_auth_bootstrap.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --verify-only --skip-install",
     "git diff --check"
   ],
   "failed_verification_commands": [],
   "phase_notes": {
-    "plan": "Audit Day-0 Bootstrap readiness using IMPLEMENTATION_GUIDE section 4 before starting M1-001.",
-    "audit": "Read current CONTEXT/WORKING, SSOT Phase 1/M1 rows, M1 handoff, and Day-0/M1 IMPLEMENTATION_GUIDE sections; product code remains blocked until readiness is decided.",
-    "build": "Updated WORKING and task contract for Day-0 readiness audit; repairing bootstrap verifier to use Python sqlite3 instead of requiring system sqlite3 CLI.",
-    "check": "Scaffold verifier passed in verify-only mode with .venv Python; toolchain mismatches are recorded non-strictly in artifacts/review/toolchain_report.json.",
-    "done": "Day-0 readiness is complete enough to close this prep phase and open a scoped M1-001 API bootstrap task next."
+    "plan": "Implement only M1-001 API bootstrap from IMPLEMENTATION_GUIDE and M1 handoff.",
+    "audit": "Read Day-0 closeout state, M1 handoff row, IMPLEMENTATION_GUIDE M1-001 Done criteria, ARCHITECTURE auth middleware contract, SECURITY_SPEC local API auth contract, OpenAPI seed, and generated TS operation map.",
+    "build": "Create FastAPI bootstrap app, local Host/Origin/CORS/body/auth handling, standard errors, desktop bootstrap/API client helpers, Tauri command stub, and auth bootstrap tests.",
+    "check": "M1-001 dependency import check, py_compile, auth bootstrap pytest, OpenAPI drift check, scaffold verifier, and diff hygiene passed.",
+    "done": "M1-001 implementation is ready for explicit stage, commit, and push."
   },
   "pabcd": {
     "active": false,
     "phase": "done",
-    "gate": "mib-studio-day0-readiness-audit",
-    "status": "MIB_STUDIO_DAY0_READINESS_COMPLETE",
+    "gate": "mib-studio-m1-001-api-bootstrap",
+    "status": "MIB_STUDIO_M1_001_COMPLETE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": true,
-    "approved_scope": "Audit Day-0 Bootstrap readiness and update handoff/task contract only.",
-    "blocked_scope": "No product source, tests, specs, foundation docs, mockups, reviews, handoffs, runtime state activation, or immediate git stage/commit/push before verification closeout.",
-    "phase_completion_git_policy": "After verification passes at phase completion, stage explicit files, commit, and push.",
-    "plan": "Audit Day-0 Bootstrap readiness using IMPLEMENTATION_GUIDE section 4 before starting M1-001.",
-    "audit": "Read current CONTEXT/WORKING, SSOT Phase 1/M1 rows, M1 handoff, and Day-0/M1 IMPLEMENTATION_GUIDE sections; product code remains blocked until readiness is decided.",
-    "build": "Updated WORKING and task contract for Day-0 readiness audit; repairing bootstrap verifier to use Python sqlite3 instead of requiring system sqlite3 CLI.",
-    "check": "Scaffold verifier passed in verify-only mode with .venv Python; toolchain mismatches are recorded non-strictly in artifacts/review/toolchain_report.json.",
-    "done": "Day-0 readiness is complete enough to close this prep phase and open a scoped M1-001 API bootstrap task next."
+    "approved_scope": "M1-001 API bootstrap only.",
+    "blocked_scope": "No M1-002+ implementation, DB/repository/migration work, worker/training/eval/export/teacher runtime work, or spec/foundation/mockup/handoff/review edits.",
+    "phase_completion_git_policy": "After M1-001 verification passes, stage explicit files, commit, and push.",
+    "plan": "Implement only M1-001 API bootstrap from IMPLEMENTATION_GUIDE and M1 handoff.",
+    "audit": "Read Day-0 closeout state, M1 handoff row, IMPLEMENTATION_GUIDE M1-001 Done criteria, ARCHITECTURE auth middleware contract, SECURITY_SPEC local API auth contract, OpenAPI seed, and generated TS operation map.",
+    "build": "Create FastAPI bootstrap app, local Host/Origin/CORS/body/auth handling, standard errors, desktop bootstrap/API client helpers, Tauri command stub, and auth bootstrap tests.",
+    "check": "M1-001 dependency import check, py_compile, auth bootstrap pytest, OpenAPI drift check, scaffold verifier, and diff hygiene passed.",
+    "done": "M1-001 implementation is ready for explicit stage, commit, and push."
   }
 }

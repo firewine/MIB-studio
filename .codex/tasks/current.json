@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M5-003 Playground local inference endpoint, audit coverage, and focused regression tests.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m5-003-playground",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "cac10fb",
+  "head": "269a63a",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -92,17 +92,17 @@
     "audit": "Read WORKING, M5 handoff, IMPLEMENTATION_GUIDE M5-003, OpenAPI PlaygroundRun schemas, router input/output schemas, existing AgentPackage routes, verifier service, credential model/service, and audit model references.",
     "build": "Implemented pure runtime router inference, Playground API DTOs, FastAPI route registration, service wrapper with AgentPackage + ModelRun adapter metadata loading, verifier reuse, fallback credential gate, audit event writes, and focused playground tests.",
     "check": "Passed task JSON, py_compile, focused playground pytest, verifier regression pytest, import boundary, file-size hard-limit, unstaged diff whitespace, and staged diff whitespace checks.",
-    "done": "Pending commit and push after verification passes."
+    "done": "Implementation committed as 269a63a; WORKING closeout prepared for push with this contract."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m5-003-playground",
-    "status": "MIB_STUDIO_M5_003_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M5_003_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M5-003 playground endpoint, local inference core, audit coverage, focused tests, review artifacts, and WORKING closeout within listed files.",
     "blocked_scope": "No DB schema/model/migration, Local Daemon /agents/{agent_id}/run route, export/runtime template, training, dataset, benchmark report, FE, or docs spec/foundation edits.",
     "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
@@ -110,6 +110,6 @@
     "audit": "Required references have been read.",
     "build": "Implementation complete.",
     "check": "All required verification passed.",
-    "done": "Pending."
+    "done": "M5-003 verified, implementation committed as 269a63a, and closeout prepared for push."
   }
 }

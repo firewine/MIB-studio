@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M5_002_VERIFIER
+phase_id: M5_003_PLAYGROUND
 milestone: M5_Package_Playground
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-m5-002-verifier
+gate_id: mib-studio-m5-003-playground
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -59,18 +59,21 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m5-002-verifier
-  implementation_commit: c311e4d
+  gate: mib-studio-m5-003-playground
+  implementation_commit: 269a63a
   pushed_to_origin_main: true
-  objective: implement M5-002 contract verifier core and API service wrapper
+  objective: implement M5-003 Playground local inference endpoint, audit coverage, and focused regression tests
   summary:
-    - added packages/agent-runtime/core/verifier.py as the reusable runtime verifier core
-    - verifier handles JSON parse, router_output.schema validation, route_allowed, confidence range, and confidence threshold fallback decisions
-    - added services/api/app/services/verifier_service.py wrapper that loads the runtime verifier core and verifies AgentPackage outputs by contract_yaml
-    - fallback decisions are reported without playground route implementation or fallback network calls
-    - focused tests cover pass/fail verifier states, invalid JSON/schema errors, fallback_required/fallback_used decisions, and API wrapper reuse
+    - added packages/agent-runtime/core/router_inference.py as a pure runtime inference core with no FastAPI, SQLAlchemy, keychain, Tauri, or Local Daemon service imports
+    - added POST /agent-packages/{agent_package_id}/playground-runs through services/api/app/routes/playground.py
+    - added PlaygroundRun request/response DTOs and service wrapper that loads AgentPackage + ModelRun adapter metadata
+    - service reuses the M5-002 verifier, reports fallback_required/fallback_used, and never auto-calls fallback before user approval
+    - approved fallback checks provider credential metadata and returns 409 FALLBACK_CREDENTIAL_REQUIRED when no active local credential exists
+    - every PlaygroundRun records an agent_run audit event with agent_package_id, contract_sha256, verifier status, fallback decision, and hashed input only
+    - focused tests cover verified JSON output, no /agents/{agent_id}/run route, canned 20 schema adherence, no pre-approval fallback, missing fallback credential 409, and audit redaction
 
 m5_previous_work:
+  m5_003_playground: 269a63a
   m5_002_verifier: c311e4d
   m5_001_agent_contract_builder: 614184b
 
@@ -110,6 +113,7 @@ local_committed_context:
   m4_003_benchmark_report: 5c3d3e7
   m5_001_agent_contract_builder: 614184b
   m5_002_verifier: c311e4d
+  m5_003_playground: 269a63a
 
 do_not_start_without:
   - active PABCD task contract
@@ -121,18 +125,18 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m5_002_verified_and_pushed
+status: m5_003_verified_and_pushed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile packages/agent-runtime/core/__init__.py packages/agent-runtime/core/verifier.py services/api/app/services/verifier_service.py tests/agent_package/test_verifier.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/routes/playground.py services/api/app/schemas/playground.py services/api/app/services/playground_service.py packages/agent-runtime/core/router_inference.py tests/playground/test_playground_local_inference.py tests/playground/test_playground_canned20_schema_adherence.py tests/playground/test_playground_no_auto_fallback_call.py tests/playground/test_playground_audit_coverage.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/playground -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/agent_package/test_verifier.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/agent_package/test_contract_builder.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
   - git diff --check
   - git diff --cached --check
 warnings:
-  - focused verifier and AgentPackage tests emit existing FastAPI ORJSONResponse deprecation warnings
+  - focused playground and verifier tests emit existing FastAPI ORJSONResponse deprecation warnings
   - file_size_report has existing soft warnings only; no hard file-size violations remain
 failed: []
 ```
@@ -160,17 +164,18 @@ recorded_go:
   M4_003_Verified: true
   M5_001_Verified: true
   M5_002_Verified: true
+  M5_003_Verified: true
 
 active_gate:
   id: none
-  cto_decision: ready_for_m5_003_scoped_contract
+  cto_decision: ready_for_m6_scoped_contract
   review_bundle: artifacts/review
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: create scoped PABCD contract for M5-003 Playground
+  next_required_check: create scoped PABCD contract for M6 export parity
 ```
 
 ## 5. Blockers And Deferred Work
@@ -183,7 +188,8 @@ security_deferred:
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports Gradio 6.x or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - M5 Verifier and Playground work
+  - M6 export/runtime template implementation
+  - FE v6 mockup implementation
   - DB schema/model/migration changes unless explicitly required by the next scoped gate
   - spec/foundation/mockup/handoff/review edits
 ```
@@ -192,8 +198,8 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create a new scoped PABCD task contract for M5-003 Playground
-  - read docs/handoffs/M5.md and docs/specs/IMPLEMENTATION_GUIDE.md M5-003 sections before edits
+  - create a new scoped PABCD task contract for M6 export parity
+  - read docs/handoffs for M6 and docs/specs/IMPLEMENTATION_GUIDE.md M6 sections before edits
 ```
 
 ## 7. Resume Prompt For Next LLM
@@ -201,8 +207,9 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md. M1, M2, M3-000, M3-001, M3-002
 CUDA wrapper, M3-003 MLX wrapper, M3-004 Cancel/resume, M3-005 Dry-run + OOM
-isolation, M4-001 Eval set freeze hardening, M4-002 Eval runner, and M4-003
-Benchmark report, M5-001 Agent contract builder, and M5-002 Verifier are committed and pushed. Do not start M5-003 until a new scoped PABCD
-task contract is created. Use .venv for
-Python, COREPACK_HOME=/tmp/corepack, and COREPACK_DEFAULT_TO_LATEST=0 for bootstrap checks.
+isolation, M4-001 Eval set freeze hardening, M4-002 Eval runner, M4-003
+Benchmark report, M5-001 Agent contract builder, M5-002 Verifier, and M5-003
+Playground are committed and pushed. Do not start M6 until a new scoped PABCD
+task contract is created. Use .venv for Python, COREPACK_HOME=/tmp/corepack,
+and COREPACK_DEFAULT_TO_LATEST=0 for bootstrap checks.
 ```

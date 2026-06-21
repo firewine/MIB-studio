@@ -27,6 +27,7 @@ from services.api.app.routes.credentials import router as credentials_router
 from services.api.app.routes.datasets import router as datasets_router
 from services.api.app.routes.eval_sets import router as eval_sets_router
 from services.api.app.routes.hardware_doctor import router as hardware_doctor_router
+from services.api.app.routes.jobs import router as jobs_router
 from services.api.app.routes.presets import router as presets_router
 from services.api.app.routes.projects import router as projects_router
 from services.api.app.routes.teacher_packets import router as teacher_packets_router
@@ -174,6 +175,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(eval_sets_router)
     app.include_router(credentials_router)
     app.include_router(teacher_packets_router)
+    app.include_router(jobs_router)
     app.include_router(hardware_doctor_router)
 
     @app.api_route("/{path:path}", methods=ROUTE_METHODS)

@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_ENDPOINT_CAPTURE_TOOLING
+phase_id: REAL_ADAPTER_ARTIFACT_INTAKE
 milestone: M6_RC_Blocker_Remediation
-phase_status: real_adapter_endpoint_capture_tooling_verified
+phase_status: real_adapter_artifact_intake_tooling_verified
 active_slice: none
-gate_id: mib-studio-real-adapter-endpoint-capture-tooling
+gate_id: mib-studio-real-adapter-artifact-intake
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,13 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-real-adapter-endpoint-capture-tooling
+  gate: mib-studio-real-adapter-artifact-intake
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: add standard no-fake real adapter Docker endpoint evidence capture tooling
+  objective: add real adapter artifact intake verification and require it for endpoint evidence
   evidence:
+    real_adapter_artifact_intake: artifacts/review/real_adapter_artifact_intake_evidence.md
     real_adapter_endpoint_capture_tooling: artifacts/review/real_adapter_endpoint_capture_tooling_evidence.md
     m6_rc_evidence_verification: artifacts/review/m6_rc_evidence_verification.json
     exported_adapter_load_guard: artifacts/review/exported_adapter_load_guard_evidence.md
@@ -75,10 +76,10 @@ last_completed_work:
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - scripts/capture_real_adapter_endpoint_evidence.py can collect the required live Docker endpoint transcripts when a real adapter image exists
-    - capture tooling refuses parent MIB_RUNTIME_ALLOW_FAKE_BACKEND and never passes that env into Docker
-    - capture tooling verifies /healthz, native /agents/{agent_id}/run, OpenAI /v1/chat/completions, output equivalence, and read-only /models mount
-    - capture self-test writes marker-shaped output with self_test true, and verify_m6_rc_evidence.py rejects self-test as RC GO evidence
+    - scripts/verify_real_adapter_artifact.py verifies PEFT LoRA metadata, locked base model, safetensors LoRA tensors, non-fixture size, and optional manifest lineage
+    - fixture/minimal adapter rejection and real-like PEFT LoRA acceptance are covered by focused tests
+    - scripts/capture_real_adapter_endpoint_evidence.py now requires a GO adapter intake report for live endpoint evidence
+    - scripts/verify_m6_rc_evidence.py now requires adapter_intake_verified true in real endpoint evidence
     - m6_rc_evidence_verification.json still has decision NOT_GO, verification_ok true, unexpected_blockers []
     - no real trained CUDA lora_adapter artifact is still available in this environment
     - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
@@ -120,11 +121,12 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: real_adapter_endpoint_capture_tooling_verified
+status: real_adapter_artifact_intake_tooling_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_real_adapter_artifact.py scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_real_adapter_artifact.py tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_real_adapter_artifact.py --self-test --json-output /tmp/mib-real-adapter-intake-self-test.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json
   - python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json
@@ -165,6 +167,7 @@ recorded_go:
   Exported_Runtime_Adapter_Load_Guard: true
   M6_RC_Evidence_Current_Not_Go: true
   Real_Adapter_Endpoint_Capture_Tooling: true
+  Real_Adapter_Artifact_Intake_Tooling: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -172,9 +175,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 active_gate:
-  id: mib-studio-real-adapter-endpoint-capture-tooling
+  id: mib-studio-real-adapter-artifact-intake
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/real_adapter_endpoint_capture_tooling_evidence.md
+  review_bundle: artifacts/review/real_adapter_artifact_intake_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -258,6 +261,13 @@ artifacts/review/real_trained_adapter_endpoint_evidence.md. The script refuses
 MIB_RUNTIME_ALLOW_FAKE_BACKEND and verifies health/native/OpenAI endpoints,
 output equivalence, and read-only model-cache mount. Its self-test output is
 rejected by verify_m6_rc_evidence.py as RC GO evidence.
+Real adapter artifact intake tooling is recorded in
+artifacts/review/real_adapter_artifact_intake_evidence.md. Use
+scripts/verify_real_adapter_artifact.py on the real adapter directory/manifest
+first, then pass its GO JSON report to
+scripts/capture_real_adapter_endpoint_evidence.py with --adapter-intake-report.
+verify_m6_rc_evidence.py now requires adapter_intake_verified: true in endpoint
+evidence.
 M6-RC remains NOT_GO until real trained adapter inference evidence exists or the
 release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
 for Python.

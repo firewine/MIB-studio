@@ -137,6 +137,7 @@ MIB_RUNTIME_ALLOW_FAKE_BACKEND: absent
 /agents/{{agent_id}}/run: {report["native_status"]}
 /v1/chat/completions: {report["openai_status"]}
 real_trained_adapter: true
+adapter_intake_verified: {str(report["adapter_intake_verified"]).lower()}
 self_test: {str(report["self_test"]).lower()}
 ```
 
@@ -147,6 +148,7 @@ image: {report["image"]}
 container_name: {report["container_name"]}
 agent_id: {report["agent_id"]}
 model_cache_dir: {report["model_cache_dir"]}
+adapter_intake_report: {report["adapter_intake_report"]}
 docker_run: {report["docker_run_redacted"]}
 fake_backend_env_absent: {str(report["inspect"].get("fake_backend_absent")).lower()}
 readonly_model_cache_mount: {str(report["inspect"].get("readonly_model_cache_mount")).lower()}
@@ -187,6 +189,7 @@ read_only_model_cache_mount: {str(report["inspect"].get("readonly_model_cache_mo
 native_endpoint_status: {report["native_status"]}
 openai_endpoint_status: {report["openai_status"]}
 real_trained_adapter: true
+adapter_intake_verified: {str(report["adapter_intake_verified"]).lower()}
 self_test: {str(report["self_test"]).lower()}
 ```
 """
@@ -220,6 +223,8 @@ def self_test_report() -> dict[str, Any]:
         "container_name": "self-test-container",
         "agent_id": "self_test.v1",
         "model_cache_dir": "/tmp/self-test-model-cache",
+        "adapter_intake_report": "/tmp/self-test-adapter-intake.json",
+        "adapter_intake_verified": True,
         "docker_run_redacted": "self-test only; no docker command was run",
         "inspect": {"fake_backend_absent": True, "readonly_model_cache_mount": True},
         "health_status": 200,
@@ -239,6 +244,10 @@ def live_report(args: argparse.Namespace) -> dict[str, Any]:
     model_cache_dir = Path(args.model_cache_dir)
     if not model_cache_dir.is_dir():
         raise SystemExit(f"model cache dir does not exist: {model_cache_dir}")
+    intake_report_path = Path(args.adapter_intake_report)
+    adapter_intake = json.loads(intake_report_path.read_text(encoding="utf-8"))
+    if adapter_intake.get("status") != "GO_REAL_ADAPTER_ARTIFACT_INTAKE":
+        raise SystemExit("adapter intake report must have status GO_REAL_ADAPTER_ARTIFACT_INTAKE")
     cmd = docker_run_command(
         image=args.image,
         name=args.container_name,
@@ -276,6 +285,8 @@ def live_report(args: argparse.Namespace) -> dict[str, Any]:
             "container_name": args.container_name,
             "agent_id": args.agent_id,
             "model_cache_dir": str(model_cache_dir.resolve()),
+            "adapter_intake_report": str(intake_report_path),
+            "adapter_intake_verified": True,
             "docker_run_redacted": redact_command(cmd, token),
             "inspect": inspect,
             "health_status": health.status,
@@ -298,6 +309,7 @@ def main() -> int:
     parser.add_argument("--image")
     parser.add_argument("--agent-id")
     parser.add_argument("--model-cache-dir")
+    parser.add_argument("--adapter-intake-report")
     parser.add_argument("--host-port", type=int, default=18084)
     parser.add_argument("--container-name", default="mib-real-adapter-endpoint-evidence")
     parser.add_argument("--token")
@@ -310,7 +322,7 @@ def main() -> int:
     if args.self_test:
         report = self_test_report()
     else:
-        missing = [name for name in ["image", "agent_id", "model_cache_dir"] if getattr(args, name) is None]
+        missing = [name for name in ["image", "agent_id", "model_cache_dir", "adapter_intake_report"] if getattr(args, name) is None]
         if missing:
             raise SystemExit(f"missing required arguments for live capture: {', '.join('--' + item.replace('_', '-') for item in missing)}")
         report = live_report(args)

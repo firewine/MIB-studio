@@ -67,6 +67,7 @@ def test_rendered_self_test_evidence_contains_markers_but_verifier_rejects_it(tm
     assert "/agents/{agent_id}/run: 200" in text
     assert "/v1/chat/completions: 200" in text
     assert "real_trained_adapter: true" in text
+    assert "adapter_intake_verified: true" in text
     assert "self_test: true" in text
 
     result = verify.real_endpoint_check(str(output))
@@ -99,3 +100,27 @@ def test_output_equivalence_requires_openai_content_to_match_native_output() -> 
 
     assert equal is True
     assert payload["native_output"] == payload["openai_output"]
+
+
+def test_m6_verifier_requires_adapter_intake_marker(tmp_path: Path) -> None:
+    evidence = tmp_path / "endpoint.md"
+    evidence.write_text(
+        """# Real Trained Adapter Endpoint Evidence
+
+Decision: `GO_REAL_TRAINED_ADAPTER_ENDPOINT`
+
+```yaml
+MIB_RUNTIME_ALLOW_FAKE_BACKEND: absent
+/agents/{agent_id}/run: 200
+/v1/chat/completions: 200
+real_trained_adapter: true
+self_test: false
+```
+""",
+        encoding="utf-8",
+    )
+
+    result = verify.real_endpoint_check(str(evidence))
+
+    assert result["ok"] is False
+    assert "adapter_intake_verified: true" in result["missing_markers"]

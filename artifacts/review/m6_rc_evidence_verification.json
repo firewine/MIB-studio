@@ -70,7 +70,8 @@
         "MIB_RUNTIME_ALLOW_FAKE_BACKEND: absent",
         "/agents/{agent_id}/run: 200",
         "/v1/chat/completions: 200",
-        "real_trained_adapter: true"
+        "real_trained_adapter: true",
+        "adapter_intake_verified: true"
       ],
       "ok": false,
       "path": "artifacts/review/real_trained_adapter_endpoint_evidence.md",

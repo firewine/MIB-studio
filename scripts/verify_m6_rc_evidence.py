@@ -81,6 +81,7 @@ def real_endpoint_check(path: str) -> dict[str, object]:
         "/agents/{agent_id}/run: 200",
         "/v1/chat/completions: 200",
         "real_trained_adapter: true",
+        "adapter_intake_verified: true",
     ]
     missing = [marker for marker in required_markers if marker not in text]
     fake_backend_present = "MIB_RUNTIME_ALLOW_FAKE_BACKEND=1" in text or "MIB_RUNTIME_ALLOW_FAKE_BACKEND: present" in text

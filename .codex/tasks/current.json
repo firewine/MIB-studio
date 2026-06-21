@@ -6,7 +6,7 @@
   "gate": "mib-studio-m2-002-teacher-packet-preview",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "e816fce",
+  "head": "430b32a",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -96,24 +96,24 @@
     "audit": "Read M2 handoff, IMPLEMENTATION_GUIDE M2-002 and DTO/endpoint sections, SECURITY_SPEC Teacher Packet approval/PII contracts, ARCHITECTURE TeacherPacketApproval schema, v6 mockup settings/data surfaces, and existing desktop shell patterns.",
     "build": "Implemented TeacherPacket schemas, service, route, PII helper, focused security tests, and desktop preview flow.",
     "check": "All required M2-002 verification commands passed; import boundary check also passed with no violations.",
-    "done": "M2-002 is verified and ready for explicit stage, commit, and push."
+    "done": "M2-002 was verified, committed at 430b32a, and pushed to origin/main."
   },
   "pabcd": {
     "active": false,
     "phase": "done",
     "gate": "mib-studio-m2-002-teacher-packet-preview",
-    "status": "MIB_STUDIO_M2_002_VERIFIED_READY_TO_PUSH",
+    "status": "MIB_STUDIO_M2_002_PUSHED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": true,
     "approved_scope": "M2-002 Teacher Packet Preview API/service/schema/PII test and minimal desktop preview UI.",
     "blocked_scope": "No teacher egress, synthetic generation, hard-negative generation, worker, training, benchmark, package, export, playground, or DB schema/model/migration work.",
-    "phase_completion_git_policy": "Verification passed; stage explicit files, commit, and push.",
+    "phase_completion_git_policy": "Completed: implementation commit 430b32a was pushed to origin/main.",
     "plan": "Implement M2-002 Teacher Packet Preview.",
     "audit": "M2-002 references have been read.",
     "build": "Implemented teacher packet preview API/service/test and preview UI.",
     "check": "All required verification commands passed.",
-    "done": "M2-002 verified and ready for commit/push."
+    "done": "M2-002 implementation commit 430b32a was pushed to origin/main."
   }
 }

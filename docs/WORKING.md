@@ -31,8 +31,8 @@ write_policy:
 ```yaml
 phase_id: M2_002_TEACHER_PACKET_PREVIEW
 milestone: M2_Eval_Teacher_Pipeline
-phase_status: verified_ready_to_commit_and_push
-active_slice: M2-002
+phase_status: pushed_complete
+active_slice: none
 gate_id: mib-studio-m2-002-teacher-packet-preview
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
@@ -48,24 +48,29 @@ dev_environment:
 ## 2. Current Work
 
 ```yaml
-mode: implement
-status: verification_passed
-objective: implement M2-002 Teacher Packet Preview
-source_gate_packet: docs/handoffs/M2.md
-review_tier: focused_security_api_fe_test
-
-implemented:
-  - added deterministic PII masking helper for packet JSON values and path-like metadata
-  - added TeacherPacket DTOs for preview request, preview read, and approval read
-  - added POST /projects/{id}/teacher-packets/preview and POST /teacher-packets/{id}/approve
-  - stores TeacherPacketApproval rows with approved_at=NULL, expires_at=now+30m, canonical packet sha256, packet_json, and pii_summary_json
-  - preview packet contains only rules, schema, anonymized_examples, and instruction
-  - approval endpoint sets approved_at and rejects expired or already-used packet rows
-  - writes sanitized pii_mask AuditEvent without raw PII, file paths, credentials, or packet body
-  - opened desktop teacher settings and dataset Teacher Packet Preview/approval surfaces aligned with the v6 workflow shell
-  - added focused backend/security and desktop E2E tests
+mode: none
+status: no_active_work
+objective: none
+source_gate_packet: none
+review_tier: none
 
 last_completed_work:
+  gate: mib-studio-m2-002-teacher-packet-preview
+  implementation_commit: 430b32a
+  pushed_to_origin_main: true
+  objective: implement M2-002 Teacher Packet Preview
+  summary:
+    - added deterministic PII masking helper for packet JSON values and path-like metadata
+    - added TeacherPacket DTOs for preview request, preview read, and approval read
+    - added POST /projects/{id}/teacher-packets/preview and POST /teacher-packets/{id}/approve
+    - stores TeacherPacketApproval rows with approved_at=NULL, expires_at=now+30m, canonical packet sha256, packet_json, and pii_summary_json
+    - preview packet contains only rules, schema, anonymized_examples, and instruction
+    - approval endpoint sets approved_at and rejects expired or already-used packet rows
+    - writes sanitized pii_mask AuditEvent without raw PII, file paths, credentials, or packet body
+    - opened desktop teacher settings and dataset Teacher Packet Preview/approval surfaces aligned with the v6 workflow shell
+    - added focused backend/security and desktop E2E tests
+
+m2_previous_work:
   gate: mib-studio-m2-001-credential-storage
   implementation_commit: 30bf114
   closeout_commit: e816fce
@@ -86,6 +91,7 @@ local_committed_context:
   m2_000_closeout: 5975108
   m2_001_credential_storage: 30bf114
   m2_001_closeout: e816fce
+  m2_002_teacher_packet_preview: 430b32a
 
 do_not_start_without:
   - active PABCD task contract
@@ -97,7 +103,7 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m2_002_verified_ready_to_push
+status: m2_002_verified_and_pushed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/routes/teacher_packets.py services/api/app/schemas/teacher_packet.py services/api/app/services/teacher_packet_service.py services/shared/security/pii.py tests/security/test_teacher_packet.py
@@ -126,15 +132,15 @@ recorded_go:
   M2_002_Verified: true
 
 active_gate:
-  id: mib-studio-m2-002-teacher-packet-preview
-  cto_decision: verified_ready_to_commit_and_push
+  id: none
+  cto_decision: ready_for_m2_003_scoped_contract
   review_bundle: artifacts/review
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: after push, create scoped PABCD contract for M2-003 Synthetic generation
+  next_required_check: create scoped PABCD contract for M2-003 Synthetic generation
 ```
 
 ## 5. Blockers And Deferred Work
@@ -158,16 +164,14 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - stage explicit M2-002 files
-  - commit and push M2-002
-  - after push, update this file to pushed_complete or create the next scoped PABCD contract for M2-003
+  - create a new scoped PABCD task contract for M2-003 Synthetic generation
+  - read docs/handoffs/M2.md and docs/specs/IMPLEMENTATION_GUIDE.md M2-003 sections before edits
 ```
 
 ## 7. Resume Prompt For Next LLM
 
 ```text
-Read docs/CONTEXT.md and docs/WORKING.md. M1, M2-000, and M2-001 are pushed.
-M2-002 Teacher Packet Preview is implemented and verified but must be committed
-and pushed if not already present on origin/main. Do not start M2-003 until a new
+Read docs/CONTEXT.md and docs/WORKING.md. M1, M2-000, M2-001, and M2-002
+Teacher Packet Preview are committed and pushed. Do not start M2-003 until a new
 scoped PABCD task contract is created. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
 ```

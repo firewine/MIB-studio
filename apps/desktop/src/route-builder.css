@@ -1,0 +1,157 @@
+.define-grid {
+  display: grid;
+  grid-template-columns: 230px minmax(520px, 1fr) 330px;
+  gap: 12px;
+  min-height: 710px;
+}
+
+.toolbox,
+.canvas-surface,
+.inspector {
+  overflow: hidden;
+}
+
+.toolbox,
+.inspector {
+  padding: 12px;
+}
+
+.toolbox h2,
+.inspector h2,
+.surface h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.palette-block {
+  width: 100%;
+  margin-bottom: 9px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--blue);
+  text-align: left;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.palette-block:nth-child(3n) {
+  background: var(--orange);
+}
+
+.palette-block:nth-child(4n) {
+  background: var(--pink);
+}
+
+.palette-block small {
+  display: block;
+  margin-top: 2px;
+  color: rgb(255 255 255 / 78%);
+}
+
+.canvas-surface {
+  display: grid;
+  grid-template-rows: 44px minmax(0, 1fr);
+  background-image: radial-gradient(#ded8cc 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.canvas-toolbar {
+  justify-content: space-between;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.block-stack {
+  padding: 18px;
+}
+
+.iblock {
+  min-height: 40px;
+  margin-bottom: 4px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 780;
+  background: var(--blue);
+}
+
+.iblock.route {
+  background: var(--orange);
+}
+
+.iblock.guard {
+  background: var(--pink);
+}
+
+.iblock.logic {
+  background: var(--green);
+}
+
+.iblock.eval {
+  background: var(--purple);
+}
+
+.iblock.data {
+  background: #626b74;
+}
+
+.nested-blocks {
+  margin-left: 34px;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+}
+
+.route-chips button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: left;
+  background: #fbfaf7;
+  cursor: pointer;
+}
+
+.route-chips button.active {
+  border-color: #111;
+  background: #fff;
+  box-shadow: inset 3px 0 #111;
+}
+
+.codebox {
+  max-height: 260px;
+  overflow: auto;
+  padding: 13px;
+  border-radius: 8px;
+  color: #d8e0e8;
+  background: #101317;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.table-surface {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

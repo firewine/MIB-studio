@@ -1,11 +1,29 @@
 ARG BASE_IMAGE_WITH_DIGEST
 FROM ${BASE_IMAGE_WITH_DIGEST}
 
+ARG BASE_IMAGE_WITH_DIGEST
+ARG MIB_RUNTIME_UID=10001
+ARG MIB_RUNTIME_GID=10001
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MIB_MODEL_CACHE_DIR=/models
+
 WORKDIR /app
-RUN useradd --create-home --shell /usr/sbin/nologin mib
-COPY . /app
+
+RUN case "$BASE_IMAGE_WITH_DIGEST" in *@sha256:*) true ;; *) echo "BASE_IMAGE_WITH_DIGEST must include @sha256 digest" >&2; exit 64 ;; esac \
+    && groupadd --gid "$MIB_RUNTIME_GID" --system mib \
+    && useradd --uid "$MIB_RUNTIME_UID" --gid "$MIB_RUNTIME_GID" --create-home --shell /usr/sbin/nologin mib \
+    && mkdir -p /app /models \
+    && chown -R mib:mib /app
+
+COPY --chown=mib:mib . /app
+
 RUN python -m pip install --no-cache-dir -r requirements-runtime.txt
-USER mib
+
+USER mib:mib
 EXPOSE 8000
+
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"
+
 CMD ["python", "-m", "uvicorn", "agents.run:app", "--host", "0.0.0.0", "--port", "8000"]

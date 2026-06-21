@@ -5,8 +5,10 @@ import zipfile
 from pathlib import Path
 
 import pytest
+import yaml
 
-from services.shared.db.models import ExportArtifact, ModelRun
+from services.shared.db.models import AgentPackage, ExportArtifact, ModelRun
+from services.api.app.services.agent_contract import contract_sha256
 from services.shared.db.session import create_sqlite_engine, session_factory
 from services.worker.handlers.export import run_zip_export_job
 from tests.agent_package.test_verifier import create_package
@@ -93,7 +95,7 @@ async def test_export_api_creates_zip_job_and_serves_hash_verified_artifact(tmp_
 
 
 @pytest.mark.asyncio
-async def test_export_api_rejects_docker_until_m6_002(tmp_path: Path) -> None:
+async def test_export_api_accepts_cuda_docker_and_rejects_mlx_docker(tmp_path: Path) -> None:
     database_url, mib_home, package = await create_exportable_package(tmp_path)
     async with client_for(database_url, mib_home) as client:
         response = await call_api(
@@ -103,5 +105,34 @@ async def test_export_api_rejects_docker_until_m6_002(tmp_path: Path) -> None:
                 headers=auth_headers(),
             )
         )
-    assert response.status_code == 409
-    assert response.json()["error_code"] == "MILESTONE_LOCKED"
+    assert response.status_code == 202
+    assert response.json()["created_resource_type"] == "export"
+
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            model_run = session.get(ModelRun, package["model_run_id"])
+            stored = session.get(AgentPackage, package["id"])
+            assert model_run is not None and stored is not None
+            model_run.backend = "mlx"
+            model_run.method = "mlx_lora"
+            contract = yaml.safe_load(stored.contract_yaml)
+            contract["adapter"]["format"] = "mlx_lora_adapter"
+            stored.contract_yaml = yaml.safe_dump(contract, sort_keys=False)
+            stored.contract_sha256 = contract_sha256(stored.contract_yaml)
+            session.commit()
+    finally:
+        engine.dispose()
+
+    async with client_for(database_url, mib_home) as client:
+        rejected = await call_api(
+            client.post(
+                f"/projects/{package['project_id']}/export",
+                json={"agent_package_id": package["id"], "export_type": "docker"},
+                headers=auth_headers(),
+            )
+        )
+    assert rejected.status_code == 409
+    assert rejected.json()["error_code"] == "DOCKER_UNAVAILABLE"
+    assert rejected.json()["details"]["export_type"] == "docker"

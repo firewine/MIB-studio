@@ -4,13 +4,14 @@ import hashlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import yaml
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from services.api.app.core.errors import APIError
 from services.api.app.schemas.export import ExportParams, ExportRead
 from services.api.app.schemas.job import JobAcceptedResponse
-from services.shared.db.models import AgentPackage, ExportArtifact, Job, Project
+from services.shared.db.models import AgentPackage, ExportArtifact, Job, ModelRun, Project
 from services.shared.db.repositories.dataset_store import canonical_json, sha256_text
 from services.shared.db.repositories.export_store import ExportJobInput, ExportStore
 
@@ -39,8 +40,8 @@ class ExportService:
         package = self._package_or_404(payload.agent_package_id)
         if package.project_id != project_id:
             raise APIError("EXPORT_PROJECT_MISMATCH", "AgentPackage does not belong to the requested project.", status_code=409)
-        if payload.export_type != "zip":
-            raise APIError("MILESTONE_LOCKED", "Docker export is implemented in M6-002.", status_code=409, details={"export_type": payload.export_type})
+        if payload.export_type == "docker":
+            self._validate_docker_available(package)
 
         body_hash = sha256_text(canonical_json(payload.model_dump()))
         if idempotency_key:
@@ -125,15 +126,28 @@ class ExportService:
         )
 
     def _accepted_response(self, job: Job, *, idempotency_replayed: bool) -> JobAcceptedResponse:
+        artifact = self.store.artifact_for_job(job.id)
         return JobAcceptedResponse(
             job_id=job.id,
             status=job.status,  # type: ignore[arg-type]
             type=job.type,
             events_url=f"/jobs/{job.id}/events",
             created_resource_type="export",
-            created_resource_id=self.store.artifact_for_job(job.id).id if self.store.artifact_for_job(job.id) is not None else None,
+            created_resource_id=artifact.id if artifact is not None else None,
             idempotency_replayed=idempotency_replayed,
         )
+
+    def _validate_docker_available(self, package: AgentPackage) -> None:
+        model_run = self.session.get(ModelRun, package.model_run_id)
+        contract = yaml.safe_load(package.contract_yaml)
+        adapter_format = str(contract.get("adapter", {}).get("format"))
+        if model_run is None or model_run.backend != "cuda" or adapter_format != "lora_adapter":
+            raise APIError(
+                "DOCKER_UNAVAILABLE",
+                "Docker export is available only for CUDA lora_adapter packages in v0.",
+                status_code=409,
+                details={"export_type": "docker", "adapter_format": adapter_format, "backend": getattr(model_run, "backend", None)},
+            )
 
     def _project_or_404(self, project_id: str) -> Project:
         project = self.session.get(Project, project_id)

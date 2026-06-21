@@ -46,8 +46,11 @@ def create_runtime_root(tmp_path: Path) -> Path:
     return root
 
 
-def runtime_app(root: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
-    monkeypatch.setenv("MIB_RUNTIME_BEARER_TOKEN", "x" * 32)
+def runtime_app(root: Path, monkeypatch: pytest.MonkeyPatch, token: str | None = "x" * 32) -> Any:
+    if token is None:
+        monkeypatch.delenv("MIB_RUNTIME_BEARER_TOKEN", raising=False)
+    else:
+        monkeypatch.setenv("MIB_RUNTIME_BEARER_TOKEN", token)
     monkeypatch.setenv("MIB_RUNTIME_ALLOW_FAKE_BACKEND", "1")
     monkeypatch.setenv("MIB_MODEL_CACHE_DIR", str(root.parent / "cache"))
     monkeypatch.syspath_prepend(str(root / "runtime"))
@@ -131,3 +134,16 @@ async def test_exported_runtime_validates_model_cache_before_inference(tmp_path:
         assert unauthorized.status_code == 401
         response = await client.get("/healthz")
         assert response.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_exported_runtime_requires_valid_token_env_before_health(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    for token in [None, "short-token"]:
+        root = create_runtime_root(tmp_path / str(token))
+        app = runtime_app(root, monkeypatch, token=token)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app, raise_app_exceptions=False),
+            base_url="http://runtime.test",
+        ) as client:
+            response = await client.get("/healthz")
+            assert response.status_code == 500

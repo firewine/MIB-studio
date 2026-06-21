@@ -10,7 +10,7 @@ import yaml
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .security import authorize
+from .security import authorize, expected_token
 from .verifier import verify_router_output
 
 
@@ -44,6 +44,7 @@ class RunRequest(StrictModel):
 
 class RuntimeState:
     def __init__(self) -> None:
+        expected_token()
         self.contract = yaml.safe_load(CONTRACT_PATH.read_text(encoding="utf-8"))
         self.manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         self._validate_model_cache()

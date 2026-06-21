@@ -1,30 +1,25 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Harden M6 export provenance by verifying the current adapter artifact files against ModelRun.adapter_sha256 and ModelRun.artifact_manifest_sha256 before packaging zip or Docker exports. Prevent tampered or replaced adapter directories from being exported after AgentPackage creation. Do not create trained adapters, do not change training wrappers, do not weaken validation, and do not claim M6-RC GO without real trained adapter endpoint evidence.",
+  "goal": "Record current M1 smoke recertification evidence after the previously reported toolchain mismatch no longer reproduces. Scope is evidence and operational handoff only: document that `COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install` passes, capture generated reports, and preserve remaining M6 real-adapter NOT_GO status. Do not change product code, do not weaken checks, and do not claim M6-RC GO.",
   "phase": "done",
-  "gate": "mib-studio-export-adapter-lineage-verification",
+  "gate": "mib-studio-m1-smoke-recertification",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "c1ab4da",
+  "head": "f8256ad",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
     "artifacts/review/",
-    "artifacts/security/",
-    "services/worker/handlers/export.py",
-    "tests/export/"
+    "artifacts/security/"
   ],
   "blocked_path_prefixes": [
     "apps",
     "schemas",
-    "services/api",
-    "services/daemon",
-    "services/worker/handlers/train_cuda.py",
-    "services/worker/handlers/train_mlx.py",
-    "services/worker/runtime",
-    "services/worker/handlers/export_docker.py",
-    "packages/agent-runtime",
+    "services",
+    "packages",
+    "scripts",
+    "tests",
     "docs/foundation",
     "docs/specs",
     "docs/mockup",
@@ -33,82 +28,73 @@
     ".github"
   ],
   "blocked_scope": [
-    "Creating or committing model weights or trained adapter artifacts",
-    "Pretending a fixture adapter is trained",
-    "Weakening model cache validation, verifier validation, auth, or endpoint behavior",
-    "Changing training wrappers, runtime loaders, DB schema, or model catalog policy",
+    "Product code changes",
+    "Runtime, export, training, UI, schema, script, or test changes",
+    "Changing toolchain expectations or weakening bootstrap checks",
+    "Creating or committing model weights or adapter artifacts",
     "M6-RC GO/sign-off changes before real adapter endpoint evidence or release-policy decision"
   ],
-  "allowed_edit_paths_scope_note": "This gate may update export-time adapter lineage/hash validation and focused export tests only. Large model/cache/adapter artifacts must remain outside git.",
+  "allowed_edit_paths_scope_note": "This gate records verification state only. It may commit generated review/security reports from the smoke command and evidence docs.",
   "external_runtime_paths": [
-    "/tmp/mib-export-adapter-lineage"
+    "/tmp/corepack"
   ],
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
-    "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "docs/specs/IMPLEMENTATION_GUIDE.md",
-    "docs/specs/AGENT_CONTRACT_SPEC.md",
-    "services/worker/handlers/export.py",
-    "services/worker/runtime/llamafactory.py",
-    "services/worker/runtime/mlx_lm.py",
-    "tests/export/test_export_api.py",
-    "tests/export/test_export_manifest.py",
-    "artifacts/review/export_adapter_validation_evidence.md"
+    "scripts/bootstrap_dev.sh",
+    "artifacts/review/toolchain_report.json",
+    "artifacts/review/file_size_report.json",
+    "artifacts/security/pip_audit_cuda.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest <focused-export-lineage-tests>",
+    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Focused read of training adapter manifest/hash format",
-    "Tests proving adapter file tampering after package creation is rejected",
-    "Tests proving manifest hash mismatch is rejected",
-    "Tests proving valid lineage still exports",
-    "Explicit note that lineage/hash validation does not prove endpoint inference"
+    "m1-smoke command transcript summary",
+    "toolchain_report.json shows all strict checks true",
+    "file_size_report.json records only soft violations and no hard violations",
+    "pip_audit_cuda.json skip status is documented for skip-install environment",
+    "Explicit note that M6-RC remains NOT_GO for real adapter endpoint evidence"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_manifest.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_api.py tests/export/test_docker_export_security.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_exported_runtime_smoke.py tests/export/test_package_playground_export_output_parity.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
-        "git diff --check",
-        "git diff --cached --check"
+    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+    "git diff --check",
+    "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
-    "This gate improves export provenance integrity but cannot produce trained adapter endpoint evidence.",
-    "Do not commit adapter artifacts; tests must generate temporary minimal artifacts only.",
-    "Do not claim M6-RC GO from lineage/hash validation alone."
+    "The m1-smoke command allows pip-audit skip in a --skip-install environment and records that skip in artifacts/security/pip_audit_cuda.json.",
+    "file_size_report.json records soft LOC warnings, including services/worker/handlers/export.py, but no hard failures.",
+    "M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   ],
   "phase_notes": {
-    "plan": "Open scoped implementation contract for export adapter lineage verification.",
-    "audit": "Focused read completed for training manifest writers, ModelRun adapter hash fields, AgentPackage preconditions, and export fixtures. Training manifests hash adapter file rows relative to the run directory and store both adapter_sha256 and artifact_manifest_sha256 on ModelRun.",
-    "build": "Added export-time adapter lineage/hash verification and reordered export fixtures so adapter files and ModelRun hashes exist before AgentPackage creation.",
-        "check": "Focused export lineage/API/Docker/runtime/parity tests, strict model catalog verification, contract JSON validation, git diff --check, and git diff --cached --check passed for closeout.",
-    "done": "Evidence recorded in artifacts/review/export_adapter_lineage_evidence.md. Export lineage validation is verified, but M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
+    "plan": "Open scoped evidence contract for M1 smoke recertification.",
+    "audit": "Read bootstrap_dev.sh, toolchain report, pip-audit skip report, and file size report. The previous toolchain mismatch no longer reproduces.",
+    "build": "Record evidence and update WORKING.md without product code changes.",
+    "check": "Contract JSON validation, m1-smoke --skip-install, git diff --check, and git diff --cached --check passed. Smoke output confirms the previous toolchain mismatch no longer reproduces.",
+    "done": "Evidence recorded in artifacts/review/m1_smoke_recertification_evidence.md and docs/WORKING.md. M1 smoke is GO for the current environment; M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-export-adapter-lineage-verification",
-    "status": "MIB_STUDIO_EXPORT_ADAPTER_LINEAGE_DONE_NOT_GO",
+    "gate": "mib-studio-m1-smoke-recertification",
+    "status": "MIB_STUDIO_M1_SMOKE_RECERTIFICATION_DONE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Export-time adapter lineage/hash validation, focused tests, evidence, and operational handoff.",
-    "blocked_scope": "No fake trained-adapter claims, no model/adapter artifacts in git, no release GO changes.",
+    "approved_scope": "M1 smoke recertification evidence and operational handoff only.",
+    "blocked_scope": "No product code changes, no toolchain weakening, no model/adapter artifacts, no release GO changes.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped implementation contract for export adapter lineage verification.",
-    "audit": "Focused read completed for training manifest writers, ModelRun adapter hash fields, AgentPackage preconditions, and export fixtures. Training manifests hash adapter file rows relative to the run directory and store both adapter_sha256 and artifact_manifest_sha256 on ModelRun.",
-    "build": "Added export-time adapter lineage/hash verification and reordered export fixtures so adapter files and ModelRun hashes exist before AgentPackage creation.",
-        "check": "Focused export lineage/API/Docker/runtime/parity tests, strict model catalog verification, contract JSON validation, git diff --check, and git diff --cached --check passed for closeout.",
-    "done": "Evidence recorded in artifacts/review/export_adapter_lineage_evidence.md. Export lineage validation is verified, but M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
+    "plan": "Open scoped evidence contract for M1 smoke recertification.",
+    "audit": "Read bootstrap_dev.sh, toolchain report, pip-audit skip report, and file size report. The previous toolchain mismatch no longer reproduces.",
+    "build": "Record evidence and update WORKING.md without product code changes.",
+    "check": "Contract JSON validation, m1-smoke --skip-install, git diff --check, and git diff --cached --check passed. Smoke output confirms the previous toolchain mismatch no longer reproduces.",
+    "done": "Evidence recorded in artifacts/review/m1_smoke_recertification_evidence.md and docs/WORKING.md. M1 smoke is GO for the current environment; M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   }
 }

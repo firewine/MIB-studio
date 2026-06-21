@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXPORT_ADAPTER_LINEAGE_VALIDATION
-milestone: M6_RC_Blocker_Remediation
-phase_status: adapter_lineage_validation_verified
+phase_id: M1_SMOKE_RECERTIFICATION
+milestone: M1_Environment_Recertification
+phase_status: m1_smoke_current_environment_verified
 active_slice: none
-gate_id: mib-studio-export-adapter-lineage-verification
+gate_id: mib-studio-m1-smoke-recertification
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,17 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-export-adapter-lineage-verification
+  gate: mib-studio-m1-smoke-recertification
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: verify adapter files against ModelRun artifact lineage before export packaging
+  objective: rerun m1-smoke after previous toolchain mismatch hook failure and record current evidence
   evidence:
+    m1_smoke_recertification: artifacts/review/m1_smoke_recertification_evidence.md
+    toolchain_report: artifacts/review/toolchain_report.json
+    file_size_report: artifacts/review/file_size_report.json
+    pip_audit_cuda: artifacts/security/pip_audit_cuda.json
+  related_m6_evidence:
     export_adapter_lineage: artifacts/review/export_adapter_lineage_evidence.md
     export_adapter_validation: artifacts/review/export_adapter_validation_evidence.md
     docker_real_backend_deps: artifacts/review/docker_real_backend_deps_evidence.md
@@ -67,11 +72,12 @@ last_completed_work:
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - export.py now requires ModelRun.adapter_sha256 and ModelRun.artifact_manifest_sha256 before packaging
-    - export.py verifies the current adapter manifest hash against ModelRun.artifact_manifest_sha256
-    - export.py recomputes adapter file rows and verifies them against ModelRun.adapter_sha256 and manifest.json
-    - export fixture now creates adapter files and manifest before AgentPackage creation
-    - adapter file hash mismatch and manifest hash mismatch tests pass
+    - m1-smoke --skip-install passes in the current .venv environment
+    - previous toolchain version mismatch no longer reproduces
+    - toolchain_report strict checks are all true
+    - file_size_report records only soft LOC warnings and no hard failures
+    - pip_audit_cuda records the expected skip for the --skip-install environment
+    - no product code changed in this recertification gate
     - no real trained CUDA lora_adapter artifact is still available in this environment
     - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
 
@@ -112,29 +118,17 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: adapter_lineage_export_validation_verified
+status: m1_smoke_current_environment_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_manifest.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_api.py tests/export/test_docker_export_security.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_exported_runtime_smoke.py tests/export/test_package_playground_export_output_parity.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_manifest.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_api.py tests/export/test_docker_export_security.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_exported_runtime_smoke.py tests/export/test_package_playground_export_output_parity.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_manifest.py tests/export/test_exported_runtime_smoke.py -q
-  - docker build temp context with Dockerfile.cuda and updated requirements-runtime.txt
-  - docker run temp image import probe for torch/transformers/peft/safetensors/accelerate/bitsandbytes
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json
+  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
   - git diff --check
   - git diff --cached --check
 warnings:
   - M6-RC decision remains NOT_GO
   - no real trained CUDA lora_adapter artifact was found
-  - adapter lineage validation detects file replacement but does not prove endpoint inference quality
-  - structural adapter validation does not prove training provenance or endpoint inference
-  - dependency packaging is verified for new exports, but no-fake-backend endpoint transcripts still require a real adapter
-  - bitsandbytes import emits a CPU gemm kernels warning in the temp Docker image
+  - m1-smoke --skip-install records pip-audit cuda as skipped; run without --skip-install for full network-backed audit
+  - file_size_report records soft LOC warnings including services/worker/handlers/export.py, with no hard failures
   - previous endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
 failed: []
 ```
@@ -145,6 +139,7 @@ failed: []
 recorded_go:
   M0_Product_Lock: true
   M1_Final_Smoke_Verified: true
+  M1_Smoke_Current_Environment: true
   M2_000_to_M2_004_Verified: true
   M3_000_to_M3_005_Verified: true
   M4_001_to_M4_003_Verified: true
@@ -166,9 +161,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 active_gate:
-  id: mib-studio-export-adapter-lineage-verification
+  id: mib-studio-m1-smoke-recertification
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/export_adapter_lineage_evidence.md
+  review_bundle: artifacts/review/m1_smoke_recertification_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -227,6 +222,11 @@ adapter.safetensors and adapter_config format mismatches are rejected before
 packaging. Export adapter lineage validation is recorded in
 artifacts/review/export_adapter_lineage_evidence.md: adapter files are checked
 against ModelRun.adapter_sha256 and artifact_manifest_sha256 before packaging.
+M1 smoke recertification is recorded in
+artifacts/review/m1_smoke_recertification_evidence.md. The command
+COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python
+./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install passes in the current
+.venv environment, and the previous toolchain mismatch no longer reproduces.
 M6-RC remains NOT_GO until real trained adapter inference evidence exists or the
 release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
 for Python.

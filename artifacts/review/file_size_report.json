@@ -45,7 +45,7 @@
       "soft": 240
     }
   },
-  "files_checked": 105,
+  "files_checked": 111,
   "violations": [
     {
       "hard_limit": 400,

@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M3-005 Dry-run + OOM isolation.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m3-005-dry-run-oom-isolation",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "51e6ae3",
+  "head": "5c0fd10",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -76,7 +76,8 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py tests/training/test_checkpoint_resume.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "git diff --check"
+    "git diff --check",
+    "git diff --cached --check"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
@@ -85,7 +86,8 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py tests/training/test_checkpoint_resume.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "git diff --check"
+    "git diff --check",
+    "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
@@ -95,26 +97,26 @@
   "phase_notes": {
     "plan": "Implement M3-005 only: dry_run mode for CUDA/MLX wrappers, bounded short-probe report fields, no adapter manifest on dry-run, CUDA OOM mapping to error_class=CUDA_OOM with sanitized JobEvent(error), and worker-isolation evidence via DB/API-monitor-safe tests. Keep API, DB schema, benchmark, export, FE mockup, and docs/spec edits out of scope.",
     "audit": "Read WORKING, M3 handoff, IMPLEMENTATION_GUIDE M3-005, HARDWARE_DOCTOR dry-run section, ARCHITECTURE wrapper obligations, existing CUDA/MLX wrappers, TrainingStore, and M3-004 checkpoint resume tests.",
-    "build": "Implemented dry-run report runtime helper, TrainingStore dry-run terminal helper, CUDA/MLX dry-run branches, CUDA OOM classifier, and focused tests.",
+    "build": "Implemented dry-run report runtime helper, bounded 10-step CUDA/MLX probe config, probe adapter cleanup, TrainingStore dry-run terminal helper, CUDA/MLX dry-run branches, CUDA OOM classifier, and focused tests.",
     "check": "Passed task JSON, py_compile, focused dry-run/OOM pytest, wrapper/checkpoint regressions, import boundary, file-size hard-limit, and diff whitespace checks.",
-    "done": "Pending: commit implementation, update WORKING closeout, and push after closeout commit."
+    "done": "Implementation committed as 5c0fd10; WORKING closeout prepared for push with this contract."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m3-005-dry-run-oom-isolation",
-    "status": "MIB_STUDIO_M3_005_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M3_005_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M3-005 Dry-run + OOM isolation within listed files.",
     "blocked_scope": "No DB schema/model/migration, API route/schema/service, dataset retry/reapproval, benchmark, package, export, playground, FE mockup, or docs/spec/foundation/mockup/handoff/review edits.",
     "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
     "plan": "Implement M3-005 Dry-run + OOM isolation.",
     "audit": "Required references have been read.",
-    "build": "Implementation complete.",
+    "build": "Implementation complete in 5c0fd10.",
     "check": "All required verification commands passed.",
-    "done": "Pending implementation commit and closeout."
+    "done": "M3-005 verified and ready for closeout commit and push."
   }
 }

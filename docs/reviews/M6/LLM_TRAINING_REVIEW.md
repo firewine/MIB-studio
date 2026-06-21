@@ -1,21 +1,40 @@
 # M6 LLM/Training Review
 
-Decision: GO
+Decision: NO_GO
 Reviewer: Codex LLM/Training Agent
 Date: 2026-06-22
-Scope: Exported runtime, adapter loader invocation, model cache materialization, and output parity.
+Scope: Exported runtime adapter loading, real adapter availability, model cache materialization, and output parity.
 
 ## Blocking Issues
 
-- None for M6 export runtime scope.
+- P1: No real trained CUDA `lora_adapter` artifact is available in the current
+  repo or `/tmp` evidence roots.
+- P1: Existing endpoint success evidence used fixture adapter files with
+  `MIB_RUNTIME_ALLOW_FAKE_BACKEND=1`; this is endpoint-path evidence only and
+  is not M6-RC real adapter inference evidence.
+
+## Evidence
+
+- Runtime loader invocation guard is verified in
+  `artifacts/review/exported_adapter_load_guard_evidence.md`.
+- Adapter structural validation is verified in
+  `artifacts/review/export_adapter_validation_evidence.md`.
+- Adapter lineage validation is verified in
+  `artifacts/review/export_adapter_lineage_evidence.md`.
+- Current real adapter search/blocker evidence is recorded in
+  `artifacts/review/real_adapter_inference_evidence.md`.
 
 ## Non-Blocking Issues
 
-- Real model quality or benchmark claims are not made in this sign-off. This review only covers runtime contract and deterministic test evidence.
+- No benchmark quality or marketing claim is made from fixture adapter endpoint
+  evidence.
 
 ## Missing Tests
 
-- None for scoped M6 export. `tests/export` covers exported runtime native/OpenAI-compatible endpoints, bearer auth, strict model cache checks, and package/playground/export parity.
+- Docker endpoint transcript for `/agents/{agent_id}/run` using a real trained
+  adapter and no `MIB_RUNTIME_ALLOW_FAKE_BACKEND`.
+- Docker endpoint transcript for `/v1/chat/completions` using the same real
+  adapter path and no `MIB_RUNTIME_ALLOW_FAKE_BACKEND`.
 
 ## Spec Updates Required
 
@@ -23,4 +42,5 @@ Scope: Exported runtime, adapter loader invocation, model cache materialization,
 
 ## Assumptions
 
-- Base model weights remain external and are supplied through `MIB_MODEL_CACHE_DIR`.
+- Base model weights remain external and are supplied through
+  `MIB_MODEL_CACHE_DIR`.

@@ -1,28 +1,37 @@
 # M6 FE Review
 
-Decision: NO_GO
+Decision: GO
 Reviewer: Codex FE Agent
 Date: 2026-06-22
-Scope: M6 export screens and v0 RC UI readiness.
+Scope: M6 export-adjacent desktop readiness and v0 RC UI evidence.
 
 ## Blocking Issues
 
-- P1: FE v6 mockup implementation is not yet applied to `apps/desktop`. The active thread objective explicitly requires using the v6 mockup in `docs/mockup/`, but current M6 evidence contains backend/export tests only and no rendered FE route evidence.
-- P1: RC-required FE evidence is missing: screen-by-screen state matrix, API/SSE mapping for export flows, Playwright happy path, and accessibility/keyboard check.
+- None for the current FE evidence scope.
+
+## Evidence
+
+- FE v6 route-contract mockup implementation is committed in `d7a68bf` and
+  closeout evidence is committed in `dd48a42`.
+- Evidence bundle: `artifacts/review/fe_v6_evidence.md`.
+- Canonical mockup: `docs/mockup/mib_fe_mockup_v6_routes_contract.html`.
+- The evidence records screen state matrix, API/SSE mapping, browser build/test,
+  e2e route-contract flow, accessible button names, keyboard focus, active
+  `aria-current`, and live status region checks.
 
 ## Non-Blocking Issues
 
-- `docs/mockup/README.md` still names `260620 FE mockup.html` as canonical while the active user objective requires the v6 mockup artifact. Resolve during the FE implementation gate rather than in this M6-RC sign-off contract.
+- FE evidence does not close real trained adapter endpoint evidence. That
+  blocker belongs to M6-RC runtime/training evidence, not FE.
 
 ## Missing Tests
 
-- Playwright export flow covering zip and docker states.
-- Keyboard and accessibility check for the ExportPanel and related workflow.
+- None for the FE v6 evidence currently required by the active objective.
 
 ## Spec Updates Required
 
-- None in this gate.
+- None.
 
 ## Assumptions
 
-- FE v6 implementation is the next product-completion gate after M6-RC evidence documentation.
+- Export runtime endpoint evidence is verified separately from desktop FE state.

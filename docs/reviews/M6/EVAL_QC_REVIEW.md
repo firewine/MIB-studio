@@ -7,15 +7,26 @@ Scope: M6 acceptance trace, export parity, manifest/hash validation, and release
 
 ## Blocking Issues
 
-- None for export acceptance trace.
+- None for export parity, manifest/hash validation, or benchmark-claim hygiene.
+
+## Evidence
+
+- Package/playground/export output parity tests remain part of the required
+  export runtime regression set.
+- Adapter structural and lineage validation evidence is recorded in
+  `artifacts/review/export_adapter_validation_evidence.md` and
+  `artifacts/review/export_adapter_lineage_evidence.md`.
+- Adapter-load guard evidence is recorded in
+  `artifacts/review/exported_adapter_load_guard_evidence.md`.
 
 ## Non-Blocking Issues
 
-- v0 RC remains NOT_GO because FE and real Docker runtime smoke evidence are incomplete, not because of benchmark or export parity failures.
+- v0 RC remains NOT_GO because real trained adapter no-fake endpoint evidence is
+  incomplete, not because of benchmark, manifest, or export parity failures.
 
 ## Missing Tests
 
-- Real Docker image `/agents/{agent_id}/run` and `/v1/chat/completions` transcript is missing for RC-level evidence.
+- None for this discipline's current evidence scope.
 
 ## Spec Updates Required
 

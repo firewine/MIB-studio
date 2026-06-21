@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXPORTED_ADAPTER_LOAD_GUARD
+phase_id: M6_RC_EVIDENCE_REFRESH
 milestone: M6_RC_Blocker_Remediation
-phase_status: adapter_load_guard_verified
+phase_status: m6_rc_evidence_current_not_go
 active_slice: none
-gate_id: mib-studio-exported-adapter-load-guard
+gate_id: mib-studio-m6-rc-evidence-refresh
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,13 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-exported-adapter-load-guard
+  gate: mib-studio-m6-rc-evidence-refresh
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: close the M6 exported adapter-load acceptance test gap
+  objective: refresh M6 RC signoff against current evidence and add machine-readable evidence verifier
   evidence:
+    m6_rc_evidence_verification: artifacts/review/m6_rc_evidence_verification.json
     exported_adapter_load_guard: artifacts/review/exported_adapter_load_guard_evidence.md
     m1_smoke_recertification: artifacts/review/m1_smoke_recertification_evidence.md
     toolchain_report: artifacts/review/toolchain_report.json
@@ -73,11 +74,11 @@ last_completed_work:
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - tests/export/test_exported_adapter_load.py now guards M6 adapter-load acceptance
-    - fake backend behavior requires explicit MIB_RUNTIME_ALLOW_FAKE_BACKEND opt-in
-    - native and OpenAI exported runtime routes are tested to invoke the loaded adapter object
-    - Transformers and MLX metadata-only adapter objects are tested to fail without loaded backend objects
-    - exported runtime smoke and package/playground/export parity tests still pass
+    - scripts/verify_m6_rc_evidence.py records current M6 RC decision as NOT_GO
+    - m6_rc_evidence_verification.json has verification_ok true and unexpected_blockers []
+    - FE v6 review/signoff is refreshed to GO using artifacts/review/fe_v6_evidence.md
+    - current acceptable NOT_GO blocker is real_trained_adapter_no_fake_endpoint only
+    - LLM/Training, Security, DevEx, CTO remain NO_GO/NOT_GO for missing real adapter no-fake endpoint evidence
     - no real trained CUDA lora_adapter artifact is still available in this environment
     - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
 
@@ -118,11 +119,11 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: adapter_load_guard_verified
+status: m6_rc_evidence_current_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_exported_adapter_load.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_exported_runtime_smoke.py tests/export/test_package_playground_export_output_parity.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json
+  - python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json
   - git diff --check
   - git diff --cached --check
 warnings:
@@ -158,6 +159,7 @@ recorded_go:
   Export_Adapter_Structural_Validation: true
   Export_Adapter_Lineage_Validation: true
   Exported_Runtime_Adapter_Load_Guard: true
+  M6_RC_Evidence_Current_Not_Go: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -165,9 +167,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 active_gate:
-  id: mib-studio-exported-adapter-load-guard
+  id: mib-studio-m6-rc-evidence-refresh
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/exported_adapter_load_guard_evidence.md
+  review_bundle: artifacts/review/m6_rc_evidence_verification.json
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -237,6 +239,12 @@ fail if fake backend is implicit, if native/OpenAI routes bypass the adapter
 object, or if Transformers/MLX metadata-only adapters infer without loaded
 backend objects. This is test coverage only, not real trained adapter endpoint
 evidence.
+M6 RC evidence verification is recorded in
+artifacts/review/m6_rc_evidence_verification.json. The current verifier decision
+is NOT_GO, verification_ok is true, unexpected_blockers is empty, and the only
+acceptable blocker is real_trained_adapter_no_fake_endpoint. FE v6 review is now
+GO; LLM/Training, Security, DevEx, and CTO remain blocked by missing real
+adapter no-fake endpoint evidence.
 M6-RC remains NOT_GO until real trained adapter inference evidence exists or the
 release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
 for Python.

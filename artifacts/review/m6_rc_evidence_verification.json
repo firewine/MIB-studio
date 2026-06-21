@@ -1,0 +1,105 @@
+{
+  "acceptable_not_go_blockers": [
+    "real_trained_adapter_no_fake_endpoint"
+  ],
+  "blockers": [
+    "real_trained_adapter_no_fake_endpoint"
+  ],
+  "checks": [
+    {
+      "id": "fe_v6_mockup",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/fe_v6_evidence.md",
+      "present": true,
+      "rc_required": true
+    },
+    {
+      "id": "docker_real_backend_deps",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/docker_real_backend_deps_evidence.md",
+      "present": true,
+      "rc_required": true
+    },
+    {
+      "id": "adapter_structural_validation",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/export_adapter_validation_evidence.md",
+      "present": true,
+      "rc_required": true
+    },
+    {
+      "id": "adapter_lineage_validation",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/export_adapter_lineage_evidence.md",
+      "present": true,
+      "rc_required": true
+    },
+    {
+      "id": "adapter_load_guard",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/exported_adapter_load_guard_evidence.md",
+      "present": true,
+      "rc_required": true
+    },
+    {
+      "id": "phi_fixture_endpoint_path",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/phi_strict_cache_runtime_evidence.md",
+      "present": true,
+      "rc_required": false
+    },
+    {
+      "id": "real_adapter_blocker_record",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/real_adapter_inference_evidence.md",
+      "present": true,
+      "rc_required": false
+    },
+    {
+      "fake_backend_present": false,
+      "id": "real_trained_adapter_no_fake_endpoint",
+      "missing_markers": [
+        "Decision: `GO_REAL_TRAINED_ADAPTER_ENDPOINT`",
+        "MIB_RUNTIME_ALLOW_FAKE_BACKEND: absent",
+        "/agents/{agent_id}/run: 200",
+        "/v1/chat/completions: 200",
+        "real_trained_adapter: true"
+      ],
+      "ok": false,
+      "path": "artifacts/review/real_trained_adapter_endpoint_evidence.md",
+      "present": false,
+      "rc_required": true
+    },
+    {
+      "id": "m6_review_docs_current",
+      "ok": true,
+      "path": "docs/reviews/M6/",
+      "present": true,
+      "rc_required": true,
+      "requirements": {
+        "cto_decision_not_go": true,
+        "cto_real_adapter_blocker": true,
+        "fe_review_go": true,
+        "signoff_decision_not_go": true,
+        "signoff_fe_go": true
+      }
+    }
+  ],
+  "decision": "NOT_GO",
+  "decision_matches_expected": true,
+  "expected_decision": "NOT_GO",
+  "notes": [
+    "Fixture endpoint evidence that uses MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 is not RC GO evidence.",
+    "M6-RC GO requires real trained adapter endpoint evidence without MIB_RUNTIME_ALLOW_FAKE_BACKEND."
+  ],
+  "schema_version": "mib_m6_rc_evidence_verification.v1",
+  "unexpected_blockers": [],
+  "verification_ok": true
+}

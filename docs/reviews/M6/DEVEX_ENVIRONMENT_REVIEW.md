@@ -3,20 +3,33 @@
 Decision: NO_GO
 Reviewer: Codex DevEx/Environment Agent
 Date: 2026-06-22
-Scope: `.venv`, bootstrap verification, Docker boundary, and reproducibility evidence.
+Scope: `.venv`, bootstrap verification, Docker boundary, strict model cache, and reproducibility evidence.
 
 ## Blocking Issues
 
-- P1: RC-level Docker image run evidence is missing. The deterministic Docker context tar path is verified, but a digest-pinned base image must be provided through `MIB_DOCKER_BASE_IMAGE_WITH_DIGEST` and the real image smoke must be run before v0 RC GO.
+- P1: The current host has no visible CUDA device (`nvidia-smi` unavailable,
+  `torch.cuda.is_available()` false), and no real trained CUDA adapter artifact
+  is present for the required no-fake Docker endpoint transcript.
+
+## Evidence
+
+- `.venv` M1 smoke recertification is recorded in
+  `artifacts/review/m1_smoke_recertification_evidence.md`.
+- Strict Phi model cache materialization is recorded in
+  `artifacts/review/phi_strict_cache_runtime_evidence.md`.
+- Real Docker build/save scanner remediation is recorded in
+  `artifacts/review/docker_runtime_remediation_evidence.md`.
+- Runtime dependency packaging is recorded in
+  `artifacts/review/docker_real_backend_deps_evidence.md`.
 
 ## Non-Blocking Issues
 
-- Local scaffold verify-only and `.venv`-based export tests are available as reproducibility evidence.
+- Docker remains export-only and is not required for M1-M5 development setup.
 
 ## Missing Tests
 
-- Real Docker build/save/run command transcript using a digest-pinned base image.
-- Verification that the built container starts without network access and validates the mounted model cache before serving.
+- Reproducible no-fake Docker run transcript with a real trained CUDA
+  `lora_adapter` and read-only strict model-cache mount.
 
 ## Spec Updates Required
 
@@ -24,4 +37,6 @@ Scope: `.venv`, bootstrap verification, Docker boundary, and reproducibility evi
 
 ## Assumptions
 
-- Docker is export-only and remains unnecessary for zip export.
+- Real adapter training or provision will happen in an environment with the
+  required CUDA hardware, or release policy will explicitly accept fixture
+  adapter endpoint evidence.

@@ -3,22 +3,38 @@
 Decision: NO_GO
 Reviewer: Codex Security Agent
 Date: 2026-06-22
-Scope: Export artifact secrets, bearer token behavior, SBOM/CVE evidence, and Docker runtime security.
+Scope: Export artifact secrets, bearer token behavior, SBOM/CVE evidence, Docker runtime security, and no-fake endpoint evidence.
 
 ## Blocking Issues
 
-- P1: RC-level real Docker image smoke evidence is missing. M6-002 writes deterministic Docker context tar plus SBOM/CVE JSON and supports real build/save behind environment variables, but no saved image run transcript proves read-only model-cache mount and runtime endpoints inside a container.
+- P1: RC-level no-fake Docker endpoint transcript with a real trained adapter is
+  missing. Fixture adapter evidence with `MIB_RUNTIME_ALLOW_FAKE_BACKEND=1` does
+  not prove the production runtime path.
+
+## Evidence
+
+- Export secret scan self-test passes in M1 smoke evidence.
+- Docker image tar scanner remediation is recorded in
+  `artifacts/review/docker_runtime_remediation_evidence.md`.
+- Docker real backend dependency packaging and temp image import probe are
+  recorded in `artifacts/review/docker_real_backend_deps_evidence.md`.
+- Runtime startup validates `MIB_RUNTIME_BEARER_TOKEN` before health succeeds.
+- Phi fixture endpoint evidence records read-only model-cache mount behavior,
+  but explicitly uses `MIB_RUNTIME_ALLOW_FAKE_BACKEND=1`.
 
 ## Non-Blocking Issues
 
-- Export secret scan self-test passes, and Docker context artifact tests validate secret scan plus SBOM/CVE evidence wiring.
-- Runtime startup now validates `MIB_RUNTIME_BEARER_TOKEN` before health succeeds.
+- Existing CUDA pip-audit exceptions remain governed by
+  `artifacts/security/pip_audit_cuda_exceptions.json`.
 
 ## Missing Tests
 
-- Container run transcript for `/agents/{agent_id}/run`.
-- Container run transcript for `/v1/chat/completions`.
-- Container run evidence showing read-only `MIB_MODEL_CACHE_DIR` mount.
+- Container run transcript for `/agents/{agent_id}/run` without
+  `MIB_RUNTIME_ALLOW_FAKE_BACKEND`.
+- Container run transcript for `/v1/chat/completions` without
+  `MIB_RUNTIME_ALLOW_FAKE_BACKEND`.
+- Container run evidence showing the mounted model cache is read-only for the
+  real adapter runtime path.
 
 ## Spec Updates Required
 
@@ -26,4 +42,5 @@ Scope: Export artifact secrets, bearer token behavior, SBOM/CVE evidence, and Do
 
 ## Assumptions
 
-- No runtime, fallback, local daemon, or teacher API tokens are baked into exported artifacts.
+- No runtime, fallback, Local Daemon, or teacher API tokens are baked into
+  exported artifacts.

@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M4-001 Eval set freeze hardening for benchmark gold sets.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m4-001-eval-set-freeze",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "dc89bc3",
+  "head": "e51f197",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -75,7 +75,8 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/eval/test_eval_set_freeze.py -q",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "git diff --check"
+    "git diff --check",
+    "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
@@ -88,24 +89,24 @@
     "audit": "Read WORKING, M4 handoff, IMPLEMENTATION_GUIDE M4-001/M2-000/DTO sections, EVAL_SPEC 17.1-17.2, ARCHITECTURE EvalSet table, existing eval service/store/schema/tests, and teacher synthetic helpers.",
     "build": "Extended EvalSet pre-teacher source guard to all purposes and added tests for benchmark_gold 200-row freeze plus teacher_synthetic contamination rejection.",
     "check": "Passed task JSON, py_compile, focused eval freeze pytest, import boundary, file-size hard-limit, and diff whitespace checks.",
-    "done": "Pending implementation commit, WORKING closeout, and push."
+    "done": "Implementation committed as e51f197; WORKING closeout prepared for push with this contract."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m4-001-eval-set-freeze",
-    "status": "MIB_STUDIO_M4_001_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M4_001_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M4-001 Eval set freeze hardening within listed files.",
     "blocked_scope": "No DB schema/model/migration, API route/DTO, worker runner/report, training adapter, FE, package, or docs spec edits.",
     "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
     "plan": "Harden benchmark EvalSet freeze.",
     "audit": "Required references have been read.",
-    "build": "Implementation complete.",
-    "check": "All required verification commands passed except final cached diff check.",
-    "done": "Pending."
+    "build": "Implementation complete in e51f197.",
+    "check": "All required verification commands passed.",
+    "done": "M4-001 verified and ready for closeout commit and push."
   }
 }

@@ -30,11 +30,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M1_005_DATASET_BUILDER
+phase_id: M1_006_HARDWARE_DOCTOR
 milestone: M1_Core
-phase_status: m1_005_complete
-active_slice: dataset_builder_user_examples_only
-gate_id: mib-studio-m1-005-dataset-builder
+phase_status: m1_006_verified_ready_for_commit_push
+active_slice: hardware_doctor_api_only
+gate_id: mib-studio-m1-006-hardware-doctor
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment: python_venv
 venv_path: .venv
@@ -45,21 +45,20 @@ venv_gitignored: true
 
 ```yaml
 mode: implement
-status: m1_005_complete
-objective: implement M1-005 Dataset Builder API
+status: m1_006_verified_ready_for_commit_push
+objective: implement M1-006 Hardware Doctor API
 source_gate_packet: user_goal_final_program_development_docs_based_v6_fe
 review_tier: focused
 
 allowed_edit_paths:
   - docs/WORKING.md
   - .codex/tasks/current.json
-  - services/api/app/core/config.py
   - services/api/app/main.py
-  - services/api/app/routes/datasets.py
+  - services/api/app/routes/hardware_doctor.py
   - services/api/app/schemas/
-  - services/api/app/services/dataset_service.py
-  - services/shared/db/repositories/
-  - tests/dataset/test_dataset_builder.py
+  - services/api/app/services/hardware_service.py
+  - services/api/app/services/hardware_probe.py
+  - tests/hardware/
   - artifacts/review/
   - artifacts/security/
 blocked_edit_paths:
@@ -79,19 +78,16 @@ blocked_edit_paths:
 
 changed:
   - .codex/tasks/current.json
-  - docs/WORKING.md
   - artifacts/review/file_size_report.json
-  - services/api/app/core/config.py
+  - docs/WORKING.md
   - services/api/app/main.py
-  - services/api/app/routes/datasets.py
-  - services/api/app/schemas/dataset.py
-  - services/api/app/schemas/router_validation.py
-  - services/api/app/services/dataset_service.py
-  - services/shared/db/repositories/__init__.py
-  - services/shared/db/repositories/dataset_store.py
-  - tests/dataset/test_dataset_builder.py
+  - services/api/app/routes/hardware_doctor.py
+  - services/api/app/schemas/hardware.py
+  - services/api/app/services/hardware_probe.py
+  - services/api/app/services/hardware_service.py
+  - tests/hardware/test_hardware_doctor.py
 local_uncommitted_context:
-  note: M1-005 Dataset Builder API is verified and ready for closeout commit/push
+  note: M1-006 Hardware Doctor API is verified and ready for explicit closeout commit/push
   do_not_revert_without_user_request: true
 
 result_so_far:
@@ -115,26 +111,32 @@ result_so_far:
   - M1-005 Dataset Builder API is implemented and verified.
   - /projects/{id}/datasets builds router.v1 dataset JSONL under MIB_HOME, persists Dataset/Example rows, and exposes list/read/patch flows.
   - Dataset approval requires at least 20 approved examples and freezes later example edits.
+  - M1-006 is now open only for Hardware Doctor API work.
+  - Training wrappers, worker runtime, FE screens, DB schema/model/migration edits, and M1-007+ endpoints remain blocked.
+  - M1-006 Hardware Doctor API is implemented and verified.
+  - /hardware-doctor/scan creates a system-scope hardware_scan Job, persists HardwareProfile, records current JobResource, and supports Idempotency-Key replay/conflict behavior.
+  - /hardware-doctor/result returns the latest HardwareProfile or HARDWARE_PROFILE_NOT_FOUND for empty state.
+  - Local probe gate logic covers G0/G1/G2 for CPU-only, NVIDIA CUDA, Apple MLX, low VRAM/unified RAM, missing runtime, and unsupported vendors.
 ```
 
 ## 3. Verification State
 
 ```yaml
-status: m1_005_complete
+status: m1_006_passed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
   - test -d .venv
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c "import fastapi, sqlalchemy, pydantic, httpx, pytest; print('m1-dataset-deps-ok')"
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile services/api/app/core/config.py services/api/app/main.py services/api/app/schemas/dataset.py services/api/app/schemas/router_validation.py services/api/app/services/dataset_service.py services/api/app/routes/datasets.py services/shared/db/repositories/dataset_store.py tests/dataset/test_dataset_builder.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/dataset/test_dataset_builder.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/api/test_auth_bootstrap.py tests/db tests/api/test_projects.py tests/api/test_presets.py tests/dataset/test_dataset_builder.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c "import fastapi, sqlalchemy, pydantic, httpx, pytest; print('m1-hardware-deps-ok')"
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/schemas/hardware.py services/api/app/services/hardware_probe.py services/api/app/services/hardware_service.py services/api/app/routes/hardware_doctor.py tests/hardware/test_hardware_doctor.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/hardware -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/api/test_auth_bootstrap.py tests/db tests/api/test_projects.py tests/api/test_presets.py tests/dataset/test_dataset_builder.py tests/hardware -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/export_openapi.py
   - PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --verify-only --skip-install
   - git diff --check
 failed: []
 not_run: []
 required_before_done:
-  - explicit git stage, commit, and push for M1-005
+  - explicit git stage, commit, and push for M1-006
 ```
 
 ## 4. Gate State
@@ -145,17 +147,15 @@ recorded_go:
   M1_Authorized: true
 
 active_gate:
-  id: mib-studio-m1-005-dataset-builder
-  cto_decision: m1_005_complete
-  review_bundle:
-    - tests/dataset/test_dataset_builder.py
-    - artifacts/review/file_size_report.json
+  id: mib-studio-m1-006-hardware-doctor
+  cto_decision: m1_006_authorized_by_m1_handoff
+  review_bundle: none
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: scoped M1-006 Hardware Doctor task contract
+  next_required_check: explicit M1-006 stage, commit, and push
 ```
 
 ## 5. Blockers And Deferred Work
@@ -164,9 +164,9 @@ known_project_state:
 operator_blockers: []
 
 blocked_until_later_gate:
-  - M1-006+ endpoint implementation before a scoped M1-006 contract exists
+  - M1-007+ endpoint implementation before M1-006 is complete
   - frontend screen implementation beyond bootstrap API helpers
-  - worker/training/eval/export/teacher synthetic runtime implementation
+  - worker/training wrapper/eval/export/teacher synthetic runtime implementation
   - milestone review bundles
   - CTO decision artifacts
 ```
@@ -175,9 +175,10 @@ blocked_until_later_gate:
 
 ```yaml
 immediate:
-  - stage explicit M1-005 files
-  - commit and push M1-005
-  - create a scoped M1-006 Hardware Doctor task contract before editing hardware files
+  - stage explicit M1-006 files
+  - commit feat: implement m1 hardware doctor
+  - push main to origin
+  - after push, prepare next scoped task contract before starting M1-007
 
 do_not_start_without:
   - explicit user task or approved gate packet
@@ -193,9 +194,8 @@ do_not_start_without:
 Read docs/CONTEXT.md and docs/WORKING.md. Day-0 Bootstrap readiness, M1-001 API
 bootstrap, M1-002 DB migration + seed, and M1-003 Project API have been
 committed and pushed. M1-004 Preset API was committed and pushed at d896b7f.
-M1-005 Dataset Builder API is implemented and verified; finish the closeout
-commit/push if it has not happened yet. Then create a scoped M1-006 Hardware
-Doctor task contract before editing hardware files. Do not start FE screens,
-worker, training, eval, export, or teacher synthetic runtime work before the
-proper gate. Use .venv for Python work.
+M1-005 Dataset Builder API was committed and pushed at 1c45957. M1-006 Hardware
+Doctor API is implemented and verified, with explicit closeout commit/push pending.
+Do not start M1-007 FE screens, worker, training wrapper, eval, export, or teacher
+synthetic runtime work before the proper gate. Use .venv for Python work.
 ```

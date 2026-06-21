@@ -31,7 +31,7 @@ write_policy:
 ```yaml
 phase_id: M1_FINAL_SMOKE
 milestone: M1_Core
-phase_status: verified_ready_for_commit_push
+phase_status: pushed_complete
 active_slice: none
 gate_id: mib-studio-m1-final-smoke
 commit_policy: stage_commit_push_after_verified_phase_completion
@@ -56,6 +56,8 @@ review_tier: none
 
 last_completed_work:
   gate: mib-studio-m1-final-smoke
+  verification_commit: c13fb6f
+  pushed_to_origin_main: true
   objective: complete M1 final smoke closeout before M2
   summary:
     - added tests/smoke/test_m1_smoke.py covering M1 health, presets, project CRUD/archive guard, dataset/examples, hardware doctor, generated contracts, DB counts, and restart persistence
@@ -84,7 +86,7 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m1_final_smoke_verified
+status: m1_final_smoke_verified_and_pushed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
   - bash -n scripts/bootstrap_dev.sh
@@ -145,11 +147,6 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - stage explicit M1 final smoke files
-  - commit M1 final smoke closeout
-  - push main
-
-after_push:
   - create a new PABCD task contract for M2-000 EvalSet freeze prework
   - read docs/handoffs/M2.md and docs/specs/IMPLEMENTATION_GUIDE.md M2-000 sections before edits
 ```
@@ -157,9 +154,9 @@ after_push:
 ## 7. Resume Prompt For Next LLM
 
 ```text
-Read docs/CONTEXT.md and docs/WORKING.md. M1-001 through M1-007 are committed
-and pushed; M1 final smoke is verified and ready for git closeout. Do not start M2
-until a new PABCD task contract is created for M2-000 EvalSet freeze prework.
-Use .venv for Python and COREPACK_HOME=/tmp/corepack. CUDA pip-audit has explicit
-upstream-blocked exceptions in artifacts/security/pip_audit_cuda_exceptions.json.
+Read docs/CONTEXT.md and docs/WORKING.md. M1-001 through M1-007 and M1 final smoke
+are committed and pushed. Do not start M2 until a new PABCD task contract is created
+for M2-000 EvalSet freeze prework. Use .venv for Python and COREPACK_HOME=/tmp/corepack.
+CUDA pip-audit has explicit upstream-blocked exceptions in
+artifacts/security/pip_audit_cuda_exceptions.json.
 ```

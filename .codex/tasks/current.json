@@ -6,7 +6,7 @@
   "gate": "mib-studio-m1-final-smoke",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "f45968f",
+  "head": "c13fb6f",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -86,24 +86,24 @@
     "audit": "Read M1 final acceptance, bootstrap_dev m1-smoke required files, existing M1 route tests, dependency audit output, package index candidates, and LLaMA-Factory/gradio constraints. Verified MLX pins audit cleanly and CUDA passes with only LLaMA-Factory-constrained exceptions.",
     "build": "Added test_m1_smoke.py, updated exact pins for FastAPI, Starlette, orjson, transformers, sentencepiece, protobuf, pytest tooling, and sentence-transformers, and added CUDA pip-audit exception handling plus artifact output for upstream-blocked Gradio/Pillow/Starlette advisories.",
     "check": "All required commands passed. Strict Node 20.18.1, pnpm 9.15.0, Rust 1.83.0, Python 3.11.15, SQLite 3.50.4, MLX audit, CUDA bootstrap audit, no-skip install, direct smoke pytest, pip check, and git diff check are complete.",
-    "done": "M1 final smoke is verified and ready for explicit stage, commit, and push. M2 must start with a new scoped PABCD contract."
+    "done": "M1 final smoke was verified, committed, and pushed at c13fb6f. M2 must start with a new scoped PABCD contract."
   },
   "pabcd": {
     "active": false,
     "phase": "done",
     "gate": "mib-studio-m1-final-smoke",
-    "status": "MIB_STUDIO_M1_FINAL_SMOKE_VERIFIED_READY_FOR_COMMIT_PUSH",
+    "status": "MIB_STUDIO_M1_FINAL_SMOKE_PUSHED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": true,
     "approved_scope": "M1 final smoke test, dependency exact-pin security patch updates, bootstrap audit exception plumbing, working-state updates, and generated verification artifacts.",
     "blocked_scope": "No M2 endpoint/backend/frontend/worker/runtime implementation, no DB schema/model/migration changes, and no spec/foundation/mockup/handoff/review edits.",
-    "phase_completion_git_policy": "Stage explicit files, commit, and push after verification passes.",
+    "phase_completion_git_policy": "Completed: verification commit c13fb6f was pushed to origin/main.",
     "plan": "Add the missing M1 smoke test required by IMPLEMENTATION_GUIDE 4.2 and make the strict m1-smoke bootstrap command pass before M2 starts.",
     "audit": "Read M1 final acceptance, bootstrap_dev m1-smoke required files, existing M1 route tests, dependency audit output, package index candidates, and LLaMA-Factory/gradio constraints.",
     "build": "Added test_m1_smoke.py and restored strict bootstrap verification through exact-pin updates and recorded CUDA upstream exceptions.",
     "check": "All required verification commands passed.",
-    "done": "M1 final smoke closeout is ready for commit and push; create a new PABCD task contract before M2-000 edits."
+    "done": "M1 final smoke closeout was committed and pushed; create a new PABCD task contract before M2-000 edits."
   }
 }

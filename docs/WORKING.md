@@ -29,24 +29,24 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M6_RC_SIGNOFF
-milestone: M6_Export_RC
+phase_id: FE_V6_MOCKUP
+milestone: FE_v6_RC_Blocker_Remediation
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-m6-rc-signoff
+gate_id: mib-studio-fe-v6-mockup
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
-  frontend_package_manager: corepack pnpm
+  frontend_package_manager: cached pnpm 9.15.0 via strict Node
   corepack_home: /tmp/corepack
   strict_toolchain_path:
     node: /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin
     rustc: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/rustc/bin
     cargo: /tmp/mib-toolchain/rust-1.83.0-x86_64-unknown-linux-gnu/cargo/bin
   last_bootstrap_smoke:
-    command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --skip-install --verify-only
+    command: COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build
     status: passed
-    note: scaffold verify-only records toolchain_report.strict=false by design; skip-install records pip-audit as skipped if isolated pip upgrade cannot complete
+    note: plain pnpm is not on PATH and Corepack shim signature verification fails; use cached pnpm CLI path above
 ```
 
 ## 2. Current Work
@@ -59,19 +59,21 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m6-rc-signoff
-  signoff_commit: 841d620
+  gate: mib-studio-fe-v6-mockup
+  implementation_commit: d7a68bf
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: create M6-RC evidence bundle and CTO decision from current M6 export evidence
+  objective: apply docs/mockup v6 route-contract mockup to the desktop FE and produce verification evidence
   summary:
-    - recorded FE, DB, BE/API, LLM/Training, Eval/QC, Security, Architecture/Code Quality, and DevEx review files under docs/reviews/M6
-    - recorded M6 export evidence from M6-001 and M6-002 without changing product code or specs
-    - CTO decision is NOT_GO for v0 RC because FE v6 mockup implementation evidence is missing
-    - Security and DevEx are also NOT_GO until real digest-pinned Docker image build/save/run evidence is collected
-    - next implementation gate must be FE v6 mockup application, not another sign-off pass
+    - implemented v6 route-contract builder in apps/desktop with toolbox categories, block canvas, route board, inspector tabs, contract preview, presets, compile/test/download actions
+    - moved route-contract rendering into apps/desktop/src/lib/routeContractView.mjs to keep main app orchestration smaller
+    - added apps/desktop/e2e/fe_v6_route_contract.test.mjs browser e2e with keyboard and accessibility smoke checks
+    - updated docs/mockup/README.md and docs/specs/UX_SPEC.md so mib_fe_mockup_v6_routes_contract.html is the canonical current mockup
+    - recorded FE state matrix, API/SSE mapping, and verification evidence in artifacts/review/fe_v6_evidence.md
+    - did not change backend, DB, worker, schema, export, benchmark, or M6-RC sign-off logic
 
 m6_previous_work:
+  fe_v6_mockup: d7a68bf
   m6_rc_signoff: 841d620
   m6_002_docker_export: b6873f5
   m6_001_zip_export: 31971d7
@@ -121,6 +123,7 @@ local_committed_context:
   m6_001_zip_export: 31971d7
   m6_002_docker_export: b6873f5
   m6_rc_signoff: 841d620
+  fe_v6_mockup: d7a68bf
 
 do_not_start_without:
   - active PABCD task contract
@@ -132,23 +135,21 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m6_rc_signoff_verified_not_go
+status: fe_v6_mockup_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase scaffold --skip-install --verify-only
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest packages/agent-runtime/tests/test_docker_export_security.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/scan_export_artifact.py --self-test
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs test
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run e2e
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/m2_teacher_packet_preview.test.mjs
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
   - git diff --check
   - git diff --cached --check
 warnings:
-  - M6-RC decision is NOT_GO, not GO
-  - FE v6 mockup implementation evidence is missing
+  - M6-RC decision remains NOT_GO until a scoped re-review is run
   - real digest-pinned Docker image build/save/run transcript evidence is missing
-  - tests/export emits existing FastAPI ORJSONResponse deprecation warnings
-  - bootstrap scaffold verify-only records toolchain_report.strict=false by design
+  - plain pnpm is not on PATH and Corepack shim signature verification fails; use cached pnpm CLI path
   - file_size_report has existing soft warnings only; no hard file-size violations remain
 failed: []
 ```
@@ -179,20 +180,21 @@ recorded_go:
   M5_003_Verified: true
   M6_001_Verified: true
   M6_002_Verified: true
+  FE_V6_Mockup_Verified: true
 
 recorded_not_go:
   M6_RC_Signoff: true
 
 active_gate:
   id: none
-  cto_decision: m6_rc_not_go
-  review_bundle: docs/reviews/M6
+  cto_decision: ready_for_real_docker_runtime_evidence_then_m6_rc_rereview
+  review_bundle: artifacts/review/fe_v6_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: create scoped PABCD contract for FE v6 mockup implementation
+  next_required_check: create scoped PABCD contract for real digest-pinned Docker runtime evidence
 ```
 
 ## 5. Blockers And Deferred Work
@@ -205,9 +207,8 @@ security_deferred:
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports Gradio 6.x or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - FE v6 mockup implementation
   - real digest-pinned Docker image build/save/run evidence
-  - M6-RC re-review after FE v6 and Docker runtime evidence are complete
+  - M6-RC re-review after Docker runtime evidence is complete
   - DB schema/model/migration changes unless explicitly required by a scoped gate
   - spec/foundation/mockup/handoff/review edits
 ```
@@ -216,9 +217,10 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create a new scoped PABCD task contract for FE v6 mockup implementation
-  - read docs/CONTEXT.md, docs/foundation/MIB_Studio_Dev_Plan_v0.3.md, docs/mockup, and relevant frontend app files before edits
-  - after FE v6 is verified, collect real Docker image evidence and rerun M6-RC sign-off
+  - create a new scoped PABCD task contract for real digest-pinned Docker image build/save/run evidence
+  - run MIB_DOCKER_EXPORT_REAL_BUILD=1 with MIB_DOCKER_BASE_IMAGE_WITH_DIGEST=<image>@sha256:<digest> for at least one CUDA/lora_adapter package
+  - capture /agents/{agent_id}/run and /v1/chat/completions transcript with read-only model-cache mount
+  - rerun M6-RC sign-off after Docker runtime evidence is complete
 ```
 
 ## 7. Resume Prompt For Next LLM
@@ -230,8 +232,10 @@ isolation, M4-001 Eval set freeze hardening, M4-002 Eval runner, M4-003
 Benchmark report, M5-001 Agent contract builder, M5-002 Verifier, and M5-003
 Playground, M6-001 Zip export, and M6-002 Docker export are committed and pushed.
 M6-RC sign-off evidence is recorded at 841d620 with final CTO decision NOT_GO.
-Do not rerun sign-off as GO until FE v6 mockup implementation and real
-digest-pinned Docker image build/save/run evidence are complete. Next work is a
-new scoped FE v6 implementation PABCD. Use .venv for Python and
-COREPACK_HOME=/tmp/corepack for bootstrap checks.
+FE v6 mockup implementation is committed at d7a68bf and evidence is in
+artifacts/review/fe_v6_evidence.md. Do not rerun sign-off as GO until real
+digest-pinned Docker image build/save/run evidence is complete. Next work is a
+new scoped Docker runtime evidence PABCD. Use .venv for Python. For frontend
+commands, use cached pnpm via:
+COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs
 ```

@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement the FE v6 route-contract mockup from docs/mockup/mib_fe_mockup_v6_routes_contract.html in the desktop app, resolve the canonical mockup doc drift, and produce FE verification evidence without changing backend, DB, worker, training, export, benchmark, or release sign-off logic.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-fe-v6-mockup",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "bd30af9",
+  "head": "d7a68bf",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "apps/desktop/",
@@ -73,6 +73,8 @@
     "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
     "git diff --check"
+    ,
+    "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
@@ -86,14 +88,14 @@
     "audit": "Read WORKING/CONTEXT, SSOT FE/v0 RC sections, IMPLEMENTATION_GUIDE screen/DoD rules, UX_SPEC canonical mockup rule, v6 mockup, M6 FE review and CTO blockers, desktop source/tests, and package scripts.",
     "build": "Implemented v6 route-contract builder in apps/desktop with toolbox categories, block canvas, route board, inspector tabs, contract section preview, route presets, compile/test/download actions, canonical mockup doc updates, and FE evidence artifact.",
     "check": "Passed task JSON, cached pnpm unit tests, desktop build, existing M1 browser e2e, teacher packet browser e2e, new FE v6 browser e2e with keyboard/a11y smoke, file-size hard-limit check, and unstaged diff whitespace check.",
-    "done": "Pending."
+    "done": "FE v6 route-contract mockup implementation committed as d7a68bf. WORKING and PABCD closeout are recorded in this follow-up commit before push."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-fe-v6-mockup",
-    "status": "MIB_STUDIO_FE_V6_VERIFIED",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_FE_V6_CLOSED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
@@ -103,7 +105,7 @@
     "plan": "Create scoped FE v6 implementation contract.",
     "audit": "Required FE/mockup/spec context read.",
     "build": "FE v6 route-contract builder implemented and evidence recorded.",
-    "check": "All required verification passed except staged diff check, which runs after staging.",
-    "done": "Pending."
+    "check": "All required verification passed.",
+    "done": "FE v6 mockup implementation is closed; next gate is real Docker runtime evidence followed by M6-RC re-review."
   }
 }

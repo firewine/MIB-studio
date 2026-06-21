@@ -2,11 +2,11 @@
   "process": "pabcd",
   "mode": "implement",
   "goal": "Implement M5-001 Agent contract builder and AgentPackage API.",
-  "phase": "check",
+  "phase": "done",
   "gate": "mib-studio-m5-001-agent-contract-builder",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "489fdffb146bf1d6b183d797d2f6cff0c62179ac",
+  "head": "614184b",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
@@ -90,24 +90,24 @@
     "audit": "Read WORKING, CONTEXT, M5 handoff, IMPLEMENTATION_GUIDE M5-001/API DTO sections, AGENT_CONTRACT_SPEC schema/canonical hash rules, ARCHITECTURE AgentPackage table and immutability notes, existing AgentPackage model, agent contract JSON Schema, OpenAPI seed, and M4 benchmark report service/tests.",
     "build": "Implemented AgentPackage DTOs/routes/service, Agent Contract YAML builder, schema validation, canonical parsed-object contract_sha256, VALID benchmark hash gate, project/model_run/benchmark guards, fallback validation, immutable row persistence, and focused API tests.",
     "check": "Passed task JSON, py_compile, focused AgentPackage pytest, M4 benchmark report regression, import boundary, file-size hard-limit, and diff whitespace checks.",
-    "done": "Pending."
+    "done": "Implementation committed as 614184b; WORKING closeout prepared for push with this contract."
   },
   "pabcd": {
-    "active": true,
-    "phase": "check",
+    "active": false,
+    "phase": "done",
     "gate": "mib-studio-m5-001-agent-contract-builder",
-    "status": "MIB_STUDIO_M5_001_IN_PROGRESS",
-    "phase_complete": false,
+    "status": "MIB_STUDIO_M5_001_VERIFIED",
+    "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "all_required_teams_go": false,
+    "all_required_teams_go": true,
     "approved_scope": "M5-001 Agent contract builder and AgentPackage API within listed files.",
     "blocked_scope": "No DB schema/model/migration, verifier, playground, export/runtime, training, dataset, eval execution, FE, or docs spec/foundation edits.",
     "phase_completion_git_policy": "When verification passes, stage, commit, and push this phase.",
     "plan": "Implement immutable AgentPackage contract builder.",
     "audit": "Required references have been read.",
-    "build": "Implementation complete; pending commit.",
-    "check": "All required verification commands passed before staging; cached diff check pending staged state.",
-    "done": "Pending."
+    "build": "Implementation complete in 614184b.",
+    "check": "All required verification commands passed, including cached diff check.",
+    "done": "M5-001 verified and ready for closeout commit and push."
   }
 }

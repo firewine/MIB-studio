@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M4_003_BENCHMARK_REPORT
-milestone: M4_Benchmark
+phase_id: M5_001_AGENT_CONTRACT_BUILDER
+milestone: M5_Package_Playground
 phase_status: pushed_complete
 active_slice: none
-gate_id: mib-studio-m4-003-benchmark-report
+gate_id: mib-studio-m5-001-agent-contract-builder
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -59,16 +59,19 @@ source_gate_packet: none
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m4-003-benchmark-report
-  implementation_commit: 5c3d3e7
+  gate: mib-studio-m5-001-agent-contract-builder
+  implementation_commit: 614184b
   pushed_to_origin_main: true
-  objective: implement M4-003 Benchmark report generation, hash verification, and benchmark read API
+  objective: implement M5-001 Agent contract builder and AgentPackage API
   summary:
-    - added Benchmark DTOs, routes, service, and registered the OpenAPI-backed benchmark read/report endpoints
-    - added report generation from terminal EvalRun rows with committed JSON Schema validation and canonical report_sha256 storage
-    - completed targets aggregate seed mean, sample SD, and 95% CI for Router metrics, latency, cost, and effective cost
-    - local_large SKIPPED_OPTIONAL reports seeds [0] and skip_reason without metric objects; report hash recompute returns VALID, MISMATCH, or MISSING
-    - CUDA/MLX fine_tuned parity records PASS, FAIL, or NA from metric threshold checks; focused tests cover valid report, tamper mismatch, and parity FAIL
+    - added AgentPackage DTOs, routes, service, and registered the OpenAPI-backed package endpoints
+    - package creation requires ModelRun SUCCEEDED with adapter metadata and Benchmark COMPLETED with recomputed VALID report hash
+    - server allocates contract_version and agent_id, builds Agent Contract YAML, validates schemas/agent_contract.schema.json, and stores canonical parsed-object contract_sha256
+    - contract_yaml includes adapter hash, route_catalog, verifiers, fallback, audit, benchmark_report, and export_compatibility
+    - focused tests cover schema-valid immutable contract creation, hash tamper rejection, version allocation, list/get, and project mismatch rejection
+
+m5_previous_work:
+  m5_001_agent_contract_builder: 614184b
 
 m4_previous_work:
   m4_003_benchmark_report: 5c3d3e7
@@ -104,6 +107,7 @@ local_committed_context:
   m4_001_eval_set_freeze: e51f197
   m4_002_eval_runner: ff058d1
   m4_003_benchmark_report: 5c3d3e7
+  m5_001_agent_contract_builder: 614184b
 
 do_not_start_without:
   - active PABCD task contract
@@ -115,18 +119,18 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m4_003_verified_and_pushed
+status: m5_001_verified_and_pushed
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/routes/benchmarks.py services/api/app/schemas/benchmark.py services/api/app/services/benchmark_metrics.py services/api/app/services/benchmark_report.py services/api/app/services/benchmark_service.py tests/eval/test_benchmark_report.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m py_compile services/api/app/main.py services/api/app/routes/agent_packages.py services/api/app/schemas/agent_package.py services/api/app/services/agent_contract.py services/api/app/services/agent_package_service.py tests/agent_package/test_contract_builder.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/agent_package/test_contract_builder.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/eval/test_benchmark_report.py -q
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/eval/test_eval_runner.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
   - git diff --check
   - git diff --cached --check
 warnings:
-  - focused benchmark report pytest emits existing FastAPI ORJSONResponse deprecation warnings
+  - focused AgentPackage and benchmark report pytest emit existing FastAPI ORJSONResponse deprecation warnings
   - file_size_report has existing soft warnings only; no hard file-size violations remain
 failed: []
 ```
@@ -152,17 +156,18 @@ recorded_go:
   M4_001_Verified: true
   M4_002_Verified: true
   M4_003_Verified: true
+  M5_001_Verified: true
 
 active_gate:
   id: none
-  cto_decision: ready_for_m5_001_scoped_contract
+  cto_decision: ready_for_m5_002_scoped_contract
   review_bundle: artifacts/review
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: create scoped PABCD contract for M5-001 Agent contract builder
+  next_required_check: create scoped PABCD contract for M5-002 Verifier
 ```
 
 ## 5. Blockers And Deferred Work
@@ -175,7 +180,7 @@ security_deferred:
   - review artifacts/security/pip_audit_cuda_exceptions.json when LLaMA-Factory supports Gradio 6.x or the SSOT replaces the training wrapper
 
 blocked_until_new_gate:
-  - M5 AgentPackage contract builder work
+  - M5 Verifier and Playground work
   - DB schema/model/migration changes unless explicitly required by the next scoped gate
   - spec/foundation/mockup/handoff/review edits
 ```
@@ -184,8 +189,8 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - create a new scoped PABCD task contract for M5-001 Agent contract builder
-  - read docs/handoffs/M5.md and docs/specs/IMPLEMENTATION_GUIDE.md M5-001 sections before edits
+  - create a new scoped PABCD task contract for M5-002 Verifier
+  - read docs/handoffs/M5.md and docs/specs/IMPLEMENTATION_GUIDE.md M5-002 sections before edits
 ```
 
 ## 7. Resume Prompt For Next LLM
@@ -194,7 +199,7 @@ immediate:
 Read docs/CONTEXT.md and docs/WORKING.md. M1, M2, M3-000, M3-001, M3-002
 CUDA wrapper, M3-003 MLX wrapper, M3-004 Cancel/resume, M3-005 Dry-run + OOM
 isolation, M4-001 Eval set freeze hardening, M4-002 Eval runner, and M4-003
-Benchmark report are committed and pushed. Do not start M5-001 until a new scoped PABCD
+Benchmark report, and M5-001 Agent contract builder are committed and pushed. Do not start M5-002 until a new scoped PABCD
 task contract is created. Use .venv for
 Python, COREPACK_HOME=/tmp/corepack, and COREPACK_DEFAULT_TO_LATEST=0 for bootstrap checks.
 ```

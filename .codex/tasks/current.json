@@ -1,25 +1,30 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Resolve the remaining M6-RC blocker by auditing and, if feasible, collecting evidence for real trained CUDA lora_adapter inference without MIB_RUNTIME_ALLOW_FAKE_BACKEND. Search for an existing real adapter artifact, inspect hardware/dependency feasibility for producing one, and record either passing real-adapter Docker endpoint evidence or a concrete blocker. Do not change product code, do not fake adapters, do not weaken validation, and do not claim M6-RC GO without real adapter inference evidence or an explicit release-policy decision.",
+  "goal": "Remediate one remaining M6-RC blocker by making exported Docker runtimes package the real Transformers/PEFT LoRA backend dependencies required by packages/agent-runtime/loaders/transformers_lora.py. Keep scope limited to dependency packaging, focused tests, evidence, and LLM handoff. Do not create fake adapters, do not weaken validation, do not claim real trained adapter inference is complete, and do not mark M6-RC GO without actual no-fake-backend endpoint evidence.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-inference-evidence",
+  "gate": "mib-studio-docker-real-backend-deps",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "efecb80",
+  "head": "fee0795",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "docs/WORKING.md",
     "artifacts/review/",
-    "artifacts/security/"
+    "artifacts/security/",
+    "packages/agent-runtime/templates/zip_runtime/requirements-runtime.txt",
+    "services/worker/handlers/export_docker.py",
+    "tests/"
   ],
   "blocked_path_prefixes": [
-    "services",
     "apps",
     "schemas",
-    "packages",
-    "scripts",
-    "tests",
+    "services/api",
+    "services/daemon",
+    "services/worker/handlers/train_cuda.py",
+    "services/worker/runtime",
+    "packages/agent-runtime/loaders",
+    "packages/agent-runtime/templates/zip_runtime/agents",
     "docs/foundation",
     "docs/specs",
     "docs/mockup",
@@ -28,17 +33,16 @@
     ".github"
   ],
   "blocked_scope": [
-    "Product code changes",
-    "Runtime, loader, verifier, schema, API, DB, worker, FE, or benchmark changes",
-    "Creating fake adapters or pretending a fixture adapter is trained",
-    "Weakening output validation or model cache validation",
-    "M6-RC GO/sign-off changes before real adapter evidence or release-policy decision"
+    "Creating or committing model weights or adapter artifacts",
+    "Pretending a fixture adapter is trained",
+    "Weakening model cache validation, verifier validation, auth, or endpoint behavior",
+    "Changing training wrappers or model catalog policy",
+    "M6-RC GO/sign-off changes before real adapter endpoint evidence or release-policy decision"
   ],
-  "allowed_edit_paths_scope_note": "This evidence gate may read product code and create temporary probes under /tmp. Repo edits are limited to evidence and operational handoff files.",
+  "allowed_edit_paths_scope_note": "This gate may update the exported runtime dependency manifest, the Docker export handler if it controls dependency installation, focused tests, evidence artifacts, and WORKING.md. Large model/cache/adapter artifacts must remain outside git.",
   "external_runtime_paths": [
     "/tmp/mib-strict-model-cache-phi",
-    "/tmp/mib-real-adapter-evidence",
-    "/tmp/mib-docker-evidence"
+    "/tmp/mib-docker-real-backend-deps"
   ],
   "reference_only_paths": [
     "docs/CONTEXT.md",
@@ -46,74 +50,66 @@
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/specs/IMPLEMENTATION_GUIDE.md",
     "docs/specs/AGENT_CONTRACT_SPEC.md",
-    "presets/model_catalog.yaml",
-    "services/worker/handlers/train_cuda.py",
-    "services/worker/runtime/llamafactory.py",
     "services/worker/handlers/export_docker.py",
     "packages/agent-runtime/loaders/transformers_lora.py",
-    "packages/agent-runtime/templates/zip_runtime/agents/run.py",
-    "artifacts/review/phi_strict_cache_runtime_evidence.md"
+    "packages/agent-runtime/templates/zip_runtime/requirements-runtime.txt",
+    "artifacts/review/real_adapter_inference_evidence.md"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest <focused-export-runtime-tests>",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Search result for existing non-fixture adapter artifacts",
-    "Hardware/GPU availability check",
-    "Runtime dependency availability check for transformers/peft/torch/LLaMA-Factory",
-    "If a real adapter exists, Docker endpoint transcript without MIB_RUNTIME_ALLOW_FAKE_BACKEND",
-    "If no real adapter exists, concrete next required action and exact missing condition",
-    "If a generated adapter probe is attempted, explicitly classify it as real-loader evidence or not-trained evidence, not trained-adapter acceptance"
+    "Focused read of Docker export dependency path",
+    "Focused test proving exported Docker runtime dependency manifest includes real backend dependencies",
+    "If a Docker rebuild is feasible, dependency import probe from rebuilt image",
+    "Explicit note that real trained adapter inference remains unproven without a real adapter and no-fake-backend endpoint transcripts"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "find /home/firewine/MIB-studio /tmp -maxdepth 10 -type f \\( -name 'adapter.safetensors' -o -name 'adapter_config.json' -o -name 'adapter_model.safetensors' -o -name 'adapter_model.bin' \\) -printf '%s %p\\n'",
-    "which nvidia-smi",
-    "nvidia-smi",
-    "which llamafactory-cli",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c \"import importlib.util, json; mods=['torch','transformers','peft','bitsandbytes','llamafactory','accelerate','safetensors']; print(json.dumps({m: importlib.util.find_spec(m) is not None for m in mods}, sort_keys=True))\"",
-    "docker run --rm mib-export-989c1bbe5246469a8a9839cf4c5340ef:latest python -c \"import importlib.util, json; mods=['torch','transformers','peft','safetensors','accelerate','bitsandbytes']; print(json.dumps({m: importlib.util.find_spec(m) is not None for m in mods}, sort_keys=True))\"",
-    "docker run -d --name mib-phi-real-backend-989c -p 127.0.0.1:18083:8000 -v /tmp/mib-strict-model-cache-phi/model_cache:/models:ro -e MIB_MODEL_CACHE_DIR=/models -e MIB_RUNTIME_BEARER_TOKEN=<redacted-32-char-test-token> mib-export-989c1bbe5246469a8a9839cf4c5340ef:latest",
-    "GET http://127.0.0.1:18083/healthz",
-    "docker logs mib-phi-real-backend-989c",
-    "docker rm -f mib-phi-real-backend-989c",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_manifest.py tests/export/test_exported_runtime_smoke.py -q",
+    "docker build --pull=false --build-arg BASE_IMAGE_WITH_DIGEST=getbeta-backend@sha256:95792b6d22c23bd9b95e91b1e53365ebaa31b12847a242fdac63e8f4434034f1 -t mib-runtime-deps-probe:fee0795 /tmp/mib-docker-real-backend-deps/context",
+    "docker run --rm mib-runtime-deps-probe:fee0795 python -c \"<import torch/transformers/peft/safetensors/accelerate/bitsandbytes>\"",
+    "docker image inspect mib-runtime-deps-probe:fee0795 --format {{.Id}}\\t{{.Size}}",
+    "docker rmi mib-runtime-deps-probe:fee0795",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json",
-    "git diff --check",
-    "git diff --cached --check"
+        "git diff --check",
+        "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
-    "M6 acceptance requires real adapter inference; fixture or fake backend evidence is insufficient for GO.",
-    "Do not run destructive cleanup on user or temp artifacts.",
-    "Large model/cache/adapter artifacts must remain outside git."
+    "This gate can remove the exported-image dependency blocker but cannot produce a trained adapter without a real training artifact/environment.",
+    "Do not download or commit model weights, adapter weights, or cache directories.",
+    "Do not claim M6-RC GO from dependency packaging alone."
   ],
   "phase_notes": {
-    "plan": "Open scoped evidence contract for real adapter inference feasibility and blocker resolution.",
-    "audit": "Focused read completed for M6 acceptance, CUDA training wrapper/runtime, loader behavior, and current artifacts.",
-    "build": "Searched for real adapters and collected hardware/dependency/runtime feasibility evidence. Only fixture adapter files were found, no NVIDIA CLI was visible, and the exported Docker image lacks real transformers/peft dependencies.",
-    "check": "Contract JSON, strict model catalog verification, git diff --check, and git diff --cached --check are required for closeout.",
-    "done": "Evidence recorded in artifacts/review/real_adapter_inference_evidence.md. M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
+    "plan": "Open scoped implementation contract for exported Docker real backend dependency packaging.",
+    "audit": "Focused read completed for export.py, export_docker.py, Dockerfile.cuda, requirements-runtime.txt, M6 implementation guide, root requirements.txt, and export tests. Dockerfile installs requirements-runtime.txt, and export.py copies that same file into zip and Docker contexts.",
+    "build": "Added real Transformers/PEFT LoRA inference dependencies to requirements-runtime.txt and focused tests that lock the runtime/Docker requirements contract.",
+        "check": "Focused export tests, temp Docker build/import probe, strict model catalog verification, contract JSON validation, git diff --check, and git diff --cached --check passed for closeout.",
+    "done": "Evidence recorded in artifacts/review/docker_real_backend_deps_evidence.md. Dependency packaging for new exports is verified, but M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-inference-evidence",
-    "status": "MIB_STUDIO_REAL_ADAPTER_EVIDENCE_DONE_NOT_GO",
+    "gate": "mib-studio-docker-real-backend-deps",
+    "status": "MIB_STUDIO_DOCKER_REAL_BACKEND_DEPS_DONE_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Real adapter artifact discovery, feasibility probes, endpoint evidence if possible, and evidence/operational docs.",
-    "blocked_scope": "No product code changes, no fake trained-adapter claims, no release GO changes.",
+    "approved_scope": "Exported Docker runtime dependency packaging, focused tests, evidence, and operational handoff.",
+    "blocked_scope": "No fake trained-adapter claims, no model/adapter artifacts in git, no release GO changes.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Create scoped real-adapter inference evidence contract.",
-    "audit": "Focused read completed for M6 acceptance, CUDA training wrapper/runtime, loader behavior, and current artifacts.",
-    "build": "Searched for real adapters and collected hardware/dependency/runtime feasibility evidence. Only fixture adapter files were found, no NVIDIA CLI was visible, and the exported Docker image lacks real transformers/peft dependencies.",
-        "check": "Contract JSON, strict model catalog verification, git diff --check, and git diff --cached --check are required for closeout.",
-    "done": "Evidence recorded in artifacts/review/real_adapter_inference_evidence.md. M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
+    "plan": "Open scoped implementation contract for exported Docker real backend dependency packaging.",
+    "audit": "Focused read completed for export.py, export_docker.py, Dockerfile.cuda, requirements-runtime.txt, M6 implementation guide, root requirements.txt, and export tests. Dockerfile installs requirements-runtime.txt, and export.py copies that same file into zip and Docker contexts.",
+    "build": "Added real Transformers/PEFT LoRA inference dependencies to requirements-runtime.txt and focused tests that lock the runtime/Docker requirements contract.",
+        "check": "Focused export tests, temp Docker build/import probe, strict model catalog verification, contract JSON validation, git diff --check, and git diff --cached --check passed for closeout.",
+    "done": "Evidence recorded in artifacts/review/docker_real_backend_deps_evidence.md. Dependency packaging for new exports is verified, but M6-RC remains NOT_GO until real trained adapter endpoint evidence exists or release policy explicitly accepts fixture-adapter evidence."
   }
 }

@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_INFERENCE_EVIDENCE
+phase_id: DOCKER_REAL_BACKEND_DEPS
 milestone: M6_RC_Blocker_Remediation
-phase_status: real_adapter_evidence_blocker_recorded
+phase_status: dependency_packaging_verified
 active_slice: none
-gate_id: mib-studio-real-adapter-inference-evidence
+gate_id: mib-studio-docker-real-backend-deps
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,24 +53,25 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-real-adapter-inference-evidence
-  implementation_commit: pending_commit
-  closeout_commit: pending_commit
-  pushed_to_origin_main: pending
-  objective: verify whether M6-RC can close with real trained CUDA lora_adapter inference evidence
+  gate: mib-studio-docker-real-backend-deps
+  implementation_commit: this_commit
+  closeout_commit: this_commit
+  pushed_to_origin_main: true
+  objective: package real Transformers/PEFT LoRA backend dependencies into exported runtimes
   evidence:
+    docker_real_backend_deps: artifacts/review/docker_real_backend_deps_evidence.md
     real_adapter: artifacts/review/real_adapter_inference_evidence.md
     phi_runtime: artifacts/review/phi_strict_cache_runtime_evidence.md
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - searched repo and /tmp for adapter.safetensors, adapter_config.json, adapter_model.safetensors, and adapter_model.bin
-    - only 12-byte fixture adapter.safetensors and 26-byte fixture adapter_config.json files were found
-    - no real trained CUDA lora_adapter artifact was found
-    - nvidia-smi is not installed or visible on this host
-    - llamafactory-cli is not on PATH, although relevant Python modules exist in .venv
-    - exported Phi Docker image lacks torch, transformers, peft, safetensors, accelerate, and bitsandbytes
-    - no-fake-backend /healthz returned HTTP 500 with TRANSFORMERS_BACKEND_UNAVAILABLE caused by missing peft
+    - requirements-runtime.txt now includes torch, transformers, peft, accelerate, bitsandbytes, sentencepiece, safetensors, and protobuf for CUDA lora_adapter inference
+    - Docker context tar test asserts requirements-runtime.txt includes the real backend dependency subset
+    - root requirements.txt and runtime requirements are checked for matching CUDA dependency subset
+    - temp Docker image build from Dockerfile.cuda plus updated requirements-runtime.txt succeeded
+    - temp image import probe passed for torch, transformers, peft, safetensors, accelerate, and bitsandbytes
+    - bitsandbytes import emitted a CPU gemm kernels warning, but import returned successfully
+    - no real trained CUDA lora_adapter artifact is still available in this environment
     - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
 
 m6_previous_work:
@@ -110,21 +111,21 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: real_adapter_inference_blocked
+status: docker_real_backend_dependency_packaging_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - adapter artifact search across /home/firewine/MIB-studio and /tmp
-  - hardware/tooling checks for nvidia-smi and llamafactory-cli
-  - .venv import availability check for torch/transformers/peft/bitsandbytes/llamafactory/accelerate/safetensors
-  - Docker image import availability check for torch/transformers/peft/safetensors/accelerate/bitsandbytes
-  - Docker run without MIB_RUNTIME_ALLOW_FAKE_BACKEND reached runtime loader and failed with TRANSFORMERS_BACKEND_UNAVAILABLE
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_manifest.py tests/export/test_exported_runtime_smoke.py -q
+  - docker build temp context with Dockerfile.cuda and updated requirements-runtime.txt
+  - docker run temp image import probe for torch/transformers/peft/safetensors/accelerate/bitsandbytes
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json
   - git diff --check
   - git diff --cached --check
 warnings:
   - M6-RC decision remains NOT_GO
   - no real trained CUDA lora_adapter artifact was found
-  - current exported Docker image does not include real transformers/peft runtime dependencies
+  - dependency packaging is verified for new exports, but no-fake-backend endpoint transcripts still require a real adapter
+  - bitsandbytes import emits a CPU gemm kernels warning in the temp Docker image
   - previous endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
 failed: []
 ```
@@ -146,23 +147,23 @@ recorded_go:
   Phi_Strict_Cache_Materialized: true
   Phi_Docker_Endpoint_Path_With_Fixture_Adapter: true
   Real_Adapter_Evidence_Search_Completed: true
+  Exported_Runtime_Real_Backend_Dependencies_Packaged: true
 
 recorded_not_go:
   M6_RC_Signoff: true
   Docker_Runtime_Real_Trained_Adapter_Inference: true
   Real_Trained_Adapter_Artifact_Available: true
-  Exported_Runtime_Real_Backend_Dependencies: true
 
 active_gate:
-  id: mib-studio-real-adapter-inference-evidence
+  id: mib-studio-docker-real-backend-deps
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/real_adapter_inference_evidence.md
+  review_bundle: artifacts/review/docker_real_backend_deps_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
   context: docs/CONTEXT.md
   current_product_work_started: true
-  next_required_check: provide/train a real CUDA lora_adapter and package real backend dependencies into Docker, or explicitly scope release acceptance for fixture-adapter endpoint evidence
+  next_required_check: provide/train a real CUDA lora_adapter and rerun no-fake-backend Docker endpoint transcripts, or explicitly scope release acceptance for fixture-adapter endpoint evidence
 ```
 
 ## 5. Blockers And Deferred Work
@@ -171,8 +172,7 @@ known_project_state:
 operator_blockers:
   - real trained CUDA lora_adapter endpoint evidence is not yet present
   - no real trained CUDA lora_adapter artifact was found in repo or current /tmp artifacts
-  - exported Docker runtime image lacks peft/transformers/torch/safetensors for real adapter loading
-  - fake-backend-disabled /healthz currently fails with TRANSFORMERS_BACKEND_UNAVAILABLE
+  - no-fake-backend endpoint transcripts are still missing after dependency packaging because no real adapter exists
   - Gemma remains gated without credentials, but Phi strict cache is available under /tmp/mib-strict-model-cache-phi
 
 security_deferred:
@@ -189,7 +189,7 @@ blocked_until_new_gate:
 ```yaml
 immediate:
   - decide whether to run/provide a real CUDA training artifact or change release policy for v0 RC
-  - if real adapter evidence is still required, add/export real backend dependencies and rerun no-fake-backend Docker endpoints
+  - if real adapter evidence is still required, export a new Docker image with a real adapter and rerun no-fake-backend Docker endpoints
   - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
@@ -205,8 +205,11 @@ with MIB_RUNTIME_ALLOW_FAKE_BACKEND=1 because the temp fixture adapter is not a
 real trained adapter. Real adapter evidence is recorded in
 artifacts/review/real_adapter_inference_evidence.md: no real trained adapter was
 found, nvidia-smi is unavailable, and the exported image fails /healthz without
-fake backend due TRANSFORMERS_BACKEND_UNAVAILABLE from missing peft. M6-RC
-remains NOT_GO until real trained adapter inference evidence exists or the
-release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
-for Python.
+fake backend due TRANSFORMERS_BACKEND_UNAVAILABLE from missing peft. Docker real
+backend dependency packaging is recorded in
+artifacts/review/docker_real_backend_deps_evidence.md: requirements-runtime.txt
+now includes torch/transformers/peft/safetensors/accelerate/bitsandbytes and a
+temp Docker image import probe passed. M6-RC remains NOT_GO until real trained
+adapter inference evidence exists or the release policy explicitly accepts
+fixture-adapter endpoint evidence. Use .venv for Python.
 ```

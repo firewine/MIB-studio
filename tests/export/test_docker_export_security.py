@@ -15,6 +15,19 @@ from tests.export.test_export_api import create_exportable_package
 from tests.eval.test_benchmark_report import auth_headers, call_api, client_for
 
 
+CUDA_INFERENCE_REQUIREMENTS = {
+    "--extra-index-url https://download.pytorch.org/whl/cu121",
+    "torch==2.4.1+cu121",
+    "transformers==5.6.0",
+    "accelerate==1.11.0",
+    "peft==0.18.0",
+    "bitsandbytes==0.49.2",
+    "sentencepiece==0.2.1",
+    "safetensors==0.4.5",
+    "protobuf==5.29.6",
+}
+
+
 def run_docker_worker(database_url: str, mib_home: Path, job_id: str) -> ExportArtifact:
     engine = create_sqlite_engine(database_url)
     factory = session_factory(engine)
@@ -72,6 +85,10 @@ async def test_docker_export_worker_writes_context_tar_manifest_and_evidence(tmp
             assert all(layer in names for layer in image["Layers"])
         else:
             assert {"Dockerfile", "manifest.json", "runtime/agents/run.py", "requirements-runtime.txt"} <= names
+            requirements_file = archive.extractfile("requirements-runtime.txt")
+            assert requirements_file is not None
+            requirements = set(requirements_file.read().decode("utf-8").splitlines())
+            assert CUDA_INFERENCE_REQUIREMENTS <= requirements
             assert not any(name.startswith("base_model/") or name.startswith("model_cache/") for name in names)
 
     scan = subprocess.run(
@@ -91,3 +108,10 @@ async def test_docker_export_worker_writes_context_tar_manifest_and_evidence(tmp
         capture_output=True,
     )
     assert scan.returncode == 0, scan.stdout + scan.stderr
+
+
+def test_runtime_requirements_include_transformers_lora_backend_dependencies() -> None:
+    requirements = set(Path("packages/agent-runtime/templates/zip_runtime/requirements-runtime.txt").read_text(encoding="utf-8").splitlines())
+    root_requirements = set(Path("requirements.txt").read_text(encoding="utf-8").splitlines())
+    assert CUDA_INFERENCE_REQUIREMENTS <= requirements
+    assert CUDA_INFERENCE_REQUIREMENTS <= root_requirements

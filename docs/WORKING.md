@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: DOCKER_REAL_BACKEND_DEPS
+phase_id: EXPORT_ADAPTER_ARTIFACT_VALIDATION
 milestone: M6_RC_Blocker_Remediation
-phase_status: dependency_packaging_verified
+phase_status: structural_adapter_validation_verified
 active_slice: none
-gate_id: mib-studio-docker-real-backend-deps
+gate_id: mib-studio-export-adapter-artifact-validation
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,24 +53,25 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-docker-real-backend-deps
+  gate: mib-studio-export-adapter-artifact-validation
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: package real Transformers/PEFT LoRA backend dependencies into exported runtimes
+  objective: prevent malformed fixture adapter files from being packaged as valid exports
   evidence:
+    export_adapter_validation: artifacts/review/export_adapter_validation_evidence.md
     docker_real_backend_deps: artifacts/review/docker_real_backend_deps_evidence.md
     real_adapter: artifacts/review/real_adapter_inference_evidence.md
     phi_runtime: artifacts/review/phi_strict_cache_runtime_evidence.md
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
-    - requirements-runtime.txt now includes torch, transformers, peft, accelerate, bitsandbytes, sentencepiece, safetensors, and protobuf for CUDA lora_adapter inference
-    - Docker context tar test asserts requirements-runtime.txt includes the real backend dependency subset
-    - root requirements.txt and runtime requirements are checked for matching CUDA dependency subset
-    - temp Docker image build from Dockerfile.cuda plus updated requirements-runtime.txt succeeded
-    - temp image import probe passed for torch, transformers, peft, safetensors, accelerate, and bitsandbytes
-    - bitsandbytes import emitted a CPU gemm kernels warning, but import returned successfully
+    - export.py now validates adapter_config.json before copying adapter files
+    - CUDA lora_adapter export now rejects malformed adapter.safetensors files
+    - CUDA lora_adapter export now requires a non-empty safetensors tensor container
+    - MLX adapter export now requires a valid npz container with at least one npy payload
+    - export tests now generate minimal structured safetensors/npz adapters instead of arbitrary bytes
+    - malformed safetensors and adapter_config format mismatch tests pass
     - no real trained CUDA lora_adapter artifact is still available in this environment
     - M6-RC remains NOT_GO until real trained adapter inference evidence or an explicit release policy accepts fixture-adapter endpoint evidence
 
@@ -111,9 +112,12 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: docker_real_backend_dependency_packaging_verified
+status: structural_adapter_export_validation_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_manifest.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_api.py tests/export/test_docker_export_security.py -q
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_exported_runtime_smoke.py tests/export/test_package_playground_export_output_parity.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_docker_export_security.py -q
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_manifest.py tests/export/test_exported_runtime_smoke.py -q
   - docker build temp context with Dockerfile.cuda and updated requirements-runtime.txt
@@ -124,6 +128,7 @@ passed:
 warnings:
   - M6-RC decision remains NOT_GO
   - no real trained CUDA lora_adapter artifact was found
+  - structural adapter validation does not prove training provenance or endpoint inference
   - dependency packaging is verified for new exports, but no-fake-backend endpoint transcripts still require a real adapter
   - bitsandbytes import emits a CPU gemm kernels warning in the temp Docker image
   - previous endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
@@ -148,6 +153,7 @@ recorded_go:
   Phi_Docker_Endpoint_Path_With_Fixture_Adapter: true
   Real_Adapter_Evidence_Search_Completed: true
   Exported_Runtime_Real_Backend_Dependencies_Packaged: true
+  Export_Adapter_Structural_Validation: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -155,9 +161,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 active_gate:
-  id: mib-studio-docker-real-backend-deps
+  id: mib-studio-export-adapter-artifact-validation
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/docker_real_backend_deps_evidence.md
+  review_bundle: artifacts/review/export_adapter_validation_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -173,6 +179,7 @@ operator_blockers:
   - real trained CUDA lora_adapter endpoint evidence is not yet present
   - no real trained CUDA lora_adapter artifact was found in repo or current /tmp artifacts
   - no-fake-backend endpoint transcripts are still missing after dependency packaging because no real adapter exists
+  - export structural validation cannot establish training provenance
   - Gemma remains gated without credentials, but Phi strict cache is available under /tmp/mib-strict-model-cache-phi
 
 security_deferred:
@@ -209,7 +216,10 @@ fake backend due TRANSFORMERS_BACKEND_UNAVAILABLE from missing peft. Docker real
 backend dependency packaging is recorded in
 artifacts/review/docker_real_backend_deps_evidence.md: requirements-runtime.txt
 now includes torch/transformers/peft/safetensors/accelerate/bitsandbytes and a
-temp Docker image import probe passed. M6-RC remains NOT_GO until real trained
-adapter inference evidence exists or the release policy explicitly accepts
-fixture-adapter endpoint evidence. Use .venv for Python.
+temp Docker image import probe passed. Export adapter structural validation is
+recorded in artifacts/review/export_adapter_validation_evidence.md: malformed
+adapter.safetensors and adapter_config format mismatches are rejected before
+packaging. M6-RC remains NOT_GO until real trained adapter inference evidence
+exists or the release policy explicitly accepts fixture-adapter endpoint
+evidence. Use .venv for Python.
 ```

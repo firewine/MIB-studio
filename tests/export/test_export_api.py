@@ -4,8 +4,10 @@ import json
 import zipfile
 from pathlib import Path
 
+import numpy as np
 import pytest
 import yaml
+from safetensors.numpy import save_file
 
 from services.shared.db.models import AgentPackage, ExportArtifact, ModelRun
 from services.api.app.services.agent_contract import contract_sha256
@@ -13,6 +15,25 @@ from services.shared.db.session import create_sqlite_engine, session_factory
 from services.worker.handlers.export import run_zip_export_job
 from tests.agent_package.test_verifier import create_package
 from tests.eval.test_benchmark_report import auth_headers, call_api, client_for
+
+
+def write_valid_cuda_adapter(adapter_dir: Path) -> None:
+    save_file(
+        {"base_model.model.router.lora_A.weight": np.ones((1, 1), dtype=np.float32)},
+        adapter_dir / "adapter.safetensors",
+    )
+    (adapter_dir / "adapter_config.json").write_text(
+        json.dumps({"format": "lora_adapter", "peft_type": "LORA"}, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def write_valid_mlx_adapter(adapter_dir: Path) -> None:
+    np.savez(adapter_dir / "adapters.npz", layers_0=np.ones((1,), dtype=np.float32))
+    (adapter_dir / "adapter_config.json").write_text(
+        json.dumps({"format": "mlx_lora_adapter"}, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 async def create_exportable_package(tmp_path: Path) -> tuple[str, Path, dict[str, str]]:
@@ -26,11 +47,9 @@ async def create_exportable_package(tmp_path: Path) -> tuple[str, Path, dict[str
             adapter_dir = tmp_path / "adapters" / model_run.id
             adapter_dir.mkdir(parents=True)
             if model_run.backend == "mlx":
-                (adapter_dir / "adapters.npz").write_bytes(b"mlx adapter")
-                (adapter_dir / "adapter_config.json").write_text('{"format":"mlx_lora_adapter"}\n', encoding="utf-8")
+                write_valid_mlx_adapter(adapter_dir)
             else:
-                (adapter_dir / "adapter.safetensors").write_bytes(b"cuda adapter")
-                (adapter_dir / "adapter_config.json").write_text('{"format":"lora_adapter"}\n', encoding="utf-8")
+                write_valid_cuda_adapter(adapter_dir)
             model_run.adapter_path = str(adapter_dir)
             session.commit()
     finally:

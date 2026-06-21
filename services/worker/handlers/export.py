@@ -158,13 +158,70 @@ def _copy_adapter(*, model_run: ModelRun, contract: dict[str, Any], root: Path) 
     backend_format = "mlx_lora_adapter" if model_run.backend == "mlx" else "lora_adapter"
     if adapter_format != backend_format:
         raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", "AgentContract adapter format does not match ModelRun backend.")
+    source_files: dict[str, Path] = {}
     for relative in expected:
         src = source / Path(relative).name
         if not src.is_file():
             raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", f"Missing adapter file: {relative}")
+        source_files[relative] = src
+    _validate_adapter_files(adapter_format=adapter_format, source_files=source_files)
+    for relative, src in source_files.items():
         _copy(src, root / relative)
 
 def _adapter_required_paths(adapter_format: str) -> list[str]: return ADAPTER_PATHS.get(adapter_format, ADAPTER_PATHS["lora_adapter"])
+
+
+def _validate_adapter_files(*, adapter_format: str, source_files: dict[str, Path]) -> None:
+    _validate_adapter_config(source_files["adapter/adapter_config.json"], adapter_format)
+    if adapter_format == "mlx_lora_adapter":
+        _validate_mlx_npz(source_files["adapter/adapters.npz"])
+        return
+    _validate_safetensors(source_files["adapter/adapter.safetensors"])
+
+
+def _validate_adapter_config(path: Path, adapter_format: str) -> None:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", "Invalid adapter_config.json: expected JSON object.") from exc
+    if not isinstance(raw, dict):
+        raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", "Invalid adapter_config.json: expected JSON object.")
+    declared_format = raw.get("format")
+    if declared_format is not None and declared_format != adapter_format:
+        raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", "adapter_config.json format mismatch.")
+    if adapter_format == "lora_adapter":
+        peft_type = raw.get("peft_type")
+        if peft_type is not None and str(peft_type).upper() != "LORA":
+            raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", "adapter_config.json peft_type mismatch.")
+        if declared_format is None and peft_type is None:
+            raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", "adapter_config.json must declare format or peft_type.")
+        return
+    if declared_format != adapter_format:
+        raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", "adapter_config.json format mismatch.")
+
+
+def _validate_safetensors(path: Path) -> None:
+    try:
+        from safetensors import safe_open
+
+        with safe_open(path, framework="numpy") as handle:
+            keys = list(handle.keys())
+            if not keys:
+                raise ValueError("no tensors")
+            if not any(getattr(handle.get_tensor(key), "size", 0) > 0 for key in keys):
+                raise ValueError("no non-empty tensors")
+    except Exception as exc:
+        raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", f"Invalid adapter file: {path.name}.") from exc
+
+
+def _validate_mlx_npz(path: Path) -> None:
+    try:
+        with zipfile.ZipFile(path) as archive:
+            names = [name for name in archive.namelist() if name.endswith(".npy")]
+            if not names:
+                raise ValueError("no npy arrays")
+    except Exception as exc:
+        raise ExportError("EXPORT_ADAPTER_FORMAT_MISMATCH", f"Invalid adapter file: {path.name}.") from exc
 
 
 def _validate_job(job: Job, export: ExportArtifact) -> None:

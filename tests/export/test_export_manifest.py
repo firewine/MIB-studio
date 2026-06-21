@@ -87,3 +87,69 @@ async def test_export_rejects_adapter_format_mismatch(tmp_path: Path) -> None:
                 run_zip_export_job(session, mib_home, accepted.json()["job_id"])
     finally:
         engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_export_rejects_malformed_safetensors_adapter(tmp_path: Path) -> None:
+    database_url, mib_home, package = await create_exportable_package(tmp_path)
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            model_run = session.get(ModelRun, package["model_run_id"])
+            assert model_run is not None
+            adapter_dir = Path(str(model_run.adapter_path))
+            (adapter_dir / "adapter.safetensors").write_bytes(b"cuda adapter")
+            session.commit()
+    finally:
+        engine.dispose()
+
+    async with client_for(database_url, mib_home) as client:
+        accepted = await call_api(
+            client.post(
+                f"/projects/{package['project_id']}/export",
+                json={"agent_package_id": package["id"], "export_type": "zip"},
+                headers=auth_headers(),
+            )
+        )
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            with pytest.raises(ExportError, match="Invalid adapter file: adapter.safetensors"):
+                run_zip_export_job(session, mib_home, accepted.json()["job_id"])
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_export_rejects_adapter_config_format_mismatch(tmp_path: Path) -> None:
+    database_url, mib_home, package = await create_exportable_package(tmp_path)
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            model_run = session.get(ModelRun, package["model_run_id"])
+            assert model_run is not None
+            adapter_dir = Path(str(model_run.adapter_path))
+            (adapter_dir / "adapter_config.json").write_text('{"format":"mlx_lora_adapter"}\n', encoding="utf-8")
+            session.commit()
+    finally:
+        engine.dispose()
+
+    async with client_for(database_url, mib_home) as client:
+        accepted = await call_api(
+            client.post(
+                f"/projects/{package['project_id']}/export",
+                json={"agent_package_id": package["id"], "export_type": "zip"},
+                headers=auth_headers(),
+            )
+        )
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    try:
+        with factory() as session:
+            with pytest.raises(ExportError, match="adapter_config.json format mismatch"):
+                run_zip_export_job(session, mib_home, accepted.json()["job_id"])
+    finally:
+        engine.dispose()

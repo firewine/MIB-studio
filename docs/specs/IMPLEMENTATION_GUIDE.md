@@ -33,6 +33,7 @@
 3. docs/specs/ARCHITECTURE.md의 DB/API/Job/Artifact 계약
 4. schemas/openapi.json과 apps/desktop/src/lib/generated.ts
 5. 현재 phase에서 직접 참조된 spec, fixture, schema
+6. 현재 phase handoff manifest: docs/handoffs/M{n}.md
 ```
 
 핸드오프 프롬프트에는 반드시 다음 제약을 포함한다.
@@ -485,6 +486,15 @@ M1 smoke:
 - `scripts/bootstrap_dev.sh --phase m1-smoke --skip-install` and `scripts/bootstrap_dev.ps1 -Phase m1-smoke -SkipInstall` fail with exit code 5 if required M1 smoke files are missing, and otherwise run `tests/smoke/test_m1_smoke.py`.
 ```
 
+M1 final acceptance extends the early smoke after M1-003/M1-005/M1-007:
+
+```text
+- Project create/list/read/update/archive works and archived mutation guards return 409 PROJECT_ARCHIVED.
+- Router examples >=20 build a schema-valid Dataset JSONL with Example rows.
+- App restart preserves Project, Dataset, Example, and Job state.
+- Desktop shell happy path reaches ProjectCreateWizard -> ExampleGrid -> DatasetBuildResult -> HardwareDoctorPanel without DTO drift.
+```
+
 ### 4.3 seed 파일 최소 내용
 
 `presets/model_catalog.yaml`:
@@ -550,7 +560,7 @@ models:
 Day-0 model catalog fill:
 
 - The scaffold template may contain `M1_DAY0_FILL` only before the networked fill step.
-- M1 Day-0 must run `python scripts/fill_model_catalog.py --catalog presets/model_catalog.yaml --models google/gemma-2b-it microsoft/Phi-3.5-mini-instruct`.
+- M1 Day-0 must run `python3 scripts/fill_model_catalog.py --catalog presets/model_catalog.yaml --models google/gemma-2b-it microsoft/Phi-3.5-mini-instruct`.
 - Gated HF repos require `HF_TOKEN` (or `HUGGING_FACE_HUB_TOKEN`/`HUGGINGFACE_TOKEN`) with accepted model terms before running the fill command. `scripts/fill_model_catalog.py` also loads these token names from local ignored `.env` when the variables are not already exported.
 - Gated HF runbook:
   1. Do not paste tokens into docs, Git, issue comments, chat, or logs.
@@ -591,8 +601,8 @@ Day-0 model catalog fill:
      PY
      ```
   4. Confirm that this exact HF account accepted the `google/gemma-2b-it` terms and can view the repo files in the browser.
-  5. Rerun `python scripts/fill_model_catalog.py --catalog presets/model_catalog.yaml --models google/gemma-2b-it microsoft/Phi-3.5-mini-instruct`.
-  6. Run strict verification: `python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json`.
+  5. Rerun `python3 scripts/fill_model_catalog.py --catalog presets/model_catalog.yaml --models google/gemma-2b-it microsoft/Phi-3.5-mini-instruct`.
+  6. Run strict verification: `python3 scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_strict_report.json`.
   7. If HF still returns 401/403, wait for access propagation or create a fresh read token for the same account; fine-grained tokens must include read access to the gated model repo.
 - The fill script resolves HF commit SHA, config/tokenizer metadata, and all required model weight shard SHA256/size metadata, then rewrites `presets/model_catalog.yaml`.
 - Local pre-M0 template experiments may run `verify_model_catalog.py --no-download --allow-day0-placeholders` explicitly, outside PR CI and outside bootstrap.
@@ -613,17 +623,17 @@ python-audit:
   mlx command: pip-audit -r requirements-mlx.txt -r requirements-dev.txt
   rule: run profile-specific jobs separately; never resolve requirements.txt and requirements-mlx.txt in one environment
 model-manifest:
-  CI command: python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_verification.json
+  CI command: python3 scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_verification.json
   local pre-M0 template-only command: add --allow-day0-placeholders explicitly; never use this in PR CI after M0 GO
   checks: exact two locked model IDs, canonical metadata, trust_remote_code=false, positive file sizes, safe relative paths, required config/tokenizer files, complete required weight shard set, 40-hex hf_commit_sha, and 64-hex sha256
 secret-scan:
   command: detect-secrets scan --all-files
 openapi-drift:
-  command: python scripts/export_openapi.py && git diff --exit-code schemas/openapi.json
+  command: python3 scripts/export_openapi.py && git diff --exit-code schemas/openapi.json
   M0 behavior: validates the Day-0 seed; after M1-001 creates FastAPI scaffold, the script compares app.openapi() with schemas/openapi.json
 code-shape:
-  command: python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
-  command: python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
+  command: python3 scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit
+  command: python3 scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json
 m1-security-smoke:
   scaffold: skip with explicit log
   MIB_CI_PHASE != scaffold: require tests/security and run pytest tests/security
@@ -739,6 +749,17 @@ CORS/preflight contract:
 ### 5.3 Pydantic DTO 기본형
 
 All DTOs live under `services/api/app/schemas/*.py`. `schemas/openapi.json` is generated from FastAPI and is the FE source of truth. It must include typed `components.schemas`, path parameters, request bodies, and response schemas for every endpoint in §5.4. `apps/desktop/src/lib/generated.ts` is generated from `schemas/openapi.json` and must expose DTO interfaces plus operation-level client types: `ApiOperationMap`, `ApiParams`, `ApiRequest`, `ApiResponse`, `ApiError`, and `TypedApiClient`. The file must start with:
+
+OpenAPI phase policy:
+
+```text
+- M0/M1 may carry the full-v0 OpenAPI contract so FE types and future locked UI states are stable.
+- A route whose implementation phase has not started must be a typed, no-side-effect locked stub.
+- Locked stubs return 409 `MILESTONE_LOCKED` with details `{required_milestone,current_milestone,operation_id}`.
+- Locked stubs must not create Job rows, DB domain rows, files, credentials, model-cache entries, network calls, or audit events except a sanitized request log if normal logging is enabled.
+- The implementation ticket for that phase replaces the stub with real service logic and must update tests from `test_*_milestone_locked` to behavior tests.
+- OpenAPI drift does not authorize early feature implementation. It only verifies the typed contract.
+```
 
 Request/response DTOs use Pydantic `model_config = ConfigDict(extra="forbid")` and OpenAPI `additionalProperties: false` by default. Only explicit JSON bag fields named `*_json`, `payload`, `details`, `packet_preview`, `pii_summary`, or `local_large_config` may allow additional properties.
 
@@ -1533,10 +1554,12 @@ All API errors use `ErrorResponse`. `details` must match the schema below for ea
 | SSE | `EVENT_GAP` | 409 | yes | `{job_id,last_event_id,next_available_seq}` | refetch job + show stream gap |
 | Dataset | `DATASET_NOT_APPROVED` | 409 | after review | `{dataset_id,status}` | training locked reason |
 | Dataset | `TRAIN_EVAL_OVERLAP` | 409 | after split edit | `{dataset_id,eval_set_id,overlap_count}` | eval freeze blocked |
+| Dataset | `DATASET_HARD_NEGATIVE_MIN_NOT_MET` | 409 | after generation retry/new packet | `{project_id,required_count,actual_count}` | generation failed with hard-negative shortfall |
 | Teacher | `TEACHER_PACKET_APPROVAL_REQUIRED` | 409 | after approval | `{dataset_id,reason_code}` | open packet approval modal |
 | Teacher | `TEACHER_PACKET_APPROVAL_EXPIRED` | 409 | after new approval | `{approval_id,expired_at}` | refresh packet preview |
 | Teacher | `TEACHER_PACKET_ALREADY_USED` | 409 | after new approval | `{approval_id,used_job_id}` | force new approval |
 | Teacher | `TEACHER_PACKET_SHA_MISMATCH` | 409 | after preview refresh | `{approval_id}` | force new preview |
+| Milestone | `MILESTONE_LOCKED` | 409 | after milestone implementation | `{required_milestone,current_milestone,operation_id}` | disabled future-phase UI action |
 | Credential | `CREDENTIAL_REQUIRED` | 409 | after key save | `{provider}` | settings CTA |
 | Credential | `CREDENTIAL_REVOKED` | 409 | after key save | `{provider}` | settings CTA |
 | Credential | `KEYCHAIN_UNAVAILABLE` | 503 | after OS/keychain fix | `{provider,platform}` | settings error banner |
@@ -1918,6 +1941,9 @@ Files:
 - services/shared/security/auth.py
 - services/shared/security/origin.py
 - services/shared/security/redaction.py
+- apps/desktop/src/lib/api.ts
+- apps/desktop/src/lib/bootstrap.ts
+- apps/desktop/src-tauri/src/bootstrap.rs
 
 Done:
 - /healthz 200
@@ -1929,6 +1955,11 @@ Done:
 - standard error handler
 - trace_id response header
 - app auth token is never written to log, DB, JobEvent, AuditEvent, keychain, `.env`, or `.mib-dev-token` except dev-only `token_file` mode. HF model-catalog tokens are allowed only in local ignored `.env` for Day-0 catalog fill and are never logged or persisted by the app.
+
+Tests:
+- tests/api/test_auth_bootstrap.py
+- apps/desktop/src/lib/api.test.ts
+- tests/api/test_future_endpoint_milestone_locked.py
 ```
 
 ### M1-002 DB migration + seed preset
@@ -2006,6 +2037,12 @@ Done:
 - HardwareProfile row 생성
 - G0/G1/G2 반환
 - unsupported GPU면 train button disabled reason 제공
+
+Tests:
+- tests/hardware/test_hardware_doctor_g0_cpu_only.py
+- tests/hardware/test_hardware_doctor_g1_low_vram.py
+- tests/hardware/test_hardware_doctor_g2_supported.py
+- tests/hardware/test_training_disabled_reason_codes.py
 ```
 
 ### M1-007 Desktop shell + core screens
@@ -2024,7 +2061,11 @@ Screens:
 Done:
 - API client가 bearer token을 붙인다.
 - JobMonitor가 SSE 또는 polling으로 JobEvent를 보여준다.
-- 앱 재시작 후 Project/Dataset/Job 상태가 유지된다.
+- 앱 재시작 후 Project/Dataset/Example/Job 상태가 유지된다.
+
+Tests:
+- apps/desktop/e2e/m1_happy_path.spec.ts
+- tests/smoke/test_m1_restart_persistence.py
 ```
 
 ---
@@ -2044,9 +2085,10 @@ Endpoints:
 Done:
 - `purpose='teacher_guard'` EvalSet is created from 20..50 approved pre-teacher examples before any teacher_synthetic dataset_gen job.
 - `teacher_guard` proves the pre-teacher holdout was frozen; it is not valid for release benchmark claims.
-- `purpose='benchmark_gold'` EvalSet requires 200..300 approved examples, >=3 labelers, and kappa>=0.70. M4 benchmark jobs require this purpose for user-project claims.
+- `purpose='benchmark_gold'` EvalSet requires 200..300 approved examples, >=3 labelers, and EvalSet labeler kappa>=0.70. M4 benchmark jobs require this purpose for user-project claims.
 - `purpose='finance_reference'` is the fixed finance 6-route acceptance profile used for v0 release/regression; it is separate from arbitrary user projects.
 - `test_eval_train_no_overlap` blocks exact duplicate input_sha256 and embedding-similar leakage for benchmark_gold and finance_reference.
+- `test_teacher_guard_synthetic_exact_overlap_zero` blocks exact duplicate input_sha256 between the pre-teacher `teacher_guard` EvalSet and the generated `teacher_synthetic` dataset path.
 - EvalSet.frozen_at, sha256, purpose, labeler_ids, kappa, and route_snapshot_sha256 are recorded.
 ```
 
@@ -2090,8 +2132,40 @@ Done:
 - BYO OpenAI-compatible base_url allowlist 적용
 - `DatasetGenParams.teacher_packet_approval_id`가 unexpired이고 packet_sha256이 재계산값과 일치해야 함
 - response JSON schema validation
-- generated examples는 approved=false로 저장
-- 사용자가 approve/reject/edit 후 dataset v1 저장
+- teacher-generated examples는 총 200개 이상 생성하고 schema-valid 100%여야 함
+- generated examples는 approved=false, review_status='PENDING'으로 저장
+- 사용자가 generated sample 100%를 approve/reject/edit 처리해야 dataset v1 저장 가능
+
+Tests:
+- tests/dataset/test_teacher_synthetic_min200_schema_valid.py
+- tests/dataset/test_generated_examples_require_review_decision.py
+- tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py
+```
+
+### M2-004 Hard negative generation
+
+```text
+Files:
+- services/worker/handlers/dataset_gen.py
+- services/api/app/services/dataset_service.py
+- services/shared/db/repositories/dataset_store.py
+- tests/dataset/test_hard_negative_generation.py
+
+Job params:
+- generation_mode='teacher_synthetic'
+- hard_negative_min_count=40
+
+Done:
+- The 200+ teacher-generated examples include at least 40 examples with Example.source='hard_negative'.
+- Hard negatives target unsafe/ambiguous route boundaries from the ProjectRoute snapshot and must validate against router_input/router_output schemas.
+- Hard negatives follow the same review lifecycle as teacher examples: PENDING -> APPROVED/REJECTED/EDITED before dataset v1 approval.
+- `dataset_gen` JobEvent metrics include `generated_count`, `hard_negative_count`, `validated_count`, and `rejected_count`; raw prompts and raw generated text are forbidden in JobEvent payloads.
+- If the teacher returns fewer than 40 schema-valid hard negatives after retry budget, the job fails with `DATASET_HARD_NEGATIVE_MIN_NOT_MET` and no APPROVED dataset version is created.
+
+Tests:
+- tests/dataset/test_hard_negative_min_count.py
+- tests/dataset/test_hard_negative_review_lifecycle.py
+- tests/dataset/test_dataset_gen_event_payload_redaction.py
 ```
 
 ---
@@ -2183,6 +2257,31 @@ Done:
 - tests cover dataset mismatch, config mismatch, missing artifact, optimizer/RNG warning, and successful resume from checkpoint.
 ```
 
+### M3-005 Dry-run + OOM isolation
+
+```text
+Files:
+- services/worker/handlers/train_cuda.py
+- services/worker/runtime/llamafactory.py
+- services/worker/runtime/mlx_lm.py
+- services/shared/db/repositories/training_store.py
+- tests/training/test_dry_run_estimate.py
+- tests/training/test_cuda_oom_isolation.py
+
+Done:
+- dry_run mode runs preflight/tokenization/config materialization and a bounded short probe without writing AdapterArtifact.
+- dry_run emits predicted_vram_peak_mb, observed_vram_peak_mb when available, tokens_per_sec, predicted_duration_seconds, and estimate_error_pct.
+- M3 KPI accepts dry-run only when predicted_duration_seconds and predicted_vram_peak_mb are within ±30% of the bounded short-run evidence for the same backend/model/dataset class.
+- simulated CUDA OOM maps to Job.error_class='CUDA_OOM', terminal Job.status='FAILED', terminal ModelRun.status='FAILED', and sanitized JobEvent(error).
+- CUDA OOM must not terminate the Daemon process or FE JobMonitor; SSE/polling shows the terminal error state.
+- MLX memory-pressure failures map to a backend-specific error_class and follow the same worker isolation rule.
+
+Tests:
+- tests/training/test_dry_run_estimate.py
+- tests/training/test_cuda_oom_isolation.py
+- tests/training/test_job_monitor_survives_worker_oom.py
+```
+
 ---
 
 ## 11. M4 Eval / Benchmark 구현 티켓
@@ -2192,7 +2291,7 @@ Done:
 ```text
 Done:
 - M2-000 EvalSet API/service/tests are reused.
-- M4 verifies EvalSet.purpose in {'benchmark_gold','finance_reference'}, frozen_at, sha256, labeler_ids, kappa, and route_snapshot_sha256 before creating benchmark jobs.
+- M4 verifies EvalSet.purpose in {'benchmark_gold','finance_reference'}, frozen_at, sha256, labeler_ids, EvalSet labeler kappa>=0.70, and route_snapshot_sha256 before creating benchmark jobs.
 - teacher synthetic 생성 이후 eval set 수정 금지
 ```
 
@@ -2227,6 +2326,7 @@ Done:
 - failed target object records `target_status='FAILED'`, `error_reason`, and no metric objects
 - skipped optional local_large target object records `target_status='SKIPPED_OPTIONAL'`, `seeds=[0]`, `skip_reason`, and no metric objects
 - `target_status=COMPLETED|FAILED|SKIPPED_OPTIONAL` 기록
+- If an LLM judge metric is used, the report evidence bundle records human-gold judge agreement. If judge agreement kappa<0.70, judge metric output is excluded from release claims and deterministic rule metrics are used instead.
 - `report_sha256` 기록 및 `GET /benchmarks/{id}/report`에서 재계산 검증
 - 수기 metric 입력 UI 없음
 ```
@@ -2272,6 +2372,14 @@ Checks:
 Endpoint:
 - POST /agent-packages/{id}/playground-runs
 
+Files:
+- services/api/app/routes/playground.py
+- services/api/app/services/playground_service.py
+- services/worker/runtime/local_inference.py
+- packages/agent-runtime/core/router_inference.py
+- tests/playground/test_playground_local_inference.py
+- tests/playground/test_playground_audit_coverage.py
+
 Done:
 - user input → local runtime inference
 - JSON response 표시
@@ -2279,6 +2387,17 @@ Done:
 - fallback은 사용자 승인 전 호출하지 않음
 - enabled fallback resolves local credentials from OS keychain by provider; missing key returns 409 `FALLBACK_CREDENTIAL_REQUIRED`
 - Local Daemon에는 `/agents/{agent_id}/run`을 만들지 않는다. 해당 route는 exported runtime 전용이다.
+- `playground_service` loads AgentPackage + ModelRun adapter and calls `run_router_inference(...)` from a shared pure inference core.
+- `packages/agent-runtime/core/router_inference.py` must not import FastAPI, SQLAlchemy, Tauri, keychain, or Local Daemon services; it owns adapter invocation and router output normalization only.
+- M6 exported runtime reuses or copies the same inference core. Do not create a second divergent route-selection implementation in M6 templates.
+- canned playground regression set includes 20 inputs and must reach schema adherence 100%.
+- every PlaygroundRun writes an audit/event record with agent_package_id, contract_sha256, verifier status, fallback_decision, and no raw credential.
+
+Tests:
+- tests/playground/test_playground_local_inference.py
+- tests/playground/test_playground_canned20_schema_adherence.py
+- tests/playground/test_playground_no_auto_fallback_call.py
+- tests/playground/test_playground_audit_coverage.py
 ```
 
 ---
@@ -2327,7 +2446,7 @@ M0 scaffold status:
 
 M6 acceptance criteria:
 - Docker 미설치 환경에서도 zip export 성공
-- Zip export is runnable with `MIB_MODEL_CACHE_DIR=<strict-cache> MIB_RUNTIME_BEARER_TOKEN=<32+ chars> python -m uvicorn agents.run:app --host 127.0.0.1 --port 8000` after installing `requirements-runtime.txt`.
+- Zip export is runnable from the extracted runtime directory with `cd <extracted_zip>/runtime && MIB_MODEL_CACHE_DIR=<strict-cache> MIB_RUNTIME_BEARER_TOKEN=<32+ chars> python3 -m uvicorn agents.run:app --host 127.0.0.1 --port 8000` after installing `requirements-runtime.txt`.
 - `agents.run:app` loads the exported adapter and base-model metadata through a backend-specific loader (`transformers_lora` for CUDA, `mlx_lora` for MLX) before serving requests.
 - `/agents/{agent_id}/run` executes real adapter inference, then validates the response against `schemas/router_output.schema.json`.
 - `/v1/chat/completions` converts the OpenAI-compatible request into the native router input, executes the same adapter path, and returns equivalent route/confidence JSON in the assistant message.
@@ -2338,8 +2457,9 @@ M6 acceptance criteria:
 - ExportParams.agent_package_id는 필수이며, export job params에 저장한다.
 - `GET /exports/{job_id}` returns ExportRead from ExportArtifact, not AgentPackage mutable fields
 - `GET /exports/{job_id}/artifact` and `POST /exports/{job_id}/reveal` require ExportArtifact.status='SUCCEEDED' and artifact hash recomputation success
-- `tests/export/test_exported_runtime_smoke.py` starts the zip runtime with `uvicorn agents.run:app`, sends native and OpenAI-compatible requests, verifies bearer auth, verifies `NativeRunResponse.output` against output_schema, and checks route_allowed fallback behavior.
+- `tests/export/test_exported_runtime_smoke.py` starts the zip runtime with `cwd=<extracted_zip>/runtime` and `uvicorn agents.run:app`, sends native and OpenAI-compatible requests, verifies bearer auth, verifies `NativeRunResponse.output` against output_schema, and checks route_allowed fallback behavior.
 - `tests/export/test_exported_adapter_load.py` must fail if `run.py` returns hardcoded routes or if either loader only returns metadata without invoking the backend inference library.
+- `tests/export/test_package_playground_export_output_parity.py` runs the same temperature=0 canned inputs through package/playground/export paths and requires equivalent route/confidence JSON within documented deterministic tolerance.
 ```
 
 Base model materialization:
@@ -2397,7 +2517,7 @@ Export `manifest.json` schema:
     "native_endpoint": "/agents/{agent_id}/run",
     "openai_endpoint": "/v1/chat/completions",
     "entrypoint": "agents.run:app",
-    "run_command": "python -m uvicorn agents.run:app --host 127.0.0.1 --port 8000",
+    "run_command": "cd runtime && python3 -m uvicorn agents.run:app --host 127.0.0.1 --port 8000",
     "compatible_backends": ["cuda"],
     "requires_bearer_token_env": "MIB_RUNTIME_BEARER_TOKEN",
     "requires_bearer_token_min_length": 32
@@ -2457,6 +2577,7 @@ M6 acceptance criteria:
 - Dockerfile uses a pinned base image digest, non-root user, explicit exposed port, healthcheck, no local daemon token, and `MIB_RUNTIME_BEARER_TOKEN`/fallback keys only via runtime env.
 - Docker image must not contain base-model weights. Docker run documentation mounts `MIB_MODEL_CACHE_DIR` read-only and the runtime verifies strict hashes before serving.
 - Docker smoke runs the saved image tar with a read-only model-cache mount, verifies `/agents/{agent_id}/run` and `/v1/chat/completions`, runs export secret scan on the build context and image tar/layers, and records SBOM/CVE evidence.
+- v0 RC requires Docker smoke evidence for at least one CUDA/lora_adapter package. For MLX/mlx_lora_adapter packages, required evidence is zip-native smoke plus Docker request returning 409 `DOCKER_UNAVAILABLE`.
 - M6 CI requires `tests/export` to cover manifest schema validation, required file roles, zip runtime smoke, real adapter load/inference, Dockerfile non-root/base digest checks, SBOM generation, CVE scan evidence, and `scripts/scan_export_artifact.py --artifact <artifact>`.
 ```
 
@@ -2968,12 +3089,12 @@ M0 cannot become GO until these are true.
 Mandatory code-quality commands:
 
 ```bash
-python scripts/check_file_size.py \
+python3 scripts/check_file_size.py \
   --config rules/code_shape.json \
   --json-output artifacts/review/file_size_report.json \
   --fail-on-hard-limit
 
-python scripts/check_import_boundaries.py \
+python3 scripts/check_import_boundaries.py \
   --rules rules/code_shape.json \
   --json-output artifacts/review/import_boundary_report.json
 ```

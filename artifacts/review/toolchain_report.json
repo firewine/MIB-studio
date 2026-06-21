@@ -3,7 +3,7 @@
     "node": "24.10.0",
     "pnpm": "9.15.0",
     "python": "3.11.14",
-    "rust": "info: syncing channel updates for 1.83.0-aarch64-apple-darwin\nerror: could not create temp file /Users/june/.rustup/tmp/2vwo4sumc56ypd1d_file: Operation not permitted (os error 1)",
+    "rust": "info: syncing channel updates for 1.83.0-aarch64-apple-darwin\nerror: could not create temp file /Users/june/.rustup/tmp/xs835wrvmk7c_ddu_file: Operation not permitted (os error 1)",
     "sqlite": "3.50.4"
   },
   "checks": {

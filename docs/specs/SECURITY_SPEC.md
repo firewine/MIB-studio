@@ -133,9 +133,9 @@ Required rejection:
 - pip-audit/Dependabot로 의존성 CVE 점검(bitsandbytes 등).
 - CI 통합: `.github/workflows/security.yml` — profile-specific pip-audit, model manifest 검증, repo secret scan, pnpm audit, Rust/Tauri audit gate, export secret scan contract를 Phase 1부터 필수 잡(ARCHITECTURE §31.3 CI에 보안 단계 추가).
 - 모델 매니페스트: `presets/model_catalog.yaml`의 각 model은 `hf_commit_sha`, `trust_remote_code=false`, `files[{path,sha256,size_bytes,required}]`를 가진다. M1 strict catalog는 모델마다 최소 1개 이상의 required weight shard(`model.safetensors`, `model-*.safetensors`, `pytorch_model.bin`, `pytorch_model-*.bin`)를 포함해야 한다.
-- 검증 스크립트: `python scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_verification.json`는 40-hex commit/hash 누락, `trust_remote_code=true`, 중복 model id, required weight shard 누락, 64-hex가 아닌 file sha256을 실패 처리한다. 현재 M0 GO 이후 PR/CI/부트스트랩은 strict mode만 증거로 인정하며, `--allow-day0-placeholders`는 local pre-M0 template 실험용 예외다.
+- 검증 스크립트: `python3 scripts/verify_model_catalog.py --catalog presets/model_catalog.yaml --no-download --json-output artifacts/security/model_manifest_verification.json`는 40-hex commit/hash 누락, `trust_remote_code=true`, 중복 model id, required weight shard 누락, 64-hex가 아닌 file sha256을 실패 처리한다. 현재 M0 GO 이후 PR/CI/부트스트랩은 strict mode만 증거로 인정하며, `--allow-day0-placeholders`는 local pre-M0 template 실험용 예외다.
 - dependency file 정책: `requirements.txt`, `requirements-mlx.txt`, `requirements-dev.txt`는 정확한 version pin을 사용한다. 범위 지정(`>=`, `~=`)은 CI 실패다.
-- export secret scan: M6 export job은 artifact 생성 후 `python scripts/scan_export_artifact.py --artifact <zip-or-dir>`를 실행한다. API key, bearer token, raw credential pattern이 하나라도 발견되면 export job은 FAILED가 되고 ExportArtifact.status도 FAILED다.
+- export secret scan: M6 export job은 artifact 생성 후 `python3 scripts/scan_export_artifact.py --artifact <zip-or-dir>`를 실행한다. API key, bearer token, raw credential pattern이 하나라도 발견되면 export job은 FAILED가 되고 ExportArtifact.status도 FAILED다.
 - Node/Rust scans: `corepack pnpm audit --audit-level high`는 high 이상 advisory가 있으면 실패한다. `cargo audit --file src-tauri/Cargo.lock`은 Tauri scaffold 후 필수이며, scaffold 전에는 workflow가 명시적으로 skip 로그를 남긴다.
 - 향후 Recipe Hub/Domain Pack: 서명·코드리뷰·재현빌드 요구.
 ```

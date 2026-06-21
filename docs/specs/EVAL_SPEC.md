@@ -117,8 +117,8 @@ AgentBench가 제품의 간판이 되려면 아래를 코드와 리포트에 강
    - 예: accuracy 91.2% ± 1.8% (n=500, 5 seeds), 95% CI [88.9, 93.5].
 
 3. LLM-as-judge 검증
-   - judge 사용 지표는 human-gold와의 일치도 Cohen's κ 공개.
-   - κ ≥ 0.70이면 사용, 미만이면 rule 기반 결정적 metric으로 대체.
+   - judge 사용 지표는 human-gold와의 judge agreement Cohen's κ를 공개한다.
+   - judge agreement κ ≥ 0.70이면 judge metric을 release claim에 사용할 수 있고, 미만이면 judge metric은 제외하고 rule 기반 결정적 metric으로 대체한다.
    - judge는 temperature 0 + 프롬프트 버전 해시 고정.
 
 4. latency/cost 공정성(apples-to-apples)
@@ -173,7 +173,7 @@ Gold eval set 구성:
 - EvalSet.purpose='benchmark_gold': n=200~300, 사용자 프로젝트 route taxonomy 기준 production benchmark set.
 - EvalSet.purpose='finance_reference': n=200~300, finance 레퍼런스 6-route(PRESET_SPEC §6.3) 기준 v0 release/regression acceptance profile.
 - Day-0 smoke fixture: `examples/fixtures/gold_eval.finance.v1.jsonl`은 converter/schema/hash 테스트용 최소 20행 fixture이며, production EvalSet이나 release claim 근거로 사용할 수 없다.
-- 라벨: 도메인+보안 라벨러 3인 다수결, inter-rater Cohen's κ ≥0.70 기록
+- 라벨: 도메인+보안 라벨러 3인 다수결, EvalSet labeler inter-rater Cohen's κ ≥0.70 기록
 - 생성 시점: teacher synthetic '이전'에 고정. SHA256→EvalSet.sha256, frozen_at 기록.
 - 모든 EvalSet은 dataset route_snapshot_sha256을 기록한다. `benchmark_gold`는 해당 사용자 프로젝트 route snapshot과 같은 route ids/order를 사용해야 하고, `finance_reference`는 고정 finance 6-route snapshot만 사용한다.
 - hold-out: 최종 주장용 test set은 개발 중 비공개 별도 분할.

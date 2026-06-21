@@ -232,6 +232,7 @@ review grid 제공
 BYO OpenAI-compatible API key
 teacher prompt templates
 structured JSON output
+hard negative generation (teacher-generated 200 total 중 >=40 hard_negative)
 sample review UI
 approve/reject/edit
 teacher packet preview
@@ -240,7 +241,7 @@ teacher packet preview
 구현 순서:
 
 ```text
-1. IMPLEMENTATION_GUIDE §9 M2-001~M2-003 순서대로 구현.
+1. IMPLEMENTATION_GUIDE §9 M2-000~M2-004 순서대로 구현. M2-000은 모든 teacher_synthetic dataset_gen job의 선행 gate다.
 2. SECURITY_SPEC §19.4 keyring 저장을 먼저 끝낸 뒤 teacher 호출을 붙인다.
 3. SECURITY_SPEC §19.1 packet preview와 §19.6 PII masking audit를 UI/API에 연결한다.
 4. EvalSet freeze는 synthetic data 생성 전 강제한다(EVAL_SPEC §17.1).
@@ -279,7 +280,7 @@ dry-run training + 실시간 VRAM 가드
 구현 순서:
 
 ```text
-1. IMPLEMENTATION_GUIDE §10 M3-001~M3-004 순서대로 구현.
+1. IMPLEMENTATION_GUIDE §10 M3-000~M3-005 순서대로 구현. M3-001은 M3-000 model cache service 없이는 시작하지 않는다.
 2. train job은 ARCHITECTURE §8.1.2 claim 트랜잭션으로만 실행한다.
 3. CUDA wrapper와 MLX wrapper는 동일 Dataset JSONL을 입력으로 받는다.
 4. artifact는 ARCHITECTURE §8.3.1 원자성 규칙으로 저장한다.
@@ -413,11 +414,64 @@ Docker가 있는 환경에서는 exported container가
 /agents/{agent_id}/run API와 /v1/chat/completions API로 작동한다.
 ```
 
+### 22.7 M1~M6 단계 목표 / KPI Gate
+
+아래 KPI는 각 마일스톤의 CTO GO/NO-GO 판정 기준이다. 기능 구현 완료 선언은 금지하며, `증거` 컬럼의 자동화 로그·리뷰 산출물·스키마 검증 결과가 남아야 다음 단계로 넘어간다.
+
+| Milestone | 단계 달성 목표 | Hard KPI (GO 기준) | 필수 증거 | 즉시 NO-GO 조건 |
+|---|---|---|---|---|
+| M1 Core | Router 프로젝트 생성부터 JSONL 생성, SQLite 영속화, Hardware Doctor, 기본 UI/API/SSE 골격을 완성한다. | Router preset 선택→룰/예시 20개 입력→training JSONL schema validation 100%; Project/Dataset/Example/Job 재시작 복원 100%; OpenAPI/generated operation parity 100%; Hardware Doctor G0/G1/G2 분기 테스트 100%; code-shape/import-boundary violation 0 | M1 API/FE smoke transcript, JSONL validation report, Alembic upgrade/downgrade log, `foreign_key_check`/`integrity_check`, Hardware Doctor fixture report, OpenAPI parity report | JSONL 스키마 불일치, DB 재시작 후 데이터 손실, unsupported hardware에서 학습 버튼 활성화, API/FE DTO drift |
+| M2 Teacher Data | BYO teacher key, packet preview, PII masking, synthetic/hard-negative 생성, human review, dataset versioning을 완성한다. | OS keychain 저장 테스트 pass; raw API key/PII secret-log scan finding 0; teacher-generated record 200개 이상 schema-valid 100%; 그중 `source='hard_negative'` 40개 이상; 생성 샘플 100%가 approved/rejected/edited 상태를 거쳐 dataset v1 저장; EvalSet freeze가 synthetic 생성 전에 발생; teacher_guard와 teacher_synthetic dataset exact overlap 0 | keychain proof, packet preview vs outbound payload diff, PII masking audit, synthetic JSONL validation report, hard-negative validation report, review decision export, EvalSet SHA256/freeze log | 키 평문 저장, preview와 실제 outbound payload 불일치, review 없이 dataset version 생성, EvalSet freeze 누락 |
+| M3 Training | 잠금 v0 base model을 CUDA QLoRA 또는 MLX LoRA로 학습하고, checkpoint/resume, worker isolation, adapter artifact lineage를 완성한다. | strict model catalog verification errors 0; backend별 가능 장비에서 adapter 생성 smoke pass; cancel/resume round-trip pass; CUDA OOM 또는 simulated OOM 시 Daemon/UI 생존 및 `error_class=CUDA_OOM` 기록; dry-run 예상 시간/VRAM 오차 ±30% 이내; ModelRun/JobResource/AdapterArtifact linkage 100% | trainer config golden snapshot, model cache SHA256 verification, JobEvent replay log, checkpoint resume transcript, OOM isolation transcript, dry-run vs short-run comparison, adapter manifest | catalog hash 미검증 다운로드, resume 불가, OOM이 Daemon/UI를 죽임, adapter와 dataset/model_run lineage 추적 불가 |
+| M4 Benchmark | fine-tuned small agent를 prompt-only/teacher/rule-based/optional local-large와 재현 가능한 방식으로 비교하고 CUDA/MLX parity를 판정한다. | EvalSet sample 200~300, EvalSet labeler `kappa >= 0.70`; LLM judge metric을 쓰면 human-gold judge agreement를 기록하고 0.70 미만이면 judge metric을 release claim에서 제외하고 rule metric profile로 대체; overlap check `passed=true`; completed target은 seed 3개 이상, mean/SD/95% CI 포함; prompt_only/fine_tuned/teacher/rule_based target 모두 존재; local_large는 COMPLETED 또는 SKIPPED_OPTIONAL; report hash recompute VALID; CUDA/MLX parity PASS/FAIL 기록 | benchmark report JSON, overlap report, metric calculator test log, judge agreement note if judge is used, seed run artifacts, report hash verification, parity decision note | 수기 입력 benchmark 수치, train/eval 오염, seed/CI 누락, local_large unavailable을 FAILED로 처리, parity 판정 없이 공동 리포트 표시 |
+| M5 Package+Playground | 검증된 ModelRun을 Agent Contract로 패키징하고 Playground에서 schema/verifier/fallback/audit UX를 완성한다. | Agent Contract schema validation 100%; benchmark `COMPLETED` + report hash VALID인 ModelRun만 package 가능; Playground canned input 20개 schema adherence 100%; confidence threshold/fallback 표시 테스트 pass; 사용자 승인 없는 외부 fallback call 0; playground audit/event record coverage 100% | contract YAML validation, package manifest, verifier golden tests, Playwright playground transcript, fallback approval test, audit log sample | benchmark 미완료 모델 패키징, schema-invalid 응답 표시, fallback 자동 외부 호출, audit 누락 |
+| M6 Export / v0 RC | agent package zip과 Docker runtime export를 만들고, zip 단독 smoke와 Docker/OpenAI-compatible runtime smoke를 통과시킨다. | Docker 미설치 환경 zip export + native runtime smoke pass; export manifest file hash validation 100%; CUDA/lora_adapter package는 Docker 가능 환경에서 `/agents/{agent_id}/run` 200 + schema-valid, `/v1/chat/completions` compatibility smoke pass; MLX/mlx_lora_adapter package는 zip-native smoke가 필수이고 Docker export는 409 `DOCKER_UNAVAILABLE`이 기대 동작; temperature=0 고정 입력에 package/playground/export output parity pass; export secret scan finding 0; §33.7 v0 출시 게이트 전부 pass | zip native smoke log, Docker smoke log for CUDA package, MLX Docker-unavailable check when applicable, OpenAI-compatible request/response transcript, manifest hash report, export secret scan, v0 RC sign-off matrix | Docker 없으면 zip도 실패, export artifact에 secret 포함, OpenAI-compatible wrapper 미동작, package와 export 출력 불일치, v0 release gate 미충족 |
+
+KPI 운영 규칙:
+
+```text
+1. Hard KPI는 "최선 노력"이 아니라 GO/NO-GO 기준이다.
+2. 장비 의존 KPI(CUDA/MLX/Docker)는 해당 장비 lane의 evidence artifact로 증명한다. 장비가 없는 로컬 verify-only 결과는 wiring 증거일 뿐 release evidence가 아니다.
+3. KPI 수치를 낮추거나 scope를 바꾸려면 CTO_DECISION.md에 사유·위험·대체 KPI·후속 owner를 기록한다.
+4. 각 마일스톤 종료 리뷰는 §34.2 멀티에이전트 게이트와 §34.4 evidence bundle을 함께 만족해야 한다.
+```
+
+### 22.8 LLM 개발 흐름 / Handoff Runbook
+
+LLM 코딩 에이전트는 긴 문서를 요약해서 임의 구현하지 않는다. 각 마일스톤은 아래 순서로만 실행한다.
+
+```text
+1. 현재 Milestone의 §22 목표와 §22.7 KPI를 읽는다.
+2. IMPLEMENTATION_GUIDE의 해당 ticket 범위를 찾는다. `-000` prework ticket이 있으면 반드시 `-001`보다 먼저 끝낸다.
+3. ticket의 Files/Endpoints/Input/Output/Done을 구현 단위로 쪼갠다.
+4. API/DTO/DB/schema/env 중 하나라도 바뀌면 같은 ticket에서 OpenAPI, generated.ts, migration/model, repository, fixture/test를 함께 갱신한다.
+5. §22.7 필수 증거를 생성할 수 없는 상태면 기능 Done을 선언하지 않는다.
+6. 다음 Milestone은 이전 Milestone의 handoff artifact가 검증된 뒤 시작한다.
+```
+
+| Milestone | LLM 시작 입력 | 구현 ticket 순서 | 반드시 함께 갱신 | 종료 검증 / 증거 | 다음 단계 인계물 |
+|---|---|---|---|---|---|
+| M1 Core | M0 strict catalog, OpenAPI seed, canonical DDL, Router preset spec, Day-0 bootstrap | M1-001 → M1-002 → M1-003 → M1-004 → M1-005 → M1-006 → M1-007 | API route + DTO + OpenAPI + generated.ts, DB model + Alembic + repository, FE API client + screen state | scaffold verify, M1 smoke, JSONL schema validation, DB integrity/foreign key check, Hardware Doctor fixture | persisted Project/Dataset/Example/Job rows, training JSONL, HardwareProfile, M1 review bundle |
+| M2 Teacher Data | M1 approved examples/dataset, Project route snapshot, keychain contract, teacher packet policy | M2-000 → M2-001 → M2-002 → M2-003 → M2-004 | Credential route/service + keychain adapter, TeacherPacket DTO/API/UI, DatasetGen job/resource, PII audit tests | keychain proof, packet preview/outbound diff, secret-log scan, synthetic JSONL validation, hard-negative validation, EvalSet freeze log | teacher_guard EvalSet, reviewed dataset v1, TeacherPacketApproval/audit trail, M2 review bundle |
+| M3 Training | M2 approved dataset v1, strict model catalog, HardwareProfile, Job queue/store | M3-000 → M3-001 → M3-002 → M3-003 → M3-004 → M3-005 | model cache + training store + worker handler + JobEvent, ModelRun/JobResource/Checkpoint/AdapterArtifact lineage | strict catalog/cache hash verification, CUDA/MLX smoke where hardware exists, cancel/resume transcript, OOM isolation, dry-run comparison | ModelRun with adapter manifest, checkpoint metadata, backend metadata for parity, M3 review bundle |
+| M4 Benchmark | M3 ModelRun/adapter, benchmark_gold or finance_reference EvalSet, metric schema | M4-001 → M4-002 → M4-003 | EvalRun/Benchmark stores, metric calculator, report schema, UI report view, hash verification | overlap report, 3-seed artifacts, benchmark_report schema validation, report hash recompute VALID, CUDA/MLX parity decision | Benchmark(status=COMPLETED), valid report hash, failure-case set, M4 review bundle |
+| M5 Package+Playground | M4 completed Benchmark with VALID hash, ModelRun lineage, Agent Contract schema | M5-001 → M5-002 → M5-003 | AgentPackage contract builder + verifier + playground route/UI + audit/fallback policy | contract schema validation, verifier golden tests, Playwright playground run, fallback approval test, audit sample | immutable AgentPackage, contract_yaml/sha256, playground transcript, M5 review bundle |
+| M6 Export / v0 RC | M5 AgentPackage, adapter artifact, strict external model cache contract, benchmark report | M6-001 → M6-002 | ExportArtifact store, worker export handler, runtime templates/loaders, manifest schema, secret scan | zip native smoke without Docker, manifest/hash validation, exported runtime auth/native/OpenAI-compatible smoke, Docker smoke where available, export secret scan, v0 sign-off matrix | signed v0 RC evidence bundle, zip artifact, optional Docker artifact, release decision |
+
+LLM 중단 조건:
+
+```text
+- ticket 구현 중 필요한 endpoint/schema/table/test가 문서에 없으면 코드를 추측하지 말고 docs/spec/schema를 먼저 패치한다.
+- 이전 단계 인계물이 없으면 후속 단계 mock으로 우회하지 않는다. 예: Benchmark hash VALID 없이 AgentPackage 생성 금지, AgentPackage 없이 Export 금지.
+- 장비 의존 smoke(CUDA/MLX/Docker)가 로컬에서 불가능하면 skip으로 Done 처리하지 말고 evidence artifact에 "not run locally"를 남기고 해당 lane의 CI/실장비 검증을 blocking 또는 conditional로 올린다.
+- mockup 문구, 예시 숫자, 임시 fixture 결과를 제품 claim이나 benchmark claim으로 승격하지 않는다.
+```
+
 ---
 
 ## 33. 인수 기준 (Acceptance Criteria)
 
-각 Phase는 아래 기준을 자동/수동 테스트로 통과해야 'Done'으로 본다(PABCD의 Check).
+각 Phase는 §22.7 KPI와 아래 기준을 자동/수동 테스트로 통과해야 'Done'으로 본다(PABCD의 Check).
 
 ### 33.1 Phase 1 — Core Project System
 ```text
@@ -448,7 +502,7 @@ Docker가 있는 환경에서는 exported container가
 ```text
 - [ ] test_eval_train_no_overlap 통과(의미 중복 0%).
 - [ ] 벤치마크 리포트가 ≥3 seed 평균±SD + 95% CI 포함.
-- [ ] judge 사용 시 human-gold κ 표기, κ<0.70이면 rule metric 대체.
+- [ ] EvalSet labeler κ≥0.70. LLM judge metric을 쓰는 경우 human-gold judge agreement를 표기하고, judge agreement κ<0.70이면 judge metric은 release claim에서 제외하며 rule metric profile로 대체.
 - [ ] latency p50/p95/p99 + fallback 포함 effective cost/task 보고.
 - [ ] CUDA/MLX 공동 리포트는 EVAL_SPEC §17.3 parity gate PASS/FAIL 판정 후에만 표시.
 - [ ] 리포트는 eval runner 자동 생성(해시 포함), 수기 수치 금지.
@@ -465,7 +519,7 @@ Docker가 있는 환경에서는 exported container가
 ### 33.6 Phase 6 — Export
 ```text
 - [ ] Docker 미설치 환경에서도 agent package zip export 성공.
-- [ ] export된 Docker 컨테이너 /agents/{id}/run 200 응답 + 스키마 검증 통과.
+- [ ] CUDA/lora_adapter package는 export된 Docker 컨테이너 /agents/{id}/run 200 응답 + 스키마 검증 통과. MLX/mlx_lora_adapter package는 zip-native smoke 필수, Docker export 409 `DOCKER_UNAVAILABLE` 확인.
 - [ ] OpenAI-compatible endpoint로 동일 입력 동일 출력 재현.
 ```
 
@@ -486,12 +540,12 @@ Docker가 있는 환경에서는 exported container가
 | 마일스톤 | 범위 | 산출물 / 게이트 |
 |---|---|---|
 | M0 Product Lock | §22 Phase 0 | SPEC 12종 잠금 + base model 2종·백엔드(CUDA+MLX, 버전 라인)·**MLX v0=IN(M4 parity 게이트)**·egress·벤치마크·DevEx LOCK + 멀티에이전트/CTO GO 완료 |
-| M1 Core | Phase 1 | 프로젝트/프리셋/Hardware Doctor/JSONL, §33.1 통과 |
-| M2 Teacher Data | Phase 2 | synthetic+PII+packet preview, §33.2 통과 |
-| M3 Training | Phase 3 | QLoRA(CUDA)+MLX(Apple Silicon) adapter+resume+격리, §33.3 통과 (핵심 위험 구간) |
-| M4 Benchmark | Phase 4 | EVAL_SPEC §17.1 준수 리포트, §33.4 통과 (간판 신뢰성 확보) |
-| M5 Package+Playground | Phase 5 | agent contract+verifier+playground, §33.5 통과 |
-| M6 Export / v0 RC | Phase 6 | Docker/OpenAI export, §33.6+§33.7 전역 게이트 통과 |
+| M1 Core | Phase 1 | 프로젝트/프리셋/Hardware Doctor/JSONL, §22.7 KPI + §33.1 통과 |
+| M2 Teacher Data | Phase 2 | synthetic+PII+packet preview, §22.7 KPI + §33.2 통과 |
+| M3 Training | Phase 3 | QLoRA(CUDA)+MLX(Apple Silicon) adapter+resume+격리, §22.7 KPI + §33.3 통과 (핵심 위험 구간) |
+| M4 Benchmark | Phase 4 | EVAL_SPEC §17.1 준수 리포트, §22.7 KPI + §33.4 통과 (간판 신뢰성 확보) |
+| M5 Package+Playground | Phase 5 | agent contract+verifier+playground, §22.7 KPI + §33.5 통과 |
+| M6 Export / v0 RC | Phase 6 | Docker/OpenAI export, §22.7 KPI + §33.6+§33.7 전역 게이트 통과 |
 
 ### 34.1 크리티컬 패스 / 선행 결정
 

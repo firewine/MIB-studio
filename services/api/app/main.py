@@ -23,6 +23,7 @@ from services.api.app.core.errors import (
     http_error_handler,
     validation_error_handler,
 )
+from services.api.app.routes.agent_packages import router as agent_packages_router
 from services.api.app.routes.credentials import router as credentials_router
 from services.api.app.routes.benchmarks import router as benchmarks_router
 from services.api.app.routes.datasets import router as datasets_router
@@ -180,6 +181,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(jobs_router)
     app.include_router(model_runs_router)
     app.include_router(benchmarks_router)
+    app.include_router(agent_packages_router)
     app.include_router(hardware_doctor_router)
 
     @app.api_route("/{path:path}", methods=ROUTE_METHODS)

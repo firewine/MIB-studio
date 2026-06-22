@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: TRAINING_SERVICE_READ_MODEL_EXTRACTION
+phase_id: DATASET_GEN_WORKER_VALIDATION_EXTRACTION
 milestone: Final_Program_Development_Closeout
-phase_status: training_service_soft_warning_resolved_not_go_release
-gate_id: mib-studio-training-service-read-model-extraction
+phase_status: code_shape_soft_warnings_resolved_not_go_release
+gate_id: mib-studio-dataset-gen-worker-validation-extraction
 mode: development
 product_code_changed: true
 verification_tooling_changed: false
@@ -57,6 +57,66 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-dataset-gen-worker-validation-extraction
+objective: resolve the dataset_gen.py code-shape soft warning without behavior changes
+
+files:
+  worker_handlers:
+    - services/worker/handlers/dataset_gen.py
+    - services/worker/handlers/dataset_gen_contracts.py
+    - services/worker/handlers/dataset_gen_validation.py
+  regenerated_verification_artifacts:
+    - artifacts/review/file_size_report.json
+    - artifacts/review/import_boundary_report.json
+  llm_context:
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+line_counts:
+  dataset_gen_before_lines: 331
+  dataset_gen_after_lines: 237
+  dataset_gen_contracts_lines: 29
+  dataset_gen_validation_lines: 77
+  worker_handler_soft_warning_threshold: 260
+  dataset_gen_below_soft_warning_threshold: true
+
+scope:
+  behavior_preserving: true
+  contracts_extracted: true
+  generated_example_validation_extracted: true
+  run_dataset_gen_job_behavior_changed: false
+  teacher_packet_semantics_changed: false
+  audit_event_semantics_changed: false
+  db_schema_changed: false
+  tests_changed: false
+
+verification:
+  py_compile: passed
+  focused_teacher_synthetic_tests: 7 passed, 26 warnings
+  import_boundary_violations: []
+
+code_shape:
+  files_checked: 119
+  hard_limit_violations: 0
+  soft_warnings_remaining: []
+  code_shape_violations: []
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - DatasetGenResult, DatasetGenWorkerError, and TeacherSyntheticClient moved into dataset_gen_contracts.py
+  - teacher synthetic generated-example validation moved into dataset_gen_validation.py
+  - dataset_gen.py keeps worker orchestration, teacher packet checks, dataset persistence, JobEvent, and AuditEvent behavior
+  - code-shape report now has violations: []
+  - this phase does not change release readiness or create real adapter evidence
+```
 
 ```yaml
 gate: mib-studio-training-service-read-model-extraction

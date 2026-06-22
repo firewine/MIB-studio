@@ -45,15 +45,6 @@
       "soft": 240
     }
   },
-  "files_checked": 117,
-  "violations": [
-    {
-      "hard_limit": 400,
-      "kind": "worker_handler",
-      "loc": 331,
-      "path": "services/worker/handlers/dataset_gen.py",
-      "severity": "soft",
-      "soft_limit": 260
-    }
-  ]
+  "files_checked": 119,
+  "violations": []
 }

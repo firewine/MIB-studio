@@ -1,18 +1,19 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Resolve the services/api/app/services/training_service.py code-shape soft warning by extracting ModelRun read-model conversion into a narrowly owned helper without behavior changes.",
+  "goal": "Resolve the services/worker/handlers/dataset_gen.py code-shape soft warning by extracting teacher synthetic contracts and generated-example validation into narrowly owned worker helpers without behavior changes.",
   "phase": "done",
-  "gate": "mib-studio-training-service-read-model-extraction",
+  "gate": "mib-studio-dataset-gen-worker-validation-extraction",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "31455a4",
+  "head": "8a3ddeb",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "services/api/app/services/training_service.py",
-    "services/api/app/services/training_read_models.py",
+    "services/worker/handlers/dataset_gen.py",
+    "services/worker/handlers/dataset_gen_contracts.py",
+    "services/worker/handlers/dataset_gen_validation.py",
     "artifacts/review/file_size_report.json",
     "artifacts/review/import_boundary_report.json",
     "docs/WORKING.md",
@@ -20,7 +21,7 @@
   ],
   "blocked_path_prefixes": [
     "apps",
-    "services/worker",
+    "services/api",
     "services/shared",
     "packages",
     "presets",
@@ -39,13 +40,13 @@
     ".github"
   ],
   "blocked_scope": [
-    "Changing training API behavior, train job validation, idempotency semantics, route snapshot validation, hardware preflight behavior, DB schema, worker behavior, frontend behavior, release readiness logic, verifier criteria, or evidence policy",
+    "Changing dataset generation behavior, teacher packet approval/reservation checks, teacher_guard overlap semantics, hard-negative minimum behavior, Dataset/Example persistence, Job/JobEvent/AuditEvent payload semantics, API behavior, frontend behavior, DB schema, release readiness logic, verifier criteria, or evidence policy",
     "Inventing real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO or weakening any no-fake evidence gate",
     "Committing model weights, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Moved only ModelRun ORM-to-schema read conversion from training_service.py into services/api/app/services/training_read_models.py; preserved TrainingService public behavior and all API schemas.",
+  "allowed_edit_paths_scope_note": "Moved only DatasetGenResult/TeacherSyntheticClient/DatasetGenWorkerError contracts and generated-example validation from dataset_gen.py into focused worker helper modules; preserved run_dataset_gen_job and _run_teacher_synthetic behavior.",
   "reference_only_paths": [
     "/home/firewine/getbeta/docs/guides/VS_CODE_MULTI_AGENT_GATE_PROTOCOL_V4.md",
     "docs/CONTEXT.md",
@@ -54,30 +55,36 @@
     "rules/code_shape.json",
     "scripts/check_file_size.py",
     "scripts/check_import_boundaries.py",
-    "tests/training/test_training_preflight.py",
-    "services/api/app/routes/jobs.py",
-    "services/api/app/routes/model_runs.py"
+    "tests/dataset/teacher_synthetic_helpers.py",
+    "tests/dataset/test_teacher_synthetic_min200_schema_valid.py",
+    "tests/dataset/test_hard_negative_min_count.py",
+    "tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py",
+    "tests/dataset/test_dataset_gen_event_payload_redaction.py",
+    "tests/dataset/test_generated_examples_require_review_decision.py",
+    "tests/dataset/test_hard_negative_review_lifecycle.py",
+    "tests/eval/test_eval_set_freeze.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "python3 -m py_compile services/api/app/services/training_service.py services/api/app/services/training_read_models.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/training/test_training_preflight.py -q",
+    "python3 -m py_compile services/worker/handlers/dataset_gen.py services/worker/handlers/dataset_gen_contracts.py services/worker/handlers/dataset_gen_validation.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py tests/dataset/test_dataset_gen_event_payload_redaction.py tests/dataset/test_generated_examples_require_review_decision.py tests/dataset/test_hard_negative_review_lifecycle.py -q",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "python3 -m json.tool artifacts/review/file_size_report.json",
     "python3 -m json.tool artifacts/review/import_boundary_report.json",
-    "sed -n '$=' services/api/app/services/training_service.py",
-    "sed -n '$=' services/api/app/services/training_read_models.py",
-    "rg -n -- \"read_model_run|TrainingService|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/api/app/services/training_service.py services/api/app/services/training_read_models.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "sed -n '$=' services/worker/handlers/dataset_gen.py",
+    "sed -n '$=' services/worker/handlers/dataset_gen_contracts.py",
+    "sed -n '$=' services/worker/handlers/dataset_gen_validation.py",
+    "rg -n -- \"DatasetGenWorkerError|validate_generated_examples|TeacherSyntheticClient|DatasetGenResult|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/worker/handlers/dataset_gen.py services/worker/handlers/dataset_gen_contracts.py services/worker/handlers/dataset_gen_validation.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "services/api/app/services/training_service.py is below the 260-line service soft warning threshold.",
-    "services/api/app/services/training_read_models.py has narrow ModelRun read-model conversion ownership and stays below the 260-line service soft warning threshold.",
-    "Focused training preflight tests pass.",
-    "Code-shape check has 0 hard violations and removes training_service.py from soft warnings.",
+    "services/worker/handlers/dataset_gen.py is below the 260-line worker_handler soft warning threshold.",
+    "New helper modules have narrow ownership and stay below the 260-line default soft warning threshold.",
+    "Focused teacher synthetic dataset generation tests pass.",
+    "Code-shape check has 0 hard violations and removes dataset_gen.py from soft warnings.",
     "Import-boundary check has no violations.",
     "No release GO is claimed and real_trained_adapter_no_fake_endpoint remains the active release blocker."
   ],
@@ -87,16 +94,16 @@
       "result": "passed before build; rerun after final done-state update"
     },
     {
-      "command": "python3 -m py_compile services/api/app/services/training_service.py services/api/app/services/training_read_models.py",
+      "command": "python3 -m py_compile services/worker/handlers/dataset_gen.py services/worker/handlers/dataset_gen_contracts.py services/worker/handlers/dataset_gen_validation.py",
       "result": "passed"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/training/test_training_preflight.py -q",
-      "result": "passed: 4 passed, 8 warnings"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py tests/dataset/test_dataset_gen_event_payload_redaction.py tests/dataset/test_generated_examples_require_review_decision.py tests/dataset/test_hard_negative_review_lifecycle.py -q",
+      "result": "passed: 7 passed, 26 warnings"
     },
     {
       "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-      "result": "passed: 117 files checked, 0 hard violations, 1 remaining pre-existing soft warning; services/api/app/services/training_service.py removed from violations"
+      "result": "passed: 119 files checked, violations []"
     },
     {
       "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
@@ -104,22 +111,26 @@
     },
     {
       "command": "python3 -m json.tool artifacts/review/file_size_report.json",
-      "result": "passed"
+      "result": "passed: violations []"
     },
     {
       "command": "python3 -m json.tool artifacts/review/import_boundary_report.json",
       "result": "passed"
     },
     {
-      "command": "sed -n '$=' services/api/app/services/training_service.py",
-      "result": "passed: 259"
+      "command": "sed -n '$=' services/worker/handlers/dataset_gen.py",
+      "result": "passed: 237"
     },
     {
-      "command": "sed -n '$=' services/api/app/services/training_read_models.py",
-      "result": "passed: 27"
+      "command": "sed -n '$=' services/worker/handlers/dataset_gen_contracts.py",
+      "result": "passed: 29"
     },
     {
-      "command": "rg -n -- \"read_model_run|TrainingService|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/api/app/services/training_service.py services/api/app/services/training_read_models.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+      "command": "sed -n '$=' services/worker/handlers/dataset_gen_validation.py",
+      "result": "passed: 77"
+    },
+    {
+      "command": "rg -n -- \"DatasetGenWorkerError|validate_generated_examples|TeacherSyntheticClient|DatasetGenResult|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/worker/handlers/dataset_gen.py services/worker/handlers/dataset_gen_contracts.py services/worker/handlers/dataset_gen_validation.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
       "result": "passed: extraction references and NOT_GO/release blocker guardrails found"
     },
     {
@@ -133,46 +144,46 @@
   ],
   "failed_verification_commands": [],
   "observed_evidence": {
-    "training_service_before_lines": 277,
-    "training_service_after_lines": 259,
-    "training_read_models_lines": 27,
-    "training_service_removed_from_soft_warnings": true,
+    "dataset_gen_before_lines": 331,
+    "dataset_gen_after_lines": 237,
+    "dataset_gen_contracts_lines": 29,
+    "dataset_gen_validation_lines": 77,
+    "dataset_gen_removed_from_soft_warnings": true,
     "hard_limit_violations": 0,
-    "soft_warnings_remaining": [
-      "services/worker/handlers/dataset_gen.py"
-    ],
-    "focused_training_preflight_tests": "4 passed, 8 warnings",
+    "soft_warnings_remaining": [],
+    "code_shape_violations": [],
+    "focused_teacher_synthetic_tests": "7 passed, 26 warnings",
     "import_boundary_violations": [],
     "release_claimed_go": false,
     "v0_release_ready": false,
     "sole_expected_release_blocker": "real_trained_adapter_no_fake_endpoint"
   },
   "warnings": [
-    "This is a behavior-preserving training API service code-shape refactor only.",
+    "This is a behavior-preserving worker dataset generation code-shape refactor only.",
     "M6-RC and v0 release remain NOT_GO until accepted real no-fake endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Extract ModelRun ORM-to-schema read conversion into a focused helper while keeping TrainingService callers unchanged.",
-    "audit": "services/api/app/services/training_service.py was 277 lines, over the 260-line service soft warning threshold but below the 400-line hard limit.",
-    "build": "Added services/api/app/services/training_read_models.py with read_model_run; TrainingService still resolves current job id through TrainingStore and delegates schema creation to the helper.",
-    "check": "Ran JSON validation, py_compile, focused training preflight tests, code-shape checks, import-boundary checks, artifact JSON validation, evidence search, and diff checks.",
+    "plan": "Extracted dataset generation contracts and generated-example validation into focused worker helpers while keeping run_dataset_gen_job behavior unchanged.",
+    "audit": "services/worker/handlers/dataset_gen.py was 331 lines, over the 260-line worker_handler soft warning threshold but below the 400-line hard limit.",
+    "build": "Added dataset_gen_contracts.py and dataset_gen_validation.py; dataset_gen.py now imports DatasetGenResult, DatasetGenWorkerError, TeacherSyntheticClient, and validate_generated_examples.",
+    "check": "Ran JSON validation, py_compile, focused teacher synthetic dataset tests, code-shape checks, import-boundary checks, artifact JSON validation, evidence search, and diff checks.",
     "done": "Verification passed; LLM docs updated; stage, commit, and push this phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-training-service-read-model-extraction",
+    "gate": "mib-studio-dataset-gen-worker-validation-extraction",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Behavior-preserving extraction of TrainingService ModelRun read-model conversion into a focused API service helper, plus generated code-shape artifacts and LLM docs.",
+    "approved_scope": "Behavior-preserving extraction of dataset generation contracts and validation into focused worker helper modules, plus generated code-shape artifacts and LLM docs.",
     "blocked_scope": "No behavior/API/schema/test/frontend/release-readiness changes, no release GO claim, no M6 review GO edits, no model/adapter/Docker/endpoint/bundle artifacts, no verifier/evidence-policy weakening.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Extract ModelRun ORM-to-schema read conversion into a focused helper while keeping TrainingService callers unchanged.",
-    "audit": "services/api/app/services/training_service.py was 277 lines, over the 260-line service soft warning threshold but below the 400-line hard limit.",
-    "build": "Added services/api/app/services/training_read_models.py with read_model_run; TrainingService still resolves current job id through TrainingStore and delegates schema creation to the helper.",
-    "check": "Ran JSON validation, py_compile, focused training preflight tests, code-shape checks, import-boundary checks, artifact JSON validation, evidence search, and diff checks.",
+    "plan": "Extracted dataset generation contracts and generated-example validation into focused worker helpers while keeping run_dataset_gen_job behavior unchanged.",
+    "audit": "services/worker/handlers/dataset_gen.py was 331 lines, over the 260-line worker_handler soft warning threshold but below the 400-line hard limit.",
+    "build": "Added dataset_gen_contracts.py and dataset_gen_validation.py; dataset_gen.py now imports DatasetGenResult, DatasetGenWorkerError, TeacherSyntheticClient, and validate_generated_examples.",
+    "check": "Ran JSON validation, py_compile, focused teacher synthetic dataset tests, code-shape checks, import-boundary checks, artifact JSON validation, evidence search, and diff checks.",
     "done": "Verification passed; LLM docs updated; stage, commit, and push this phase."
   }
 }

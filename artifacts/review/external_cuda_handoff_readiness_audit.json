@@ -1,6 +1,6 @@
 {
   "schema_version": "mib_external_cuda_handoff_readiness_audit.v1",
-  "date": "2026-06-22T23:20:07Z",
+  "date": "2026-06-22T23:46:46Z",
   "gate": "mib-studio-external-cuda-handoff-readiness-audit",
   "status": "WAITING_FOR_EXTERNAL_CUDA_HOST",
   "release_claimed_go": false,
@@ -10,31 +10,32 @@
   "workspace": {
     "root": "/home/firewine/MIB-studio",
     "branch": "main",
-    "head": "50d67bf",
+    "head": "c103fce",
     "git_status": "dirty_with_current_audit_refresh_changes_before_commit"
   },
   "packet_readiness": {
     "packet_json": "artifacts/review/external_cuda_operator_packet.json",
     "verification_json": "artifacts/review/external_cuda_operator_packet_verification.json",
+    "live_reverification_json": "/tmp/mib-c103fce-external-cuda-operator-packet-verification.json",
     "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
     "verification_ok": true,
     "operator_packet_ready": true,
-    "packet_handoff_source_commit": "3e9f3ea",
+    "packet_handoff_source_commit": "c7acb56",
     "required_committed_files": 18,
     "required_file_hashes": "verified 18 required file hashes",
-    "required_commit_blobs": "verified 18 required file blobs at 3e9f3ea",
+    "required_commit_blobs": "verified 18 required file blobs at c7acb56",
     "warnings": []
   },
   "transfer_manifest_readiness": {
-    "json_output": "/tmp/mib-50d67bf-external-cuda-transfer-readiness.json",
+    "json_output": "/tmp/mib-c103fce-external-cuda-transfer-readiness.json",
     "status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
     "full_checkout_required": true,
     "partial_file_archive_allowed": false,
-    "packet_handoff_source_commit": "3e9f3ea",
+    "packet_handoff_source_commit": "c7acb56",
     "packet_verification_json": "artifacts/review/external_cuda_operator_packet_verification.json"
   },
   "strict_model_cache_readiness": {
-    "json_output": "/tmp/mib-50d67bf-strict-model-cache-readiness.json",
+    "json_output": "/tmp/mib-c103fce-strict-model-cache-readiness.json",
     "status": "READY_STRICT_MODEL_CACHE",
     "download_allowed": false,
     "cache_ready": true,
@@ -75,7 +76,7 @@
     "docker_base_image_available"
   ],
   "next_external_cuda_host_actions": [
-    "Run from a full repository checkout at or after 50d67bf; the operator packet handoff source commit is 3e9f3ea.",
+    "Run from a full repository checkout at or after c103fce; the operator packet handoff source commit is c7acb56.",
     "Ensure nvidia-smi succeeds on the host.",
     "Set a real MIB_RUNTIME_BEARER_TOKEN with at least 32 characters before the RC handoff.",
     "Run bash artifacts/review/verified_external_cuda_training_launcher.sh.",

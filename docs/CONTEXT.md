@@ -458,9 +458,9 @@ external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.js
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 external_cuda_operator_transfer_manifest_builder: scripts/build_external_cuda_operator_transfer_manifest.py
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
-latest_pushed_readiness_closeout_head: 13964c0
+latest_pushed_readiness_closeout_head: c103fce
 latest_recertification_closeout_head: c7acb56
-latest_readiness_audit_checkout_head: 50d67bf
+latest_readiness_audit_checkout_head: c103fce
 external_cuda_operator_packet_source_commit: c7acb56
 external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
 external_cuda_operator_packet_refresh_reason: none; packet refreshed after recertification closeout source commit c7acb56 and verifier/transfer readiness are GO
@@ -470,6 +470,7 @@ cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 current_recertification_head: c7acb56
+current_external_cuda_handoff_readiness: WAITING_FOR_EXTERNAL_CUDA_HOST
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -549,8 +550,9 @@ Current actionable NOT_GO recertification summary:
 ```yaml
 summary_file: artifacts/review/v0_release_blocker_recertification.json
 current_head_when_last_recertified: c7acb56
-latest_pushed_readiness_closeout_head: 13964c0
+latest_pushed_readiness_closeout_head: c103fce
 latest_recertification_closeout_head: c7acb56
+latest_readiness_audit_checkout_head: c103fce
 external_cuda_operator_packet_source_commit: c7acb56
 external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
 top_level_fields:
@@ -592,6 +594,8 @@ resolved_cuda_python_base_image: pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d
 docker_daemon_available_current_preflight_ok: true
 mib_export_test_image_current_status: missing
 host_cuda_current_status: nvidia-smi_not_available
+external_cuda_handoff_readiness_status: WAITING_FOR_EXTERNAL_CUDA_HOST
+readiness_audit_checkout_head: c103fce
 ```
 
 Current external CUDA training handoff package:
@@ -700,6 +704,46 @@ current_checkout_reverification_after_recertification:
   stale_hash_paths: []
 meaning: packet artifact is source-pinned to c7acb56 after current-head recertification; operator packet verification and transfer readiness are GO, while M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
 current_phase_note: no packet refresh is pending after this packet phase; use a full repository checkout on the external CUDA host and keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
+```
+
+Current external CUDA handoff readiness audit:
+
+```yaml
+readiness_json: artifacts/review/external_cuda_handoff_readiness_audit.json
+readiness_markdown: artifacts/review/external_cuda_handoff_readiness_audit.md
+schema_version: mib_external_cuda_handoff_readiness_audit.v1
+status: WAITING_FOR_EXTERNAL_CUDA_HOST
+release_claimed_go: false
+m6_rc_claimed_go: false
+v0_release_ready: false
+workspace_head: c103fce
+packet_handoff_source_commit: c7acb56
+packet_verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  verification_ok: true
+  operator_packet_ready: true
+  live_reverification_json: /tmp/mib-c103fce-external-cuda-operator-packet-verification.json
+  required_commit_blobs: verified 18 required file blobs at c7acb56
+transfer_manifest:
+  status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  json_output: /tmp/mib-c103fce-external-cuda-transfer-readiness.json
+  full_checkout_required: true
+strict_model_cache:
+  status: READY_STRICT_MODEL_CACHE
+  json_output: /tmp/mib-c103fce-strict-model-cache-readiness.json
+local_ready:
+  - backend_config_present
+  - docker_daemon_available
+  - docker_base_image_available
+local_blocking_requirements:
+  - nvidia_smi_available
+  - adapter_safetensors_present
+  - adapter_config_present
+  - adapter_manifest_present
+  - mib_export_test_image_available
+  - runtime_bearer_token_present
+operator_next_step: run bash artifacts/review/verified_external_cuda_training_launcher.sh from an external CUDA host full repository checkout at or after c103fce
+meaning: local checkout is ready to hand off to an external CUDA host, but local v0 release remains NOT_GO until real adapter training and no-fake endpoint evidence are accepted
 ```
 
 Current verified external CUDA training launcher:

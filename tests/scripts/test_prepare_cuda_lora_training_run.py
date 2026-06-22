@@ -107,6 +107,9 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert "./.venv/bin/llamafactory-cli train" in shell
     assert "scripts/verify_real_adapter_artifact.py" in shell
     assert "scripts/prepare_real_adapter_docker_image.py" in shell
+    assert "--cuda-base-image-json-output artifacts/review/real_adapter_cuda_base_image_resolution.json" in shell
+    assert "--cuda-base-image-env-output artifacts/review/real_adapter_cuda_base_image.env" in shell
+    assert "--cuda-base-image-candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime" in shell
     assert "artifacts/review/real_adapter_docker_image_handoff.sh" in shell
     assert "artifacts/review/real_adapter_cuda_handoff.sh" in shell
     assert shell.index("== preflight_cuda_training ==") < shell.index("== train_real_adapter ==")

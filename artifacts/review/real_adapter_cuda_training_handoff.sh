@@ -57,7 +57,7 @@ printf '\n== verify_adapter_intake ==\n'
 ./.venv/bin/python scripts/verify_real_adapter_artifact.py --adapter-dir /tmp/mib-real-adapter/adapter --base-model microsoft/Phi-3.5-mini-instruct --manifest /tmp/mib-real-adapter/manifest.json --json-output artifacts/review/real_adapter_artifact_intake.json
 
 printf '\n== prepare_docker_image ==\n'
-./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --json-output artifacts/review/real_adapter_docker_image_handoff.json --markdown-output artifacts/review/real_adapter_docker_image_handoff.md --shell-output artifacts/review/real_adapter_docker_image_handoff.sh
+./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --cuda-base-image-json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --cuda-base-image-env-output artifacts/review/real_adapter_cuda_base_image.env --json-output artifacts/review/real_adapter_docker_image_handoff.json --markdown-output artifacts/review/real_adapter_docker_image_handoff.md --shell-output artifacts/review/real_adapter_docker_image_handoff.sh --cuda-base-image-candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
 
 printf '\n== run_rc_handoff ==\n'
 bash artifacts/review/real_adapter_cuda_handoff.sh

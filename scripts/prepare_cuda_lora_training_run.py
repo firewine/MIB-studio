@@ -153,6 +153,10 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         args.image,
         "--context-output",
         args.docker_context_output,
+        "--cuda-base-image-json-output",
+        args.cuda_base_image_json_output,
+        "--cuda-base-image-env-output",
+        args.cuda_base_image_env_output,
         "--json-output",
         args.docker_handoff_json_output,
         "--markdown-output",
@@ -160,6 +164,8 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         "--shell-output",
         args.docker_handoff_shell_output,
     ]
+    for candidate in cuda_base_image_candidates(args):
+        docker_handoff_command.extend(["--cuda-base-image-candidate", candidate])
     handoff_command = ["bash", args.rc_handoff_shell]
     return {
         "schema_version": "mib_cuda_lora_training_handoff.v1",

@@ -1,7 +1,7 @@
 # CUDA LoRA Training Handoff
 
 ```yaml
-date: 2026-06-22T03:08:24.599129+00:00
+date: 2026-06-22T03:32:38.691371+00:00
 gate: mib-studio-cuda-real-adapter-training-handoff
 status: PREPARED_NOT_RUN
 release_claimed_go: false
@@ -78,7 +78,7 @@ output_dir: /tmp/mib-real-adapter/adapter
 ### prepare_docker_image
 
 ```bash
-./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --json-output artifacts/review/real_adapter_docker_image_handoff.json --markdown-output artifacts/review/real_adapter_docker_image_handoff.md --shell-output artifacts/review/real_adapter_docker_image_handoff.sh
+./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --cuda-base-image-json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --cuda-base-image-env-output artifacts/review/real_adapter_cuda_base_image.env --json-output artifacts/review/real_adapter_docker_image_handoff.json --markdown-output artifacts/review/real_adapter_docker_image_handoff.md --shell-output artifacts/review/real_adapter_docker_image_handoff.sh --cuda-base-image-candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
 ```
 
 ### run_rc_handoff

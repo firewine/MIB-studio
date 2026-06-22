@@ -62,8 +62,14 @@ def args_for(tmp_path: Path) -> SimpleNamespace:
         model_run_id="model_run",
         hardware_profile_id="gpu",
         python="./.venv/bin/python",
+        agent_id="finance.router.v1",
+        image="mib-export:test",
+        docker_context_output=str(tmp_path / "mib-real-adapter" / "docker_context"),
         adapter_intake_json_output="artifacts/review/real_adapter_artifact_intake.json",
         finalize_json_output="artifacts/review/real_adapter_cuda_training_finalize.json",
+        docker_handoff_json_output="artifacts/review/real_adapter_docker_image_handoff.json",
+        docker_handoff_markdown_output="artifacts/review/real_adapter_docker_image_handoff.md",
+        docker_handoff_shell_output="artifacts/review/real_adapter_docker_image_handoff.sh",
         rc_handoff_shell="artifacts/review/real_adapter_cuda_handoff.sh",
         json_output=str(tmp_path / "handoff.json"),
         markdown_output=str(tmp_path / "handoff.md"),
@@ -89,7 +95,11 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert "mib_router_unit_router" in dataset_info
     assert "llamafactory-cli train" in shell
     assert "scripts/verify_real_adapter_artifact.py" in shell
+    assert "scripts/prepare_real_adapter_docker_image.py" in shell
+    assert "artifacts/review/real_adapter_docker_image_handoff.sh" in shell
     assert "artifacts/review/real_adapter_cuda_handoff.sh" in shell
+    assert shell.index("== verify_adapter_intake ==") < shell.index("== prepare_docker_image ==")
+    assert shell.index("== prepare_docker_image ==") < shell.index("== run_rc_handoff ==")
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "lora_rank: 8" in markdown
     assert "lora_alpha: 16" in markdown

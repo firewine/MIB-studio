@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CUDA_REAL_ADAPTER_TRAINING_HANDOFF
+phase_id: REAL_ADAPTER_DOCKER_IMAGE_HANDOFF
 milestone: M6_RC_Blocker_Remediation
-phase_status: cuda_real_adapter_training_handoff_verified_not_go
+phase_status: real_adapter_docker_image_handoff_verified_not_go
 active_slice: none
-gate_id: mib-studio-cuda-real-adapter-training-handoff
+gate_id: mib-studio-real-adapter-docker-image-handoff
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,15 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-cuda-real-adapter-training-handoff
+  gate: mib-studio-real-adapter-docker-image-handoff
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: make real CUDA adapter creation reproducible before the RC handoff
+  objective: make digest-pinned Docker image creation reproducible after real CUDA adapter training and before the RC handoff
   evidence:
+    real_adapter_docker_image_handoff: artifacts/review/real_adapter_docker_image_handoff.md
+    real_adapter_docker_image_handoff_json: artifacts/review/real_adapter_docker_image_handoff.json
+    real_adapter_docker_image_handoff_shell: artifacts/review/real_adapter_docker_image_handoff.sh
     real_adapter_cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.md
     real_adapter_cuda_training_handoff_json: artifacts/review/real_adapter_cuda_training_handoff.json
     real_adapter_cuda_training_handoff_shell: artifacts/review/real_adapter_cuda_training_handoff.sh
@@ -77,10 +80,16 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
+    - scripts/prepare_real_adapter_docker_image.py now prepares a guarded Docker image handoff for a real adapter root without committing adapter artifacts or building an image on the current host
+    - artifacts/review/real_adapter_docker_image_handoff.sh refuses fake backend mode, requires MIB_DOCKER_BASE_IMAGE_WITH_DIGEST with @sha256, materializes a Docker context, builds mib-export:test, then runs docker image inspect
+    - Docker context materialization reuses packages/agent-runtime Dockerfile, zip runtime agents, runtime loaders, schemas, strict base-model catalog metadata, and the operator-provided real adapter directory
+    - focused tests validate the handoff shell guards and a materialized export manifest/context using an in-test self-test adapter only
+    - scripts/prepare_cuda_lora_training_run.py now inserts prepare_docker_image after verify_adapter_intake and before artifacts/review/real_adapter_cuda_handoff.sh
+    - current Docker image handoff artifact is PLAN_PREPARED_NOT_RUN and does not claim M6-RC or release GO
     - services/worker/runtime/llamafactory.py now writes explicit lora_rank and lora_alpha into CUDA LLaMA-Factory backend_config.yaml
     - examples/fixtures/llamafactory_config.golden.yaml now locks quick preset lora_rank 4 and lora_alpha 8 in the generated config contract
     - scripts/prepare_cuda_lora_training_run.py prepares the canonical LLaMA-Factory dataset conversion and backend_config.yaml for an external CUDA training run
-    - artifacts/review/real_adapter_cuda_training_handoff.sh refuses fake backend mode, requires nvidia-smi and llamafactory-cli, runs actual training, finalizes manifest, verifies adapter intake, then invokes artifacts/review/real_adapter_cuda_handoff.sh
+    - artifacts/review/real_adapter_cuda_training_handoff.sh refuses fake backend mode, requires nvidia-smi and llamafactory-cli, runs actual training, finalizes manifest, verifies adapter intake, prepares the Docker image handoff, then invokes artifacts/review/real_adapter_cuda_handoff.sh
     - artifacts/review/real_adapter_cuda_training_handoff.json is PREPARED_NOT_RUN and does not claim M6-RC or release GO
     - scripts/build_real_adapter_handoff.py now emits artifacts/review/real_adapter_cuda_handoff.sh in addition to JSON/Markdown
     - the generated shell artifact refuses to run when MIB_RUNTIME_ALLOW_FAKE_BACKEND is set
@@ -109,6 +118,7 @@ last_completed_work:
     - no backend, schema, training, export, runtime behavior, or M6 evidence policy files changed
 
 important_previous_commits:
+  real_adapter_docker_image_handoff: this_commit
   real_adapter_cuda_training_handoff: this_commit
   real_adapter_cuda_handoff_executable_artifact: this_commit
   real_adapter_cuda_handoff_bundle_step: this_commit
@@ -138,15 +148,19 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: cuda_real_adapter_training_handoff_verified_not_go
+status: real_adapter_docker_image_handoff_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile services/worker/runtime/llamafactory.py scripts/prepare_cuda_lora_training_run.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py::test_cuda_wrapper_writes_llamafactory_config_events_and_adapter_manifest tests/scripts/test_prepare_cuda_lora_training_run.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/prepare_real_adapter_docker_image.py scripts/prepare_cuda_lora_training_run.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_prepare_real_adapter_docker_image.py tests/scripts/test_prepare_cuda_lora_training_run.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --json-output artifacts/review/real_adapter_docker_image_handoff.json --markdown-output artifacts/review/real_adapter_docker_image_handoff.md --shell-output artifacts/review/real_adapter_docker_image_handoff.sh
+  - python3 -m json.tool artifacts/review/real_adapter_docker_image_handoff.json
+  - bash -n artifacts/review/real_adapter_docker_image_handoff.sh
+  - rg -n "MIB_RUNTIME_ALLOW_FAKE_BACKEND|MIB_DOCKER_BASE_IMAGE_WITH_DIGEST|docker build|docker image inspect|mib-export:test" artifacts/review/real_adapter_docker_image_handoff.md artifacts/review/real_adapter_docker_image_handoff.sh
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --dataset-jsonl examples/fixtures/router_20.jsonl --dataset-id review_router_20 --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache/model_cache --output-root /tmp/mib-real-adapter --training-preset quick --json-output artifacts/review/real_adapter_cuda_training_handoff.json --markdown-output artifacts/review/real_adapter_cuda_training_handoff.md --shell-output artifacts/review/real_adapter_cuda_training_handoff.sh
   - python3 -m json.tool artifacts/review/real_adapter_cuda_training_handoff.json
   - bash -n artifacts/review/real_adapter_cuda_training_handoff.sh
-  - rg -n "llamafactory-cli train|lora_rank|lora_alpha|verify_real_adapter_artifact.py|real_adapter_cuda_handoff.sh" artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh
+  - rg -n "prepare_real_adapter_docker_image.py|real_adapter_docker_image_handoff.sh|real_adapter_cuda_handoff.sh" artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
@@ -200,6 +214,7 @@ recorded_go:
   Real_Adapter_CUDA_Handoff_Bundle_Step: true
   Real_Adapter_CUDA_Handoff_Executable_Artifact: true
   Real_Adapter_CUDA_Training_Handoff: true
+  Real_Adapter_Docker_Image_Handoff: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -207,9 +222,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-cuda-real-adapter-training-handoff
-  review_bundle: artifacts/review/real_adapter_cuda_training_handoff.json
-  decision: prepared_not_run
+  id: mib-studio-real-adapter-docker-image-handoff
+  review_bundle: artifacts/review/real_adapter_docker_image_handoff.json
+  decision: plan_prepared_not_run
 
 active_release_blocker:
   id: m6-real-trained-adapter-no-fake-endpoint-evidence
@@ -237,7 +252,8 @@ security_deferred:
 ```yaml
 immediate:
   - provide or train a real CUDA lora_adapter with adapter.safetensors, adapter_config.json, and manifest.json
-  - export or tag the matching Docker image and run on a host where nvidia-smi is available
+  - run artifacts/review/real_adapter_docker_image_handoff.sh with MIB_DOCKER_BASE_IMAGE_WITH_DIGEST set to a digest-pinned CUDA runtime base image
+  - export or tag the matching mib-export:test Docker image and run on a host where nvidia-smi is available
   - rerun scripts/run_m6_real_adapter_rc_gate.py --preflight-only with the real paths until status is READY_TO_RUN
   - run scripts/run_m6_real_adapter_rc_gate.py without --preflight-only/--plan-only against the real adapter, exported Docker image, and model cache
   - rerun M6-RC sign-off only after that decision/evidence is complete
@@ -248,7 +264,7 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-cuda-real-adapter-training-handoff. Before accepting any external
+mib-studio-real-adapter-docker-image-handoff. Before accepting any external
 CUDA evidence bundle, run scripts/verify_real_adapter_evidence_bundle.py against
 the bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE; v0 readiness now also
 requires that bundle decision for release GO. The current local artifacts/review
@@ -256,8 +272,14 @@ bundle is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE. Start with
 artifacts/review/real_adapter_cuda_training_handoff.sh on the CUDA host to
 produce the real trained adapter. That script refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND,
 requires nvidia-smi and llamafactory-cli, runs llamafactory-cli train, finalizes
-manifest.json, verifies real adapter intake, then invokes
-artifacts/review/real_adapter_cuda_handoff.sh. The downstream handoff script
+manifest.json, verifies real adapter intake, runs
+scripts/prepare_real_adapter_docker_image.py to emit
+artifacts/review/real_adapter_docker_image_handoff.sh, then invokes
+artifacts/review/real_adapter_cuda_handoff.sh. The Docker image handoff shell
+requires MIB_DOCKER_BASE_IMAGE_WITH_DIGEST with @sha256, refuses fake backend
+mode, materializes /tmp/mib-real-adapter/docker_context, builds mib-export:test,
+and runs docker image inspect before RC endpoint capture. The downstream RC
+handoff script
 requires a real MIB_RUNTIME_BEARER_TOKEN, then runs candidate scan, adapter
 intake, RC preflight, live no-fake Docker endpoint capture, M6 verifier,
 evidence bundle verification, and v0 readiness recheck. Use

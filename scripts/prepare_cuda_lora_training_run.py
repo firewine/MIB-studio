@@ -96,6 +96,26 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         "--json-output",
         args.adapter_intake_json_output,
     ]
+    docker_handoff_command = [
+        args.python,
+        "scripts/prepare_real_adapter_docker_image.py",
+        "--adapter-root",
+        args.output_root,
+        "--base-model",
+        args.base_model,
+        "--agent-id",
+        args.agent_id,
+        "--image",
+        args.image,
+        "--context-output",
+        args.docker_context_output,
+        "--json-output",
+        args.docker_handoff_json_output,
+        "--markdown-output",
+        args.docker_handoff_markdown_output,
+        "--shell-output",
+        args.docker_handoff_shell_output,
+    ]
     handoff_command = ["bash", args.rc_handoff_shell]
     return {
         "schema_version": "mib_cuda_lora_training_handoff.v1",
@@ -122,6 +142,9 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
             "manifest": str(output_root / "manifest.json"),
             "finalize_report": args.finalize_json_output,
             "adapter_intake_report": args.adapter_intake_json_output,
+            "docker_context": args.docker_context_output,
+            "docker_handoff_report": args.docker_handoff_json_output,
+            "docker_handoff_shell": args.docker_handoff_shell_output,
             "rc_handoff_shell": args.rc_handoff_shell,
         },
         "backend_config_summary": {
@@ -136,6 +159,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
             command_row("train_real_adapter", train_command, note="Run actual CUDA QLoRA training with LLaMA-Factory on the CUDA host."),
             command_row("finalize_manifest", finalize_command, note="Write manifest.json from the trained adapter directory."),
             command_row("verify_adapter_intake", intake_command, note="Require GO_REAL_ADAPTER_ARTIFACT_INTAKE before export/endpoint evidence."),
+            command_row("prepare_docker_image", docker_handoff_command, note="Create the guarded digest-pinned Docker image handoff before RC endpoint capture."),
             command_row("run_rc_handoff", handoff_command, note="Run the existing guarded no-fake endpoint/M6/v0 handoff after the real adapter exists."),
         ],
         "operator_rules": [
@@ -273,8 +297,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-run-id", default="external_cuda_model_run")
     parser.add_argument("--hardware-profile-id", default="external_cuda_host")
     parser.add_argument("--python", default="./.venv/bin/python")
+    parser.add_argument("--agent-id", default="finance.router.v1")
+    parser.add_argument("--image", default="mib-export:test")
+    parser.add_argument("--docker-context-output", default="/tmp/mib-real-adapter/docker_context")
     parser.add_argument("--adapter-intake-json-output", default="artifacts/review/real_adapter_artifact_intake.json")
     parser.add_argument("--finalize-json-output", default="artifacts/review/real_adapter_cuda_training_finalize.json")
+    parser.add_argument("--docker-handoff-json-output", default="artifacts/review/real_adapter_docker_image_handoff.json")
+    parser.add_argument("--docker-handoff-markdown-output", default="artifacts/review/real_adapter_docker_image_handoff.md")
+    parser.add_argument("--docker-handoff-shell-output", default="artifacts/review/real_adapter_docker_image_handoff.sh")
     parser.add_argument("--rc-handoff-shell", default="artifacts/review/real_adapter_cuda_handoff.sh")
     parser.add_argument("--json-output", default="artifacts/review/real_adapter_cuda_training_handoff.json")
     parser.add_argument("--markdown-output", default="artifacts/review/real_adapter_cuda_training_handoff.md")

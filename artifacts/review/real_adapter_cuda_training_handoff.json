@@ -53,6 +53,31 @@
     },
     {
       "argv": [
+        "./.venv/bin/python",
+        "scripts/prepare_real_adapter_docker_image.py",
+        "--adapter-root",
+        "/tmp/mib-real-adapter",
+        "--base-model",
+        "microsoft/Phi-3.5-mini-instruct",
+        "--agent-id",
+        "finance.router.v1",
+        "--image",
+        "mib-export:test",
+        "--context-output",
+        "/tmp/mib-real-adapter/docker_context",
+        "--json-output",
+        "artifacts/review/real_adapter_docker_image_handoff.json",
+        "--markdown-output",
+        "artifacts/review/real_adapter_docker_image_handoff.md",
+        "--shell-output",
+        "artifacts/review/real_adapter_docker_image_handoff.sh"
+      ],
+      "id": "prepare_docker_image",
+      "note": "Create the guarded digest-pinned Docker image handoff before RC endpoint capture.",
+      "shell": "./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --json-output artifacts/review/real_adapter_docker_image_handoff.json --markdown-output artifacts/review/real_adapter_docker_image_handoff.md --shell-output artifacts/review/real_adapter_docker_image_handoff.sh"
+    },
+    {
+      "argv": [
         "bash",
         "artifacts/review/real_adapter_cuda_handoff.sh"
       ],
@@ -61,7 +86,7 @@
       "shell": "bash artifacts/review/real_adapter_cuda_handoff.sh"
     }
   ],
-  "date": "2026-06-22T02:15:02.017602+00:00",
+  "date": "2026-06-22T02:26:31.293113+00:00",
   "gate": "mib-studio-cuda-real-adapter-training-handoff",
   "inputs": {
     "base_model": "microsoft/Phi-3.5-mini-instruct",
@@ -85,6 +110,9 @@
     "adapter_dir": "/tmp/mib-real-adapter/adapter",
     "adapter_intake_report": "artifacts/review/real_adapter_artifact_intake.json",
     "backend_config": "/tmp/mib-real-adapter/backend_config.yaml",
+    "docker_context": "/tmp/mib-real-adapter/docker_context",
+    "docker_handoff_report": "artifacts/review/real_adapter_docker_image_handoff.json",
+    "docker_handoff_shell": "artifacts/review/real_adapter_docker_image_handoff.sh",
     "finalize_report": "artifacts/review/real_adapter_cuda_training_finalize.json",
     "manifest": "/tmp/mib-real-adapter/manifest.json",
     "rc_handoff_shell": "artifacts/review/real_adapter_cuda_handoff.sh",

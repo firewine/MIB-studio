@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CUDA_BASE_IMAGE_CANDIDATE_PROPAGATION
+phase_id: REAL_ADAPTER_EVIDENCE_BUNDLE_ASSEMBLY
 milestone: M6_RC_Blocker_Remediation
-phase_status: cuda_base_image_candidate_propagation_verified_not_go
+phase_status: real_adapter_evidence_bundle_assembly_verified_not_go
 active_slice: none
-gate_id: mib-studio-cuda-base-image-candidate-propagation
+gate_id: mib-studio-real-adapter-evidence-bundle-assembly
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,11 +53,11 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-cuda-base-image-candidate-propagation
+  gate: mib-studio-real-adapter-evidence-bundle-assembly
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: propagate CUDA base image candidates and resolver artifact paths from the CUDA training handoff into downstream Docker handoff generation
+  objective: add a portable real-adapter evidence bundle assembly step before v0 readiness recheck
   evidence:
     real_adapter_cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
     real_adapter_cuda_training_prereq_preflight: artifacts/review/real_adapter_cuda_training_prereq_preflight.json
@@ -82,6 +82,11 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
+    - scripts/build_real_adapter_evidence_bundle.py now copies the fixed evidence files required by scripts/verify_real_adapter_evidence_bundle.py into a caller-selected bundle directory, runs the existing verifier, and writes manifest plus verification JSON
+    - the bundle assembler removes stale fixed evidence files from the target bundle before copying current source files, preventing old GO-looking files from satisfying a new incomplete bundle
+    - artifacts/review/real_adapter_cuda_handoff.* now run evidence_bundle_assembly after rc_gate_live and before v0_readiness_recheck
+    - local bundle assembly smoke against artifacts/review into /tmp/mib-real-adapter-evidence-bundle remains NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE because live endpoint, adapter intake, and RC gate artifacts are missing
+    - current v0 release readiness remains NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
     - scripts/prepare_cuda_lora_training_run.py now passes --cuda-base-image-json-output, --cuda-base-image-env-output, and every --cuda-base-image-candidate into the generated prepare_docker_image command
     - artifacts/review/real_adapter_cuda_training_handoff.* now record prepare_docker_image with the same CUDA base image resolver output paths and default pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime candidate used earlier in the training handoff
     - focused tests assert the generated operator shell preserves the downstream resolver output flags and CUDA base image candidate
@@ -148,7 +153,8 @@ last_completed_work:
     - no backend, schema, training, export, runtime behavior, or M6 evidence policy files changed
 
 important_previous_commits:
-  cuda_base_image_candidate_propagation: this_commit
+  real_adapter_evidence_bundle_assembly: this_commit
+  cuda_base_image_candidate_propagation: 9dea880
   cuda_base_image_resolver_runtime_alignment: b0f83e5
   cuda_base_image_runtime_preflight: bb296b4
   cuda_base_image_resolver_handoff: fa17a6b
@@ -185,15 +191,18 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: cuda_base_image_candidate_propagation_verified_not_go
+status: real_adapter_evidence_bundle_assembly_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/prepare_cuda_lora_training_run.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_prepare_cuda_lora_training_run.py -q
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --dataset-jsonl examples/fixtures/router_20.jsonl --dataset-id review_router_20 --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --training-preset quick --llamafactory-cli ./.venv/bin/llamafactory-cli --json-output artifacts/review/real_adapter_cuda_training_handoff.json --markdown-output artifacts/review/real_adapter_cuda_training_handoff.md --shell-output artifacts/review/real_adapter_cuda_training_handoff.sh
-  - python3 -m json.tool artifacts/review/real_adapter_cuda_training_handoff.json
-  - bash -n artifacts/review/real_adapter_cuda_training_handoff.sh
-  - rg -n -- "--cuda-base-image-candidate|--cuda-base-image-json-output|--cuda-base-image-env-output|pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime" scripts/prepare_cuda_lora_training_run.py tests/scripts/test_prepare_cuda_lora_training_run.py artifacts/review/real_adapter_cuda_training_handoff.json artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/build_real_adapter_evidence_bundle.py scripts/build_real_adapter_handoff.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_evidence_bundle.py tests/scripts/test_build_real_adapter_handoff.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_evidence_bundle.py --source-dir artifacts/review --bundle-dir /tmp/mib-real-adapter-evidence-bundle --expected-decision NOT_GO --verification-output /tmp/mib-real-adapter-evidence-bundle-verification.json --manifest-output /tmp/mib-real-adapter-evidence-bundle-manifest.json
+  - python3 -m json.tool /tmp/mib-real-adapter-evidence-bundle-verification.json
+  - python3 -m json.tool /tmp/mib-real-adapter-evidence-bundle-manifest.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md --shell-output artifacts/review/real_adapter_cuda_handoff.sh
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json
+  - bash -n artifacts/review/real_adapter_cuda_handoff.sh
+  - rg -n -- "build_real_adapter_evidence_bundle.py|evidence_bundle_assembly|real_adapter_evidence_bundle" scripts/build_real_adapter_evidence_bundle.py scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_evidence_bundle.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
@@ -258,6 +267,7 @@ recorded_go:
   CUDA_Base_Image_Runtime_Preflight: true
   CUDA_Base_Image_Resolver_Runtime_Alignment: true
   CUDA_Base_Image_Candidate_Propagation: true
+  Real_Adapter_Evidence_Bundle_Assembly: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -265,9 +275,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-cuda-base-image-candidate-propagation
-  review_bundle: artifacts/review/real_adapter_cuda_training_handoff.json
-  decision: cuda_base_image_candidate_propagation_verified_not_go
+  id: mib-studio-real-adapter-evidence-bundle-assembly
+  review_bundle: artifacts/review/real_adapter_cuda_handoff.json
+  decision: real_adapter_evidence_bundle_assembly_verified_not_go
 
 active_release_blocker:
   id: m6-real-trained-adapter-no-fake-endpoint-evidence
@@ -302,6 +312,7 @@ immediate:
   - export or tag the matching mib-export:test Docker image and run on a host where nvidia-smi is available
   - rerun scripts/run_m6_real_adapter_rc_gate.py --preflight-only with the real paths until status is READY_TO_RUN
   - run scripts/run_m6_real_adapter_rc_gate.py without --preflight-only/--plan-only against the real adapter, exported Docker image, and model cache
+  - run scripts/build_real_adapter_evidence_bundle.py after live RC gate success to assemble artifacts/review/real_adapter_evidence_bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE
   - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
@@ -310,7 +321,7 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-cuda-base-image-candidate-propagation. Before accepting any external
+mib-studio-real-adapter-evidence-bundle-assembly. Before accepting any external
 CUDA evidence bundle, run scripts/verify_real_adapter_evidence_bundle.py against
 the bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE; v0 readiness now also
 requires that bundle decision for release GO. The current local artifacts/review
@@ -331,7 +342,13 @@ The downstream RC
 handoff script
 requires a real MIB_RUNTIME_BEARER_TOKEN, then runs candidate scan, adapter
 intake, RC preflight, live no-fake Docker endpoint capture, M6 verifier,
-evidence bundle verification, and v0 readiness recheck. Use
+evidence bundle assembly, and v0 readiness recheck. The evidence bundle assembly
+step runs scripts/build_real_adapter_evidence_bundle.py, copies the fixed
+required files into artifacts/review/real_adapter_evidence_bundle, removes stale
+fixed evidence files before copying, writes
+artifacts/review/real_adapter_evidence_bundle_manifest.json, writes
+artifacts/review/real_adapter_evidence_bundle_verification.json, and requires
+GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness can pass. Use
 scripts/find_real_adapter_candidates.py to scan explicit roots for real adapter
 candidates; GO candidates emit scripts/run_m6_real_adapter_rc_gate.py commands.
 The current training preflight report is

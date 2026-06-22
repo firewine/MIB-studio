@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T02:02:46.825296+00:00
+date: 2026-06-22T03:43:26.365694+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false
@@ -51,7 +51,7 @@ v0_unexpected_blockers: []
 - Do not use fixture-sized or self-test adapters as release evidence.
 - The Docker image must package the same adapter hash recorded by manifest.json.
 - The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.
-- Run verify_real_adapter_evidence_bundle.py and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.
+- Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.
 - M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.
 
 ## Command Sequence
@@ -59,7 +59,7 @@ v0_unexpected_blockers: []
 ### candidate_scan
 
 ```bash
-./.venv/bin/python scripts/find_real_adapter_candidates.py --root /home/firewine/MIB-studio --root /tmp/mib-real-adapter --root /tmp/mib-phi-docker-export-_vgqfd4g --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --json-output artifacts/review/real_adapter_candidate_scan.json
+./.venv/bin/python scripts/find_real_adapter_candidates.py --root /home/firewine/MIB-studio --root /tmp/mib-real-adapter --root /tmp/mib-phi-docker-export-_vgqfd4g --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --json-output artifacts/review/real_adapter_candidate_scan.json
 ```
 
 ### adapter_intake
@@ -71,19 +71,19 @@ v0_unexpected_blockers: []
 ### rc_gate_preflight
 
 ```bash
-MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --adapter-intake-json-output artifacts/review/real_adapter_artifact_intake.json --endpoint-output artifacts/review/real_trained_adapter_endpoint_evidence.md --endpoint-json-output artifacts/review/real_trained_adapter_endpoint_evidence.json --m6-json-output artifacts/review/m6_rc_evidence_verification.json --json-output artifacts/review/m6_real_adapter_rc_gate_run.json --preflight-only
+MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --adapter-intake-json-output artifacts/review/real_adapter_artifact_intake.json --endpoint-output artifacts/review/real_trained_adapter_endpoint_evidence.md --endpoint-json-output artifacts/review/real_trained_adapter_endpoint_evidence.json --m6-json-output artifacts/review/m6_rc_evidence_verification.json --json-output artifacts/review/m6_real_adapter_rc_gate_run.json --preflight-only
 ```
 
 ### rc_gate_live
 
 ```bash
-MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --adapter-intake-json-output artifacts/review/real_adapter_artifact_intake.json --endpoint-output artifacts/review/real_trained_adapter_endpoint_evidence.md --endpoint-json-output artifacts/review/real_trained_adapter_endpoint_evidence.json --m6-json-output artifacts/review/m6_rc_evidence_verification.json --json-output artifacts/review/m6_real_adapter_rc_gate_run.json
+MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --adapter-intake-json-output artifacts/review/real_adapter_artifact_intake.json --endpoint-output artifacts/review/real_trained_adapter_endpoint_evidence.md --endpoint-json-output artifacts/review/real_trained_adapter_endpoint_evidence.json --m6-json-output artifacts/review/m6_rc_evidence_verification.json --json-output artifacts/review/m6_real_adapter_rc_gate_run.json
 ```
 
-### evidence_bundle_verification
+### evidence_bundle_assembly
 
 ```bash
-./.venv/bin/python scripts/verify_real_adapter_evidence_bundle.py --bundle-dir artifacts/review --expected-decision GO --json-output artifacts/review/real_adapter_evidence_bundle_verification.json
+./.venv/bin/python scripts/build_real_adapter_evidence_bundle.py --source-dir artifacts/review --bundle-dir artifacts/review/real_adapter_evidence_bundle --expected-decision GO --verification-output artifacts/review/real_adapter_evidence_bundle_verification.json --manifest-output artifacts/review/real_adapter_evidence_bundle_manifest.json
 ```
 
 ### v0_readiness_recheck

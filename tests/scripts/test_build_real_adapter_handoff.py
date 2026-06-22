@@ -51,7 +51,9 @@ def args_for(tmp_path: Path, *, candidate_scan: dict[str, object], prereq: dict[
         endpoint_json_output="artifacts/review/real_trained_adapter_endpoint_evidence.json",
         m6_json_output="artifacts/review/m6_rc_evidence_verification.json",
         gate_json_output="artifacts/review/m6_real_adapter_rc_gate_run.json",
+        bundle_dir="artifacts/review/real_adapter_evidence_bundle",
         bundle_json_output="artifacts/review/real_adapter_evidence_bundle_verification.json",
+        bundle_manifest_output="artifacts/review/real_adapter_evidence_bundle_manifest.json",
         json_output=str(tmp_path / "handoff.json"),
         markdown_output=str(tmp_path / "handoff.md"),
         shell_output=str(tmp_path / "handoff.sh"),
@@ -100,11 +102,15 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
         "adapter_intake",
         "rc_gate_preflight",
         "rc_gate_live",
-        "evidence_bundle_verification",
+        "evidence_bundle_assembly",
         "v0_readiness_recheck",
     ]
-    bundle_step = next(row for row in report["command_sequence"] if row["id"] == "evidence_bundle_verification")
-    assert "scripts/verify_real_adapter_evidence_bundle.py" in bundle_step["argv"]
+    bundle_step = next(row for row in report["command_sequence"] if row["id"] == "evidence_bundle_assembly")
+    assert "scripts/build_real_adapter_evidence_bundle.py" in bundle_step["argv"]
+    assert "--bundle-dir" in bundle_step["argv"]
+    assert "artifacts/review/real_adapter_evidence_bundle" in bundle_step["argv"]
+    assert "--verification-output" in bundle_step["argv"]
+    assert "--manifest-output" in bundle_step["argv"]
     assert "--expected-decision" in bundle_step["argv"]
     assert "GO" in bundle_step["argv"]
     assert "M6-RC remains NOT_GO" in markdown
@@ -113,8 +119,8 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "set a real MIB_RUNTIME_BEARER_TOKEN" in shell
     assert 'MIB_RUNTIME_BEARER_TOKEN="${MIB_RUNTIME_BEARER_TOKEN}"' in shell
-    assert shell.index("== rc_gate_live ==") < shell.index("== evidence_bundle_verification ==")
-    assert shell.index("== evidence_bundle_verification ==") < shell.index("== v0_readiness_recheck ==")
+    assert shell.index("== rc_gate_live ==") < shell.index("== evidence_bundle_assembly ==")
+    assert shell.index("== evidence_bundle_assembly ==") < shell.index("== v0_readiness_recheck ==")
     assert "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" in markdown
 
 

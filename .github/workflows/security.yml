@@ -30,7 +30,7 @@ jobs:
           from pathlib import Path
 
           exceptions_path = Path("artifacts/security/pip_audit_cuda_exceptions.json")
-          cmd = ["pip-audit", "-r", "requirements.txt", "-r", "requirements-dev.txt"]
+          cmd = ["pip-audit", "--no-deps", "-r", "requirements.txt", "-r", "requirements-dev.txt"]
 
           exceptions = json.loads(exceptions_path.read_text())
           for vulnerability_id in exceptions.get("ignored_vulnerability_ids", []):
@@ -67,7 +67,7 @@ jobs:
               kept.append(raw_line)
           target.write_text("\n".join(kept) + "\n")
           PY
-          pip-audit -r requirements-mlx.audit.txt -r requirements-dev.txt
+          pip-audit --no-deps -r requirements-mlx.audit.txt -r requirements-dev.txt
 
   model-manifest:
     runs-on: ubuntu-latest
@@ -92,52 +92,53 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .node-version
-      - id: node-deps
-        run: |
-          node - <<'NODE'
-          const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const deps = Object.assign({}, pkg.dependencies || {}, pkg.devDependencies || {});
-          const hasNodeDeps = Object.keys(deps).length > 0;
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `has_node_deps=${hasNodeDeps}\n`);
-          if (!hasNodeDeps) {
-            console.log('No Node dependencies declared; pnpm install/audit will be skipped.');
-          }
-          NODE
-      - if: steps.node-deps.outputs.has_node_deps == 'true'
-        run: |
-          npm install -g pnpm@9.15.0
-          pnpm install --frozen-lockfile
-          pnpm audit --audit-level high
       - run: |
-          mkdir -p artifacts/security
-          node - <<'NODE'
-          const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const deps = Object.assign({}, pkg.dependencies || {}, pkg.devDependencies || {});
-          const components = Object.entries(deps).map(([name, version]) => ({
-            type: 'library',
-            name,
-            version: String(version).replace(/^[~^=<>\s]+/, '')
-          }));
-          const sbom = {
-            bomFormat: 'CycloneDX',
-            specVersion: '1.5',
-            version: 1,
-            metadata: {
-              component: {
-                type: 'application',
-                name: pkg.name || 'mib-studio',
-                version: pkg.version || '0.0.0'
+          python - <<'PY'
+          import json
+          import shutil
+          import subprocess
+          from pathlib import Path
+
+          package = json.loads(Path("package.json").read_text())
+          deps = {}
+          deps.update(package.get("dependencies") or {})
+          deps.update(package.get("devDependencies") or {})
+
+          Path("artifacts/security").mkdir(parents=True, exist_ok=True)
+          components = [
+              {
+                  "type": "library",
+                  "name": name,
+                  "version": str(version).lstrip("~^=<> "),
               }
-            },
-            components
-          };
-          fs.writeFileSync('artifacts/security/npm-sbom.json', JSON.stringify(sbom, null, 2) + '\n');
-          NODE
+              for name, version in sorted(deps.items())
+          ]
+          sbom = {
+              "bomFormat": "CycloneDX",
+              "specVersion": "1.5",
+              "version": 1,
+              "metadata": {
+                  "component": {
+                      "type": "application",
+                      "name": package.get("name", "mib-studio"),
+                      "version": package.get("version", "0.0.0"),
+                  }
+              },
+              "components": components,
+          }
+          Path("artifacts/security/npm-sbom.json").write_text(json.dumps(sbom, sort_keys=True, indent=2) + "\n")
+
+          if not deps:
+              print("No Node dependencies declared; pnpm install/audit skipped and empty SBOM generated.")
+              raise SystemExit(0)
+
+          if shutil.which("npm") is None:
+              raise SystemExit("Node dependencies exist but npm is unavailable on the runner.")
+
+          subprocess.check_call(["npm", "install", "-g", "pnpm@9.15.0"])
+          subprocess.check_call(["pnpm", "install", "--frozen-lockfile"])
+          subprocess.check_call(["pnpm", "audit", "--audit-level", "high"])
+          PY
 
   rust-tauri-audit:
     runs-on: ubuntu-latest

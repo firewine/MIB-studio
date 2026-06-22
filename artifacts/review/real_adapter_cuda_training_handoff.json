@@ -10,6 +10,30 @@
   "command_sequence": [
     {
       "argv": [
+        "./.venv/bin/python",
+        "scripts/check_cuda_lora_training_prereqs.py",
+        "--dataset-jsonl",
+        "examples/fixtures/router_20.jsonl",
+        "--base-model",
+        "microsoft/Phi-3.5-mini-instruct",
+        "--model-cache-dir",
+        "/tmp/mib-strict-model-cache/model_cache",
+        "--output-root",
+        "/tmp/mib-real-adapter",
+        "--backend-config",
+        "/tmp/mib-real-adapter/backend_config.yaml",
+        "--image",
+        "mib-export:test",
+        "--verify-model-cache-hashes",
+        "--json-output",
+        "artifacts/review/real_adapter_cuda_training_prereq_preflight.json"
+      ],
+      "id": "preflight_cuda_training",
+      "note": "Fail fast unless CUDA, LLaMA-Factory, Docker base image, backend config, dataset, and strict model cache prerequisites are ready.",
+      "shell": "./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json"
+    },
+    {
+      "argv": [
         "llamafactory-cli",
         "train",
         "/tmp/mib-real-adapter/backend_config.yaml"
@@ -86,7 +110,7 @@
       "shell": "bash artifacts/review/real_adapter_cuda_handoff.sh"
     }
   ],
-  "date": "2026-06-22T02:26:31.293113+00:00",
+  "date": "2026-06-22T02:37:09.014061+00:00",
   "gate": "mib-studio-cuda-real-adapter-training-handoff",
   "inputs": {
     "base_model": "microsoft/Phi-3.5-mini-instruct",
@@ -115,6 +139,7 @@
     "docker_handoff_shell": "artifacts/review/real_adapter_docker_image_handoff.sh",
     "finalize_report": "artifacts/review/real_adapter_cuda_training_finalize.json",
     "manifest": "/tmp/mib-real-adapter/manifest.json",
+    "preflight_report": "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
     "rc_handoff_shell": "artifacts/review/real_adapter_cuda_handoff.sh",
     "train_config": "/tmp/mib-real-adapter/train_config.json"
   },

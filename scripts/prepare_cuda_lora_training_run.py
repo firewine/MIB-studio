@@ -72,6 +72,25 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
     trainer_input = build_trainer_input(args)
     config_path = write_llamafactory_artifacts(trainer_input, model_cache_path=Path(args.model_cache_dir), dataset_id=args.dataset_id)
     backend_config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    preflight_command = [
+        args.python,
+        "scripts/check_cuda_lora_training_prereqs.py",
+        "--dataset-jsonl",
+        args.dataset_jsonl,
+        "--base-model",
+        args.base_model,
+        "--model-cache-dir",
+        args.model_cache_dir,
+        "--output-root",
+        args.output_root,
+        "--backend-config",
+        str(config_path),
+        "--image",
+        args.image,
+        "--verify-model-cache-hashes",
+        "--json-output",
+        args.preflight_json_output,
+    ]
     train_command = ["llamafactory-cli", "train", str(config_path)]
     finalize_command = [
         args.python,
@@ -138,6 +157,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         "outputs": {
             "train_config": str(output_root / "train_config.json"),
             "backend_config": str(config_path),
+            "preflight_report": args.preflight_json_output,
             "adapter_dir": str(output_root / "adapter"),
             "manifest": str(output_root / "manifest.json"),
             "finalize_report": args.finalize_json_output,
@@ -156,6 +176,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
             "output_dir": backend_config.get("output_dir"),
         },
         "command_sequence": [
+            command_row("preflight_cuda_training", preflight_command, note="Fail fast unless CUDA, LLaMA-Factory, Docker base image, backend config, dataset, and strict model cache prerequisites are ready."),
             command_row("train_real_adapter", train_command, note="Run actual CUDA QLoRA training with LLaMA-Factory on the CUDA host."),
             command_row("finalize_manifest", finalize_command, note="Write manifest.json from the trained adapter directory."),
             command_row("verify_adapter_intake", intake_command, note="Require GO_REAL_ADAPTER_ARTIFACT_INTAKE before export/endpoint evidence."),
@@ -300,6 +321,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--agent-id", default="finance.router.v1")
     parser.add_argument("--image", default="mib-export:test")
     parser.add_argument("--docker-context-output", default="/tmp/mib-real-adapter/docker_context")
+    parser.add_argument("--preflight-json-output", default="artifacts/review/real_adapter_cuda_training_prereq_preflight.json")
     parser.add_argument("--adapter-intake-json-output", default="artifacts/review/real_adapter_artifact_intake.json")
     parser.add_argument("--finalize-json-output", default="artifacts/review/real_adapter_cuda_training_finalize.json")
     parser.add_argument("--docker-handoff-json-output", default="artifacts/review/real_adapter_docker_image_handoff.json")

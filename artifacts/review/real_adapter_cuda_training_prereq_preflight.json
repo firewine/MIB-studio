@@ -1,0 +1,125 @@
+{
+  "blockers": [
+    "docker_base_image_env_digest",
+    "strict_model_cache_files",
+    "cuda_visible",
+    "llamafactory_cli_available",
+    "docker_base_image_available"
+  ],
+  "checks": [
+    {
+      "detail": "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset",
+      "id": "fake_backend_env_absent",
+      "ok": true
+    },
+    {
+      "detail": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must be set to an image reference with @sha256:<64-hex>",
+      "env_var": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",
+      "id": "docker_base_image_env_digest",
+      "ok": false,
+      "value_present": false
+    },
+    {
+      "detail": "ok",
+      "id": "dataset_jsonl_ready",
+      "ok": true,
+      "path": "examples/fixtures/router_20.jsonl",
+      "row_count": 20
+    },
+    {
+      "detail": "ok",
+      "id": "backend_config_ready",
+      "mismatches": [],
+      "ok": true,
+      "path": "/tmp/mib-real-adapter/backend_config.yaml"
+    },
+    {
+      "cache_dir": "/tmp/mib-strict-model-cache/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77",
+      "detail": "strict model cache files are missing or do not match the locked catalog",
+      "hash_mismatches": [],
+      "id": "strict_model_cache_files",
+      "missing": [
+        "config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "model-00001-of-00002.safetensors",
+        "model-00002-of-00002.safetensors"
+      ],
+      "model_id": "microsoft/Phi-3.5-mini-instruct",
+      "ok": false,
+      "required_count": 5,
+      "size_mismatches": [],
+      "verify_hashes": true
+    },
+    {
+      "command": [
+        "nvidia-smi"
+      ],
+      "detail": "[Errno 2] No such file or directory: 'nvidia-smi'",
+      "id": "cuda_visible",
+      "ok": false,
+      "returncode": null
+    },
+    {
+      "command": [
+        "llamafactory-cli",
+        "--version"
+      ],
+      "detail": "[Errno 2] No such file or directory: 'llamafactory-cli'",
+      "id": "llamafactory_cli_available",
+      "ok": false,
+      "returncode": null
+    },
+    {
+      "command": [
+        "docker",
+        "version",
+        "--format",
+        "{{.Server.Version}}"
+      ],
+      "detail": "ok",
+      "id": "docker_daemon_available",
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "docker",
+        "image",
+        "inspect",
+        "$MIB_DOCKER_BASE_IMAGE_WITH_DIGEST"
+      ],
+      "detail": "cannot inspect base image until MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is set",
+      "id": "docker_base_image_available",
+      "ok": false,
+      "returncode": null
+    }
+  ],
+  "date": "2026-06-22T02:37:01.682850+00:00",
+  "env_requirements": {
+    "docker_base_image_digest_present": false,
+    "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",
+    "fake_backend_env": "MIB_RUNTIME_ALLOW_FAKE_BACKEND"
+  },
+  "gate": "mib-studio-cuda-training-host-preflight",
+  "inputs": {
+    "backend_config": "/tmp/mib-real-adapter/backend_config.yaml",
+    "base_model": "microsoft/Phi-3.5-mini-instruct",
+    "dataset_jsonl": "examples/fixtures/router_20.jsonl",
+    "image": "mib-export:test",
+    "model_cache_dir": "/tmp/mib-strict-model-cache/model_cache",
+    "output_root": "/tmp/mib-real-adapter",
+    "verify_model_cache_hashes": true
+  },
+  "m6_rc_claimed_go": false,
+  "operator_rules": [
+    "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
+    "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a locally inspectable image reference containing @sha256 before training.",
+    "Run on a host where nvidia-smi succeeds before launching llamafactory-cli train.",
+    "Keep strict model cache files pinned to presets/model_catalog.yaml.",
+    "Do not claim M6-RC or v0 GO from this preflight alone."
+  ],
+  "release_claimed_go": false,
+  "schema_version": "mib_cuda_lora_training_prereq_preflight.v1",
+  "status": "NOT_READY_CUDA_LORA_TRAINING"
+}

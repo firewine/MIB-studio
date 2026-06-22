@@ -1,7 +1,7 @@
 # CUDA LoRA Training Handoff
 
 ```yaml
-date: 2026-06-22T02:26:31.293113+00:00
+date: 2026-06-22T02:37:09.014061+00:00
 gate: mib-studio-cuda-real-adapter-training-handoff
 status: PREPARED_NOT_RUN
 release_claimed_go: false
@@ -43,6 +43,12 @@ output_dir: /tmp/mib-real-adapter/adapter
 - Do not claim M6-RC or v0 GO until the downstream real adapter handoff and verifiers return GO.
 
 ## Command Sequence
+
+### preflight_cuda_training
+
+```bash
+./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+```
 
 ### train_real_adapter
 

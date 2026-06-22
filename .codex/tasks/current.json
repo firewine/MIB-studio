@@ -1,32 +1,33 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Add a real adapter M6-RC prerequisite audit mode to the existing runner so the remaining completion blocker can be checked deterministically before a live run. The audit must report adapter artifact path readiness, adapter manifest readiness, strict model cache readiness, Docker image availability, host CUDA visibility, fake-backend absence, and token readiness without claiming M6-RC GO. Current environment is expected to remain NOT_READY/NOT_GO because no real trained adapter or CUDA device is present.",
+  "goal": "Restore desktop M1/FE v6 e2e verification in a real localhost/headless Chrome environment. The broad completion audit found Python test directories passing but desktop e2e failing after sandbox restrictions were removed: M1 happy path times out waiting for the project creation screen after clicking /projects/new. Fix the UI/router/e2e surface without changing product scope or backend behavior, and preserve FE v6 mockup alignment.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-prereq-audit",
+  "gate": "mib-studio-desktop-e2e-route-repair",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "c26ffe4",
+  "head": "ac34a7e",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/run_m6_real_adapter_rc_gate.py",
-    "tests/scripts/test_run_m6_real_adapter_rc_gate.py",
-    "docs/WORKING.md",
-    "artifacts/review/"
+    "apps/desktop/src/",
+    "apps/desktop/e2e/",
+    "artifacts/review/",
+    "docs/WORKING.md"
   ],
   "blocked_path_prefixes": [
-    "apps",
-    "schemas",
     "services",
     "packages",
+    "schemas",
     "tests/api",
     "tests/agent_package",
     "tests/benchmark",
     "tests/dataset",
+    "tests/db",
     "tests/eval",
     "tests/export",
     "tests/hardware",
     "tests/playground",
+    "tests/scripts",
     "tests/security",
     "tests/smoke",
     "tests/training",
@@ -39,81 +40,78 @@
     "artifacts/security"
   ],
   "blocked_scope": [
-    "Product runtime, API, UI, DB, schema, training, export implementation, or model behavior changes",
-    "Creating or committing model weights or adapter artifacts",
-    "Claiming M6-RC GO before live structured endpoint evidence exists",
-    "Weakening real adapter endpoint evidence acceptance"
+    "Backend/API/DB/schema/training/export/runtime behavior changes",
+    "Changing M6-RC decision or real adapter evidence policy",
+    "Creating model artifacts",
+    "Weakening FE v6 route-contract e2e assertions"
   ],
-  "allowed_edit_paths_scope_note": "This gate may extend the RC evidence runner with prerequisite audit mode, update focused tests, generate prereq audit evidence, update WORKING.md, and update this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may repair desktop UI routing/e2e support, update focused e2e evidence, update WORKING.md, and update this PABCD contract only.",
   "external_runtime_paths": [
     "/tmp"
   ],
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
-    "docs/reviews/M6/CTO_DECISION.md",
-    "artifacts/review/real_adapter_rc_gate_runner_evidence.md",
-    "artifacts/review/real_adapter_inference_evidence.md",
-    "scripts/run_m6_real_adapter_rc_gate.py"
+    "docs/mockup/mib_fe_mockup_v6_routes_contract.html",
+    "artifacts/review/fe_v6_evidence.md",
+    "apps/desktop/e2e/m1_happy_path.test.mjs",
+    "apps/desktop/e2e/fe_v6_route_contract.test.mjs",
+    "apps/desktop/e2e/m2_teacher_packet_preview.test.mjs"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --preflight-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output artifacts/review/m6_real_adapter_prereq_audit.json",
-    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
-    "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
+    "COREPACK_HOME=/tmp/corepack corepack pnpm test",
+    "COREPACK_HOME=/tmp/corepack corepack pnpm e2e",
+    "COREPACK_HOME=/tmp/corepack node --test apps/desktop/e2e/fe_v6_route_contract.test.mjs",
+    "COREPACK_HOME=/tmp/corepack node --test apps/desktop/e2e/m2_teacher_packet_preview.test.mjs",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Runner preflight-only mode writes machine-readable readiness checks",
-    "Preflight-only mode does not execute adapter intake, endpoint capture, or M6 GO verification",
-    "Current prereq audit reports NOT_READY without claiming M6-RC GO",
-    "Current M6 verifier remains NOT_GO with real_trained_adapter_no_fake_endpoint blocker"
+    "M1 desktop e2e passes in real localhost/headless Chrome environment",
+    "FE v6 route contract e2e passes",
+    "M2 teacher packet preview e2e passes",
+    "Desktop unit tests still pass",
+    "No backend/M6 evidence policy changed"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --preflight-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output artifacts/review/m6_real_adapter_prereq_audit.json",
-    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
-    "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
+    "COREPACK_HOME=/tmp/corepack corepack pnpm test",
+    "COREPACK_HOME=/tmp/corepack corepack pnpm e2e",
+    "COREPACK_HOME=/tmp/corepack node --test apps/desktop/e2e/fe_v6_route_contract.test.mjs",
+    "COREPACK_HOME=/tmp/corepack node --test apps/desktop/e2e/m2_teacher_packet_preview.test.mjs",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
-    "This gate does not provide a real trained adapter.",
-    "This gate does not run live Docker endpoint transcripts.",
-    "M6-RC remains NOT_GO until a real trained CUDA lora_adapter, strict model cache, exported Docker image, CUDA host, and no-fake endpoint evidence are all available."
+    "M6-RC remains NOT_GO due missing real trained adapter endpoint evidence.",
+    "This gate does not change backend behavior."
   ],
   "phase_notes": {
-    "plan": "Open scoped prereq audit gate for the real adapter M6-RC closeout path.",
-    "audit": "Read current WORKING.md, M6 CTO decision, previous real adapter evidence, and current repo/tmp prerequisites. Found no real adapter path under /tmp/mib-real-adapter, no mib-export:test image, and no host nvidia-smi; strict model cache path exists.",
-    "build": "Extended scripts/run_m6_real_adapter_rc_gate.py with --preflight-only, structured preflight checks, Docker image inspect, host CUDA visibility check, and clearer missing-prerequisite details. Added focused tests for preflight-only NOT_READY behavior without executing intake/capture/M6 steps.",
-    "check": "Passed json.tool, py_compile, focused pytest, preflight-only audit JSON generation, generated JSON validation, M6 verifier expected NOT_GO, git diff --check, and git diff --cached --check.",
-    "done": "Prerequisite audit tooling is complete. Current environment is NOT_READY and M6-RC remains NOT_GO because live real trained adapter endpoint evidence is absent."
+    "plan": "Open scoped desktop e2e route repair gate after broad verification found pnpm e2e failing with real localhost permissions.",
+    "audit": "Compared apps/desktop/e2e M1, FE v6, and M2 tests against the /projects/new UI. Found the tests wait for the canonical text Create route contract project while createProjectPage rendered Route contract project, causing the real-browser M1 happy path timeout after navigation.",
+    "build": "Updated apps/desktop/src/main.mjs so the project wizard title matches the canonical route-contract creation text expected by M1, FE v6, and M2 e2e flows. Added focused review evidence and updated docs/WORKING.md. No backend, schema, training, export, runtime, or M6 evidence policy files changed.",
+    "check": "Passed json.tool, desktop unit tests, M1 desktop e2e, FE v6 route contract e2e, M2 teacher packet preview e2e, git diff --check, and git diff --cached --check.",
+    "done": "Desktop e2e route repair is complete. M6-RC remains NOT_GO because real trained CUDA lora_adapter no-fake Docker endpoint evidence is still absent."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-prereq-audit",
-    "status": "MIB_STUDIO_REAL_ADAPTER_PREREQ_AUDIT_COMPLETE_M6_NOT_GO",
+    "gate": "mib-studio-desktop-e2e-route-repair",
+    "status": "MIB_STUDIO_DESKTOP_E2E_ROUTE_REPAIR_COMPLETE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "RC runner prereq audit mode, focused tests, generated evidence, WORKING.md, and PABCD contract only.",
-    "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no M6 GO claim.",
+    "approved_scope": "Desktop UI/e2e repair, focused evidence, WORKING.md, and PABCD contract only.",
+    "blocked_scope": "No backend/API/DB/schema/training/export/runtime behavior changes, no model artifacts, no M6 GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped prereq audit gate for the real adapter M6-RC closeout path.",
-    "audit": "Read current WORKING.md, M6 CTO decision, previous real adapter evidence, and current repo/tmp prerequisites. Found no real adapter path under /tmp/mib-real-adapter, no mib-export:test image, and no host nvidia-smi; strict model cache path exists.",
-    "build": "Extended scripts/run_m6_real_adapter_rc_gate.py with --preflight-only, structured preflight checks, Docker image inspect, host CUDA visibility check, and clearer missing-prerequisite details. Added focused tests for preflight-only NOT_READY behavior without executing intake/capture/M6 steps.",
-    "check": "Passed json.tool, py_compile, focused pytest, preflight-only audit JSON generation, generated JSON validation, M6 verifier expected NOT_GO, git diff --check, and git diff --cached --check.",
-    "done": "Prerequisite audit tooling is complete. Current environment is NOT_READY and M6-RC remains NOT_GO because live real trained adapter endpoint evidence is absent."
+    "plan": "Open scoped desktop e2e route repair gate after broad verification found pnpm e2e failing with real localhost permissions.",
+    "audit": "Compared apps/desktop/e2e M1, FE v6, and M2 tests against the /projects/new UI. Found the tests wait for the canonical text Create route contract project while createProjectPage rendered Route contract project, causing the real-browser M1 happy path timeout after navigation.",
+    "build": "Updated apps/desktop/src/main.mjs so the project wizard title matches the canonical route-contract creation text expected by M1, FE v6, and M2 e2e flows. Added focused review evidence and updated docs/WORKING.md. No backend, schema, training, export, runtime, or M6 evidence policy files changed.",
+    "check": "Passed json.tool, desktop unit tests, M1 desktop e2e, FE v6 route contract e2e, M2 teacher packet preview e2e, git diff --check, and git diff --cached --check.",
+    "done": "Desktop e2e route repair is complete. M6-RC remains NOT_GO because real trained CUDA lora_adapter no-fake Docker endpoint evidence is still absent."
   }
 }

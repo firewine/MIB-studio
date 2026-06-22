@@ -429,7 +429,7 @@ function projectsPage() {
 function createProjectPage() {
   const checks = validateRoutes(initialRoutes);
   const disabled = checks.every((check) => check.ok) ? "" : "disabled";
-  return pageShell("Project wizard", "Route contract project", "M1 projects start from a locked router preset and validated route labels.", `<button class="button primary" data-action="create-project" ${disabled}>Create</button>`, `<div class="two-column"><section class="surface"><label class="field"><span>Project name</span><input data-field="project-name" value="${escapeHtml(state.projectName || "support-router")}"></label></section><section class="surface"><h2>Validation</h2>${checksHtml(checks)}</section></div>`);
+  return pageShell("Project wizard", "Create route contract project", "M1 projects start from a locked router preset and validated route labels.", `<button class="button primary" data-action="create-project" ${disabled}>Create</button>`, `<div class="two-column"><section class="surface"><label class="field"><span>Project name</span><input data-field="project-name" value="${escapeHtml(state.projectName || "support-router")}"></label></section><section class="surface"><h2>Validation</h2>${checksHtml(checks)}</section></div>`);
 }
 
 function dashboardPage() {

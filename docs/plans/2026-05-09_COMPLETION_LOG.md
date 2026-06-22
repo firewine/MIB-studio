@@ -7,3 +7,4 @@
 - v0 release blocker recertification의 첫 외부 조치를 `artifacts/review/real_adapter_cuda_training_handoff.sh`로 연결했다.
 - 외부 CUDA operator packet JSON/Markdown를 추가해 handoff source commit, 필수 파일 sha256, 실행 순서, 반환 artifact, 커밋 금지 artifact를 고정했다.
 - 외부 CUDA operator packet verifier를 추가해 handoff 실행 전 packet 계약, 필수 파일 hash, 명령 순서, 커밋 금지 artifact를 자동 검증하게 했다.
+- 외부 CUDA training launcher를 추가해 packet verifier 통과 후에만 real-adapter CUDA training handoff가 실행되도록 했다.

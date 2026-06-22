@@ -1,17 +1,19 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Add a local verifier for the external CUDA operator packet so operators can validate required file hashes, no-GO claims, handoff identity, and forbidden committed artifacts before running the real-adapter CUDA handoff.",
+  "goal": "Add a verified external CUDA training launcher that runs the operator-packet verifier before invoking the real-adapter CUDA training handoff.",
   "phase": "done",
-  "gate": "mib-studio-external-cuda-operator-packet-verifier",
+  "gate": "mib-studio-verified-external-cuda-training-launcher",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "6588915",
+  "head": "a8cc46b",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/verify_external_cuda_operator_packet.py",
-    "tests/scripts/test_verify_external_cuda_operator_packet.py",
-    "artifacts/review/external_cuda_operator_packet_verification.json",
+    "scripts/build_verified_cuda_training_launcher.py",
+    "tests/scripts/test_build_verified_cuda_training_launcher.py",
+    "artifacts/review/verified_external_cuda_training_launcher.json",
+    "artifacts/review/verified_external_cuda_training_launcher.md",
+    "artifacts/review/verified_external_cuda_training_launcher.sh",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
@@ -36,73 +38,73 @@
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may add an external CUDA operator packet verifier, focused tests, generated verifier JSON, LLM context/working state, completion log, and PABCD only.",
+  "allowed_edit_paths_scope_note": "This gate may add a verified external CUDA training launcher generator, focused tests, generated launcher JSON/Markdown/Shell, LLM context/working state, completion log, and PABCD only.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet.md",
+    "artifacts/review/external_cuda_operator_packet_verification.json",
     "artifacts/review/real_adapter_cuda_training_handoff.json",
     "artifacts/review/real_adapter_cuda_training_handoff.sh",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/v0_release_blocker_recertification.json",
-    "scripts/build_external_cuda_operator_packet.py",
-    "scripts/run_v0_release_blocker_recertification.py",
-    "scripts/verify_real_adapter_evidence_bundle.py"
+    "scripts/verify_external_cuda_operator_packet.py",
+    "scripts/prepare_cuda_lora_training_run.py",
+    "scripts/run_v0_release_blocker_recertification.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "rg -n -- \"external_cuda_operator_packet_verification|verify_external_cuda_operator_packet|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|release_claimed_go|forbidden_tracked_artifacts|real_adapter_cuda_training_handoff.sh|real_trained_adapter_no_fake_endpoint\" scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_verified_cuda_training_launcher.py -q",
+    "python3 -m py_compile scripts/build_verified_cuda_training_launcher.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_verified_cuda_training_launcher.py --json-output artifacts/review/verified_external_cuda_training_launcher.json --markdown-output artifacts/review/verified_external_cuda_training_launcher.md --shell-output artifacts/review/verified_external_cuda_training_launcher.sh",
+    "bash -n artifacts/review/verified_external_cuda_training_launcher.sh",
+    "python3 -m json.tool artifacts/review/verified_external_cuda_training_launcher.json",
+    "rg -n -- \"verified_external_cuda_training_launcher|verify_external_cuda_operator_packet.py|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|real_adapter_cuda_training_handoff.sh|MIB_RUNTIME_ALLOW_FAKE_BACKEND|release_claimed_go|real_trained_adapter_no_fake_endpoint\" scripts/build_verified_cuda_training_launcher.py tests/scripts/test_build_verified_cuda_training_launcher.py artifacts/review/verified_external_cuda_training_launcher.json artifacts/review/verified_external_cuda_training_launcher.md artifacts/review/verified_external_cuda_training_launcher.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Verifier confirms the external CUDA operator packet schema, status, primary handoff, and no release/M6 GO claims.",
-    "Verifier confirms all packet required_committed_files exist and match sha256/size values.",
-    "Verifier checks package readiness ids, downstream command order, and forbidden tracked artifact policy.",
-    "Generated verifier artifact does not claim M6-RC or v0 release GO."
+    "Generated launcher runs verify_external_cuda_operator_packet.py before real_adapter_cuda_training_handoff.sh.",
+    "Launcher refuses fake-backend environment and missing verifier/packet/handoff files.",
+    "Focused tests verify command order and no release/M6 GO claim.",
+    "Generated launcher artifacts do not contain model weights, adapters, Docker images, endpoint transcripts, copied evidence bundles, or release GO claims."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "rg -n -- \"external_cuda_operator_packet_verification|verify_external_cuda_operator_packet|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|release_claimed_go|forbidden_tracked_artifacts|real_adapter_cuda_training_handoff.sh|real_trained_adapter_no_fake_endpoint\" scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_verified_cuda_training_launcher.py -q",
+    "python3 -m py_compile scripts/build_verified_cuda_training_launcher.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_verified_cuda_training_launcher.py --json-output artifacts/review/verified_external_cuda_training_launcher.json --markdown-output artifacts/review/verified_external_cuda_training_launcher.md --shell-output artifacts/review/verified_external_cuda_training_launcher.sh",
+    "bash -n artifacts/review/verified_external_cuda_training_launcher.sh",
+    "python3 -m json.tool artifacts/review/verified_external_cuda_training_launcher.json",
+    "rg -n -- \"verified_external_cuda_training_launcher|verify_external_cuda_operator_packet.py|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|real_adapter_cuda_training_handoff.sh|MIB_RUNTIME_ALLOW_FAKE_BACKEND|release_claimed_go|real_trained_adapter_no_fake_endpoint\" scripts/build_verified_cuda_training_launcher.py tests/scripts/test_build_verified_cuda_training_launcher.py artifacts/review/verified_external_cuda_training_launcher.json artifacts/review/verified_external_cuda_training_launcher.md artifacts/review/verified_external_cuda_training_launcher.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
     "The current host still lacks real trained adapter no-fake Docker endpoint evidence.",
-    "This gate verifies the operator packet only; it does not run CUDA training, accept evidence, or relax readiness."
+    "This gate adds a guarded launcher only; it does not run CUDA training, accept evidence, or relax readiness."
   ],
   "phase_notes": {
-    "plan": "Add a local verifier for the external CUDA operator packet before external CUDA execution.",
-    "audit": "The packet lists hashes and forbidden artifacts, but operators currently have no focused command to validate those invariants before running the handoff.",
-    "build": "Create verifier script, focused tests, generated verification JSON, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD.",
-    "check": "Run focused tests, py_compile, verifier generation, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this packet-verifier phase."
+    "plan": "Add a wrapper launch artifact that verifies the operator packet before invoking the existing CUDA training handoff.",
+    "audit": "Docs currently tell operators to run verifier and handoff as separate commands; a wrapper reduces skipped-verifier and wrong-checkout errors before training starts.",
+    "build": "Create launcher generator, focused tests, generated JSON/Markdown/Shell launcher, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD.",
+    "check": "Run focused tests, py_compile, launcher generation, shell syntax check, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this verified-launcher phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-external-cuda-operator-packet-verifier",
+    "gate": "mib-studio-verified-external-cuda-training-launcher",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "External CUDA operator packet verifier, focused tests, generated verifier JSON, LLM context/working state, completion log, and PABCD only.",
+    "approved_scope": "Verified external CUDA training launcher generator, focused tests, generated launcher JSON/Markdown/Shell, LLM context/working state, completion log, and PABCD only.",
     "blocked_scope": "No product behavior changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Add a local verifier for the external CUDA operator packet before external CUDA execution.",
-    "audit": "The packet lists hashes and forbidden artifacts, but operators currently have no focused command to validate those invariants before running the handoff.",
-    "build": "Create verifier script, focused tests, generated verification JSON, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD.",
-    "check": "Run focused tests, py_compile, verifier generation, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this packet-verifier phase."
+    "plan": "Add a wrapper launch artifact that verifies the operator packet before invoking the existing CUDA training handoff.",
+    "audit": "Docs currently tell operators to run verifier and handoff as separate commands; a wrapper reduces skipped-verifier and wrong-checkout errors before training starts.",
+    "build": "Create launcher generator, focused tests, generated JSON/Markdown/Shell launcher, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD.",
+    "check": "Run focused tests, py_compile, launcher generation, shell syntax check, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this verified-launcher phase."
   }
 }

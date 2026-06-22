@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFIER
+phase_id: V0_VERIFIED_EXTERNAL_CUDA_TRAINING_LAUNCHER
 milestone: Final_Program_Development_Closeout
-phase_status: v0_external_cuda_operator_packet_verified_not_go_release
-gate_id: mib-studio-external-cuda-operator-packet-verifier
+phase_status: v0_verified_external_cuda_training_launcher_prepared_not_go_release
+gate_id: mib-studio-verified-external-cuda-training-launcher
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,40 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-verified-external-cuda-training-launcher
+objective: make external CUDA operators run packet verification before real-adapter training handoff execution
+
+files:
+  launcher_generator: scripts/build_verified_cuda_training_launcher.py
+  launcher_tests: tests/scripts/test_build_verified_cuda_training_launcher.py
+  generated_launcher:
+    - artifacts/review/verified_external_cuda_training_launcher.json
+    - artifacts/review/verified_external_cuda_training_launcher.md
+    - artifacts/review/verified_external_cuda_training_launcher.sh
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+launcher_contract:
+  schema_version: mib_verified_external_cuda_training_launcher.v1
+  status: PREPARED_NOT_RUN
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  first_command: verify_external_cuda_operator_packet
+  required_verifier_decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  second_command: run_real_adapter_cuda_training_handoff
+  training_handoff_shell: artifacts/review/real_adapter_cuda_training_handoff.sh
+  fake_backend_guard: MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset
+
+summary:
+  - new launcher is the preferred external CUDA host entrypoint
+  - launcher runs scripts/verify_external_cuda_operator_packet.py before artifacts/review/real_adapter_cuda_training_handoff.sh
+  - focused tests cover command order, guard strings, artifact writing, and no-GO claims
+  - launcher remains PREPARED_NOT_RUN and does not claim M6-RC GO or v0 release GO
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-operator-packet-verifier
@@ -481,6 +515,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  Verified_External_CUDA_Training_Launcher: true
   External_CUDA_Operator_Packet_Verification: true
   External_CUDA_Operator_Packet: true
   V0_Release_Blocker_Recertification_Training_Handoff_Action: true
@@ -509,8 +544,15 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_external_cuda_operator_packet_verified_not_go_release
+status: v0_verified_external_cuda_training_launcher_prepared_not_go_release
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_verified_cuda_training_launcher.py -q
+  - python3 -m py_compile scripts/build_verified_cuda_training_launcher.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_verified_cuda_training_launcher.py --json-output artifacts/review/verified_external_cuda_training_launcher.json --markdown-output artifacts/review/verified_external_cuda_training_launcher.md --shell-output artifacts/review/verified_external_cuda_training_launcher.sh
+  - bash -n artifacts/review/verified_external_cuda_training_launcher.sh
+  - python3 -m json.tool artifacts/review/verified_external_cuda_training_launcher.json
+  - rg -n -- "verified_external_cuda_training_launcher|verify_external_cuda_operator_packet.py|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|real_adapter_cuda_training_handoff.sh|MIB_RUNTIME_ALLOW_FAKE_BACKEND|release_claimed_go|real_trained_adapter_no_fake_endpoint" scripts/build_verified_cuda_training_launcher.py tests/scripts/test_build_verified_cuda_training_launcher.py artifacts/review/verified_external_cuda_training_launcher.json artifacts/review/verified_external_cuda_training_launcher.md artifacts/review/verified_external_cuda_training_launcher.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q
   - python3 -m py_compile scripts/verify_external_cuda_operator_packet.py
@@ -654,8 +696,7 @@ prepare_strict_toolchain_before_strict_checks:
     --json-output /tmp/mib-strict-toolchain-preparation.json
 
 external_cuda_host_flow:
-  - run scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO before external CUDA handoff execution
-  - run artifacts/review/real_adapter_cuda_training_handoff.sh on a CUDA host
+  - run bash artifacts/review/verified_external_cuda_training_launcher.sh on a CUDA host
   - run artifacts/review/real_adapter_docker_image_handoff.sh after a real adapter exists
   - run scripts/run_m6_real_adapter_rc_gate.py --endpoint-evidence-only for live no-fake endpoint evidence
   - review endpoint evidence before changing M6 review docs
@@ -695,6 +736,15 @@ commands. The active closeout tool is
 scripts/run_v0_release_blocker_recertification.py. It refreshes the current
 candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle
 verification, v0 readiness, and CUDA handoff artifacts with one command.
+The preferred external CUDA host entrypoint is
+artifacts/review/verified_external_cuda_training_launcher.sh. It refuses
+MIB_RUNTIME_ALLOW_FAKE_BACKEND, verifies
+artifacts/review/external_cuda_operator_packet.json with
+scripts/verify_external_cuda_operator_packet.py and expected decision
+GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION, then runs
+artifacts/review/real_adapter_cuda_training_handoff.sh only after verification
+passes. This launcher is PREPARED_NOT_RUN and does not claim M6-RC or v0 release
+GO.
 The external CUDA operator packet is
 artifacts/review/external_cuda_operator_packet.json and .md. It pins the handoff
 source commit to d6ecc02, records required committed file sha256 values, names

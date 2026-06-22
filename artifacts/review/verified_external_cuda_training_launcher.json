@@ -1,0 +1,48 @@
+{
+  "command_sequence": [
+    {
+      "argv": [
+        "./.venv/bin/python",
+        "scripts/verify_external_cuda_operator_packet.py",
+        "--packet-json",
+        "artifacts/review/external_cuda_operator_packet.json",
+        "--expected-decision",
+        "GO",
+        "--json-output",
+        "artifacts/review/external_cuda_operator_packet_verification.json"
+      ],
+      "id": "verify_external_cuda_operator_packet",
+      "note": "Require operator-packet integrity GO before any CUDA training command runs.",
+      "shell": "./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json"
+    },
+    {
+      "argv": [
+        "bash",
+        "artifacts/review/real_adapter_cuda_training_handoff.sh"
+      ],
+      "id": "run_real_adapter_cuda_training_handoff",
+      "note": "Invoke the existing guarded CUDA training handoff only after packet verification passes.",
+      "shell": "bash artifacts/review/real_adapter_cuda_training_handoff.sh"
+    }
+  ],
+  "date": "2026-06-22T14:49:59.197925+00:00",
+  "gate": "mib-studio-verified-external-cuda-training-launcher",
+  "guardrails": [
+    "Refuse to run when MIB_RUNTIME_ALLOW_FAKE_BACKEND is set.",
+    "Refuse to run when repo Python, verifier script, operator packet, or CUDA training handoff shell is missing.",
+    "Do not claim M6-RC or v0 release GO from launcher execution alone."
+  ],
+  "inputs": {
+    "expected_verifier_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+    "packet_json": "artifacts/review/external_cuda_operator_packet.json",
+    "python": "./.venv/bin/python",
+    "training_handoff_shell": "artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "verification_output": "artifacts/review/external_cuda_operator_packet_verification.json",
+    "verifier_script": "scripts/verify_external_cuda_operator_packet.py"
+  },
+  "m6_rc_claimed_go": false,
+  "purpose": "Run operator-packet verification before invoking the external CUDA real-adapter training handoff.",
+  "release_claimed_go": false,
+  "schema_version": "mib_verified_external_cuda_training_launcher.v1",
+  "status": "PREPARED_NOT_RUN"
+}

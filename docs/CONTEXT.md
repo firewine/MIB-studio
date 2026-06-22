@@ -370,6 +370,7 @@ release_blocker_recertification: artifacts/review/v0_release_blocker_recertifica
 cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.json
 external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.json
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
+verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 current_local_unexpected_blockers: []
@@ -507,12 +508,30 @@ warning: packet handoff source commit d6ecc02 differs from current packet-manage
 meaning: packet integrity is GO; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
 ```
 
+Current verified external CUDA training launcher:
+
+```yaml
+launcher_json: artifacts/review/verified_external_cuda_training_launcher.json
+launcher_markdown: artifacts/review/verified_external_cuda_training_launcher.md
+launcher_shell: artifacts/review/verified_external_cuda_training_launcher.sh
+schema_version: mib_verified_external_cuda_training_launcher.v1
+status: PREPARED_NOT_RUN
+release_claimed_go: false
+m6_rc_claimed_go: false
+sequence:
+  - verify_external_cuda_operator_packet:
+      command: scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO
+      required_decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  - run_real_adapter_cuda_training_handoff:
+      command: bash artifacts/review/real_adapter_cuda_training_handoff.sh
+meaning: this is the preferred external CUDA host entrypoint; it still does not claim release GO
+```
+
 Recommended external CUDA host sequence:
 
 ```yaml
 external_cuda_host_sequence:
-  - run scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO
-  - run artifacts/review/real_adapter_cuda_training_handoff.sh
+  - run bash artifacts/review/verified_external_cuda_training_launcher.sh
   - run artifacts/review/real_adapter_docker_image_handoff.sh
   - run scripts/run_m6_real_adapter_rc_gate.py --endpoint-evidence-only
   - review artifacts/review/real_trained_adapter_endpoint_evidence.md and .json

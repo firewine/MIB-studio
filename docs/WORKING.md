@@ -41,16 +41,16 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: POST_TRANSFER_MANIFEST_EXTERNAL_CUDA_PACKET_REFRESH
+phase_id: CURRENT_HEAD_159A00A_V0_BLOCKER_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: external_cuda_operator_packet_verification_restored_after_transfer_manifest_tooling
-gate_id: mib-studio-post-transfer-manifest-external-cuda-packet-refresh
+phase_status: current_head_not_go_recertified_packet_refresh_required
+gate_id: mib-studio-current-head-159a00a-v0-blocker-recertification
 mode: development
 product_code_changed: false
 verification_tooling_changed: false
 verification_artifacts_refreshed: true
-external_operator_packet_refreshed: true
-external_operator_packet_refresh_required_after_phase_commit: false
+external_operator_packet_refreshed: false
+external_operator_packet_refresh_required_after_phase_commit: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
@@ -63,6 +63,86 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-current-head-159a00a-v0-blocker-recertification
+objective: refresh current-head local NOT_GO release blocker diagnostics after external CUDA packet refresh
+
+source_head: 159a00a
+recertification_timestamp_utc: "2026-06-22T21:00:25.554548+00:00"
+
+files:
+  refreshed_artifacts:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_readiness_audit.json
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/v0_release_blocker_recertification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+training_preflight:
+  status: NOT_READY_CUDA_LORA_TRAINING
+  docker_base_image_env_digest_ok: true
+  docker_base_image_available_ok: true
+  docker_base_image_cuda_python_runtime_ok: true
+  docker_daemon_available_ok: true
+  strict_model_cache_files_ok: true
+  blockers:
+    - cuda_visible
+
+m6_prereq:
+  status: NOT_READY_PRECHECK_FAILED
+  errors:
+    - adapter_safetensors_present
+    - adapter_config_present
+    - adapter_manifest_present
+    - docker_image_available: No such image: mib-export:test
+    - host_cuda_visible: nvidia-smi not found
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  v0_release_ready: false
+  v0_unexpected_blockers: []
+  sole_v0_blocker: real_trained_adapter_no_fake_endpoint
+  handoff_decision: WAITING_FOR_REAL_ADAPTER_INPUTS
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+
+post_recert_packet_check:
+  decision: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  expected_decision: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  blocker: required_committed_file_hashes
+  stale_hash_paths:
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/v0_release_blocker_recertification.json
+  follow_up_packet_refresh_required: true
+
+scope:
+  product_code_changed: false
+  tests_changed: false
+  scripts_changed: false
+  release_criteria_changed: false
+  docs_reviews_M6_changed: false
+  real_adapter_evidence_created: false
+  model_cache_files_committed: false
+  docker_image_layers_committed: false
+  packet_artifacts_refreshed: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-post-transfer-manifest-external-cuda-packet-refresh
@@ -2859,9 +2939,13 @@ adapter files, Docker image layers/archives, raw endpoint transcripts, or copied
 external evidence bundles. Keep the packet file from the current checkout;
 packet.git.head is the required committed file source commit for verifier blob
 checks, not an instruction to checkout an older commit before using the packet.
-The packet has already been regenerated after the transfer-manifest tooling
-commit, so it includes scripts/build_external_cuda_operator_transfer_manifest.py
-in required_committed_files.
+The packet was regenerated after the transfer-manifest tooling commit and
+includes scripts/build_external_cuda_operator_transfer_manifest.py in
+required_committed_files, but the current-head recertification phase changed
+source-pinned handoff/recertification artifacts. Before handing the packet to an
+external operator, refresh artifacts/review/external_cuda_operator_packet.json,
+.md, and artifacts/review/external_cuda_operator_packet_verification.json at the
+recertification closeout commit.
 Before running that handoff, use
 scripts/build_external_cuda_operator_transfer_manifest.py from a full repository
 checkout and require READY_EXTERNAL_CUDA_OPERATOR_TRANSFER. Then run

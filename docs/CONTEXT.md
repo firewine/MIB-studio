@@ -459,13 +459,14 @@ external_cuda_operator_packet_verification: artifacts/review/external_cuda_opera
 external_cuda_operator_transfer_manifest_builder: scripts/build_external_cuda_operator_transfer_manifest.py
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
 external_cuda_operator_packet_source_commit: 5fc0a75
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
+external_cuda_operator_packet_refresh_reason: current-head recertification changed source-pinned handoff/recertification artifacts after packet source commit 5fc0a75
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
 cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
-current_recertification_head: 7e6c545
+current_recertification_head: 159a00a
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -544,7 +545,7 @@ Current actionable NOT_GO recertification summary:
 
 ```yaml
 summary_file: artifacts/review/v0_release_blocker_recertification.json
-current_head: 5e7cc94
+current_head: 159a00a
 top_level_fields:
   - blocking_reasons
   - operator_next_actions
@@ -669,8 +670,8 @@ Current external CUDA operator packet verification:
 ```yaml
 verification_json: artifacts/review/external_cuda_operator_packet_verification.json
 schema_version: mib_external_cuda_operator_packet_verification.v1
-decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
-operator_packet_ready: true
+stored_decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+stored_operator_packet_ready: true
 release_claimed_go: false
 m6_rc_claimed_go: false
 validated:
@@ -685,8 +686,16 @@ validated:
   - forbidden committed artifact labels
   - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
 warning: none
-meaning: packet integrity is GO; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
-current_phase_note: packet artifact has been refreshed after transfer manifest tooling; keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
+current_checkout_reverification_after_recertification:
+  decision: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  expected_decision: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  blocker: required_committed_file_hashes
+  stale_hash_paths:
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/v0_release_blocker_recertification.json
+meaning: packet artifact was GO at source commit 5fc0a75, but current-head recertification changed source-pinned artifacts; refresh the packet before external operator use
+current_phase_note: keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
 ```
 
 Current verified external CUDA training launcher:

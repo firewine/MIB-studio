@@ -104,7 +104,7 @@
       ]
     }
   ],
-  "date": "2026-06-22T20:23:32.585078+00:00",
+  "date": "2026-06-22T21:06:10.317037+00:00",
   "env_requirements": {
     "docker_base_image_digest_present": true,
     "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",

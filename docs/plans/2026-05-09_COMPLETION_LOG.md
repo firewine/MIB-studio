@@ -43,3 +43,4 @@
 - strict Phi-3.5 cache를 `/tmp/mib-strict-model-cache-phi/model_cache`에 준비해 `strict_model_cache_files`를 CUDA training preflight blocker에서 제거했고, v0 release는 real adapter endpoint evidence가 없어 계속 NOT_GO임을 재확인했다.
 - strict cache READY recertification 이후 외부 CUDA operator packet을 source commit `29392d5` 기준으로 다시 갱신해 verifier가 17개 required file hash와 17개 commit blob을 warning 없이 GO로 확인하도록 복구했다.
 - host Docker 접근으로 v0 release blocker recertification을 다시 실행해 `docker_daemon_available`을 blocker에서 제거했고, `mib-export:test` 이미지/CUDA/real adapter endpoint evidence가 없어 v0 release는 계속 NOT_GO임을 확인했다.
+- host Docker recertification 이후 외부 CUDA operator packet을 source commit `63d72ab` 기준으로 다시 갱신해 verifier가 17개 required file hash와 17개 commit blob을 warning 없이 GO로 확인하도록 복구했다.

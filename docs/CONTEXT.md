@@ -457,7 +457,7 @@ cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.json
 external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.json
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
-external_cuda_operator_packet_source_commit: 29392d5
+external_cuda_operator_packet_source_commit: 63d72ab
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
@@ -609,7 +609,7 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: 29392d5
+handoff_source_commit: 63d72ab
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -642,7 +642,7 @@ m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
   - 17 required committed file sha256/size values
-  - 17 required committed file blobs at handoff source commit 29392d5
+  - 17 required committed file blobs at handoff source commit 63d72ab
   - operator sequence keeps the packet file from the current checkout
   - primary handoff must be the verified launcher, not the lower-level training handoff
   - packet.git.head resolves even when current checkout is a later closeout commit

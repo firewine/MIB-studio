@@ -40,7 +40,9 @@
         "--model-cache-dir",
         "/tmp/mib-strict-model-cache-phi/model_cache",
         "--json-output",
-        "artifacts/review/real_adapter_candidate_scan.json"
+        "artifacts/review/real_adapter_candidate_scan.json",
+        "--expected-go-candidates",
+        "0"
       ],
       "id": "candidate_scan",
       "ok": true,
@@ -224,7 +226,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T15:15:25.480070+00:00",
+  "date": "2026-06-22T17:32:00.918235+00:00",
   "expectation_checks": [
     {
       "actual": "NOT_READY_CUDA_LORA_TRAINING",
@@ -248,6 +250,12 @@
       "actual": "NOT_GO",
       "expected": "NOT_GO",
       "id": "readiness_decision_matches_expected",
+      "ok": true
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "id": "go_candidate_count_matches_expected",
       "ok": true
     }
   ],

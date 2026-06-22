@@ -460,6 +460,7 @@ verified_external_cuda_training_launcher: artifacts/review/verified_external_cud
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+current_recertification_head: 2686c78
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -530,13 +531,17 @@ Current actionable NOT_GO recertification summary:
 
 ```yaml
 summary_file: artifacts/review/v0_release_blocker_recertification.json
+current_head: 2686c78
 top_level_fields:
   - blocking_reasons
   - operator_next_actions
   - primary_external_handoff
 current_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+recertification_ok: true
 release_claimed_go: false
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+v0_unexpected_blockers: []
+sole_v0_blocker: real_trained_adapter_no_fake_endpoint
 current_blocking_reasons_include:
   - no_go_adapter_candidates
   - docker_base_image_env_digest

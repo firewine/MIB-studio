@@ -95,7 +95,7 @@
       "returncode": null
     }
   ],
-  "date": "2026-06-22T15:15:25.358950+00:00",
+  "date": "2026-06-22T17:32:00.797863+00:00",
   "env_requirements": {
     "docker_base_image_digest_present": false,
     "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",

@@ -41,12 +41,12 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: FE_V6_EXPORT_WORKFLOW_UNLOCK
+phase_id: V0_CURRENT_HEAD_RELEASE_BLOCKER_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: fe_v6_export_workflow_unlocked_not_go_release
-gate_id: mib-studio-fe-v6-export-workflow-unlock
+phase_status: current_head_recertified_not_go_release
+gate_id: mib-studio-v0-current-head-release-blocker-recertification
 mode: implement
-product_code_changed: true
+product_code_changed: false
 verification_tooling_changed: false
 release_claimed_go: false
 
@@ -57,6 +57,55 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-v0-current-head-release-blocker-recertification
+objective: refresh current-head v0 release blocker diagnostics after FE v6 Export workflow unlock
+
+files:
+  recertification_outputs:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_blocker_recertification.json
+  handoff_outputs:
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+current_head: 2686c78
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_readiness_decision: NOT_GO
+  v0_release_ready: false
+  v0_unexpected_blockers: []
+  sole_v0_blocker: real_trained_adapter_no_fake_endpoint
+
+current_missing_inputs:
+  - real adapter candidate
+  - digest-pinned CUDA/Python Docker base image
+  - strict pinned Phi model cache files
+  - CUDA visibility on the execution host
+  - Docker daemon and required Docker images
+  - no-fake live endpoint JSON/Markdown evidence
+  - accepted M6 RC evidence verification
+
+operator_next_step:
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  meaning: run this on the external CUDA host; it verifies the operator packet before invoking the lower-level training handoff
+
+summary:
+  - current HEAD was recertified after FE v6 Export workflow unlock
+  - release readiness still has no unexpected blockers
+  - current NOT_GO remains expected and evidence-driven
+  - no product code, verifier criteria, M6 review GO docs, model weights, adapter files, Docker images, endpoint transcripts, or evidence bundles were changed
+```
 
 ```yaml
 gate: mib-studio-fe-v6-export-workflow-unlock

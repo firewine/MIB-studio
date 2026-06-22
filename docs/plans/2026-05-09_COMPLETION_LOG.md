@@ -24,3 +24,4 @@
 - FE v6 AgentBench workflow를 열어 frozen benchmark EvalSet과 completed ModelRun 기준으로 benchmark job을 queue하고, desktop에서 mock-only report와 실제 report boundary를 구분해 표시하게 했다.
 - FE v6 Package/Playground workflow를 열어 valid benchmark report 이후 기존 agent-package/playground API로 package build와 verifier/audit 결과 확인을 연결했다.
 - FE v6 Export workflow를 열어 AgentPackage 이후 기존 export API로 zip export job 제출, ExportRead hash 표시, reveal action 확인을 연결했다.
+- FE v6 Export workflow 이후 current HEAD 기준 v0 release blocker recertification을 다시 실행해 unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다.

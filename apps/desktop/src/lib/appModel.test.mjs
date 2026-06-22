@@ -21,6 +21,7 @@ test("parseAppRoute resolves M1 shell routes", () => {
   assert.deepEqual(parseAppRoute("/projects/proj_1/define"), { name: "projectDefine", projectId: "proj_1" });
   assert.deepEqual(parseAppRoute("/projects/proj_1/training"), { name: "projectTraining", projectId: "proj_1" });
   assert.deepEqual(parseAppRoute("/projects/proj_1/benchmarks/new"), { name: "projectBenchmark", projectId: "proj_1" });
+  assert.deepEqual(parseAppRoute("/projects/proj_1/packages"), { name: "projectPackage", projectId: "proj_1" });
   assert.deepEqual(parseAppRoute("/datasets/dataset_1"), { name: "datasetDetail", datasetId: "dataset_1" });
   assert.deepEqual(parseAppRoute("/hardware"), { name: "hardware" });
 });
@@ -51,6 +52,12 @@ test("workflowSteps locks later milestones but keeps M1 shell routes", () => {
   const benchmark = workflowSteps(project, "/projects/proj_1/benchmarks/new", true, true, true);
   assert.equal(benchmark.find((step) => step.id === "train").state, "done");
   assert.equal(benchmark.find((step) => step.id === "benchmark").state, "current");
+  assert.equal(benchmark.find((step) => step.id === "package").state, "locked");
+  const packages = workflowSteps(project, "/projects/proj_1/packages", true, true, true, true, false);
+  assert.equal(packages.find((step) => step.id === "benchmark").state, "done");
+  assert.equal(packages.find((step) => step.id === "package").state, "current");
+  const packaged = workflowSteps(project, "/projects/proj_1", true, true, true, true, true);
+  assert.equal(packaged.find((step) => step.id === "package").state, "done");
 });
 
 test("createContract keeps v6 router contract fields", () => {

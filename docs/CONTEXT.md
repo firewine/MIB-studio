@@ -57,6 +57,7 @@ FE_V6_Mockup_Verified: true
 FE_V6_Route_Contract_Persistence_Verified: true
 FE_V6_Train_Workflow_Unlocked: true
 FE_V6_Benchmark_Workflow_Unlocked: true
+FE_V6_Package_Playground_Workflow_Unlocked: true
 M6_RC_Signoff: NOT_GO
 V0_Release_Readiness: NOT_GO
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
@@ -221,6 +222,23 @@ ui:
       - invent benchmark numbers
       - treat queued benchmark jobs as completed benchmark evidence
       - change release readiness
+  package_playground_workflow_v6:
+    route: /projects/{id}/packages
+    uses_apis:
+      - POST /projects/{id}/agent-packages
+      - GET /projects/{id}/agent-packages
+      - GET /agent-packages/{agent_package_id}
+      - POST /agent-packages/{agent_package_id}/playground-runs
+    required_runtime_gates:
+      - completed ModelRun with adapter metadata
+      - completed Benchmark with VALID report hash
+    ui_must:
+      - display backend-created contract_yaml as immutable package output
+      - display Playground verifier status, fallback flags, and audit event id from API response
+    ui_must_not:
+      - edit agent contract YAML locally
+      - call exported /agents/{agent_id}/run route inside the local daemon
+      - treat package/playground smoke as export or release evidence
 
 daemon:
   must:
@@ -451,6 +469,7 @@ route-contract mockup and evidence:
 FE_V6_Mockup_Verified: true
 FE_V6_Train_Workflow_Unlocked: true
 FE_V6_Benchmark_Workflow_Unlocked: true
+FE_V6_Package_Playground_Workflow_Unlocked: true
 canonical_mockup: docs/mockup/mib_fe_mockup_v6_routes_contract.html
 evidence: artifacts/review/fe_v6_evidence.md
 verifier_check: fe_v6_applied
@@ -459,6 +478,10 @@ train_workflow_evidence:
 benchmark_workflow_evidence:
   - tests/eval/test_benchmark_submit.py covers backend benchmark job queueing with frozen EvalSet, completed ModelRun, teacher credential, required targets, seeds, and idempotency
   - apps/desktop/e2e/m1_happy_path.test.mjs covers AgentBench navigation, benchmark submit, mock-only report display, and benchmark job monitor in browser smoke
+package_playground_workflow_evidence:
+  - tests/agent_package/test_contract_builder.py::test_agent_package_builder_creates_schema_valid_immutable_contract covers backend package creation contract validity
+  - tests/playground/test_playground_local_inference.py::test_playground_run_returns_verified_json_output_and_audit_event covers local Playground verifier/audit response
+  - apps/desktop/e2e/m1_happy_path.test.mjs covers Package navigation, package build, Playground run, verifier output, and audit id in browser smoke
 release_impact: no_release_go_claim
 ```
 

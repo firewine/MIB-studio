@@ -9,7 +9,7 @@ import { startMockApi } from "./mockApi.mjs";
 
 const chromePath = process.env.CHROME_BIN || "/usr/bin/google-chrome";
 
-test("M1 desktop shell happy path reaches project, dataset, hardware, train, benchmark, and job monitor", async () => {
+test("M1 desktop shell happy path reaches project, dataset, hardware, train, benchmark, package, playground, and job monitor", async () => {
   const staticPort = 5173;
   const apiPort = 8910;
   const cdpPort = 9223;
@@ -68,6 +68,12 @@ test("M1 desktop shell happy path reaches project, dataset, hardware, train, ben
     await waitFor(client, 'document.body.innerText.includes("Job monitor")');
     text = await evaluate(client, "document.body.innerText");
     assert.match(text, /benchmark|QUEUED|EVENT_GAP/);
+    await navigate(client, `http://127.0.0.1:${staticPort}/projects/proj_1/packages`);
+    await waitFor(client, 'document.body.innerText.includes("Package workflow") && document.body.innerText.includes("Build package")');
+    await click(client, '[data-action="build-package"]');
+    await waitFor(client, 'document.body.innerText.includes("Package built: support_router.v1") && document.body.innerText.includes("agent_id: support_router.v1")');
+    await click(client, '[data-action="run-playground"]');
+    await waitFor(client, 'document.body.innerText.includes("Playground result: PASS") && document.body.innerText.includes("technical_support") && document.body.innerText.includes("audit")');
   } finally {
     client?.close();
     if (chrome.exitCode === null && !chrome.signalCode) chrome.kill("SIGTERM");

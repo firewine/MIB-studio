@@ -29,6 +29,8 @@ const state = {
   evalSets: [],
   benchmarks: [],
   benchmarkReport: null,
+  agentPackages: [],
+  playgroundResult: null,
   hardware: null,
   lastJob: null,
   credentials: [],
@@ -94,10 +96,10 @@ async function loadRouteData() {
   state.selectedProject = "projectId" in route ? state.projects.find((project) => project.id === route.projectId) || null : state.projects[0] || null;
   if (state.selectedProject) {
     state.datasets = (await state.api.request("listDatasets", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
-    if (["projectDashboard", "projectTraining", "projectBenchmark"].includes(route.name)) {
+    if (["projectDashboard", "projectTraining", "projectBenchmark", "projectPackage"].includes(route.name)) {
       state.modelRuns = (await state.api.request("listModelRuns", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
     }
-    if (["projectDashboard", "projectBenchmark"].includes(route.name)) {
+    if (["projectDashboard", "projectBenchmark", "projectPackage"].includes(route.name)) {
       state.benchmarks = (await state.api.request("listBenchmarks", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
     }
     if (route.name === "projectBenchmark") {
@@ -106,6 +108,12 @@ async function loadRouteData() {
       state.benchmarkReport = latest ? await state.api.request("getBenchmarkReport", { params: { id: latest.id } }).catch(() => null) : null;
     } else {
       state.benchmarkReport = null;
+    }
+    if (["projectDashboard", "projectPackage"].includes(route.name)) {
+      state.agentPackages = (await state.api.request("listAgentPackages", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
+    }
+    if (route.name !== "projectPackage") {
+      state.playgroundResult = null;
     }
   }
   if (route.name === "projectDefine" && state.selectedProject) state.routes = routesFromProject(state.selectedProject);
@@ -157,6 +165,8 @@ async function onClick(event) {
     if (action === "scan-hardware") await scanHardware();
     if (action === "start-train") await startTrain();
     if (action === "run-benchmark") await runBenchmark();
+    if (action === "build-package") await buildPackage();
+    if (action === "run-playground") await runPlayground();
     if (action === "poll-job") await pollJob();
     if (action === "select-palette") selectPalette(target.dataset.palette);
     if (action === "insert-block") insertBlock(target.dataset.blockLabel);
@@ -308,6 +318,49 @@ async function runBenchmark() {
   state.notice = `Benchmark job accepted: ${state.lastJob.status}.`;
 }
 
+async function buildPackage() {
+  if (!state.selectedProject) return;
+  const modelRun = completedModelRun();
+  const benchmark = validBenchmark();
+  if (!modelRun || !benchmark) {
+    state.notice = "Package requires a completed model run and valid benchmark report.";
+    return;
+  }
+  const created = await state.api.request("createAgentPackage", {
+    params: { id: state.selectedProject.id },
+    body: {
+      agent_slug: "support_router",
+      model_run_id: modelRun.id,
+      benchmark_id: benchmark.id,
+      fallback: {
+        enabled: false,
+        provider: "none",
+        condition: { type: "disabled" },
+      },
+    },
+  });
+  state.agentPackages = [created, ...state.agentPackages.filter((item) => item.id !== created.id)];
+  state.notice = `Package built: ${created.agent_id}.`;
+}
+
+async function runPlayground() {
+  const agentPackage = latestAgentPackage();
+  if (!agentPackage) {
+    state.notice = "Playground requires an agent package.";
+    return;
+  }
+  state.playgroundResult = await state.api.request("runPlayground", {
+    params: { agent_package_id: agentPackage.id },
+    body: {
+      input: {
+        text: "The app keeps freezing and I need support.",
+        allowed_routes: routesFromProject(state.selectedProject).map((route) => route.route_id),
+      },
+    },
+  });
+  state.notice = `Playground result: ${state.playgroundResult.verifier_status}.`;
+}
+
 function approvedDataset() {
   return state.datasets.find((dataset) => dataset.status === "APPROVED" || dataset.frozen_at) || null;
 }
@@ -322,6 +375,14 @@ function benchmarkEvalSet() {
 
 function latestBenchmark() {
   return state.benchmarks[0] || null;
+}
+
+function validBenchmark() {
+  return state.benchmarks.find((item) => item.status === "COMPLETED" && item.hash_status === "VALID") || null;
+}
+
+function latestAgentPackage() {
+  return state.agentPackages[0] || null;
 }
 
 function teacherCredential() {
@@ -534,7 +595,7 @@ function render() {
 
 function sidebar() {
   const project = state.selectedProject;
-  const steps = workflowSteps(project, state.path, Boolean(approvedDataset()), Boolean(state.hardware?.training_enabled), Boolean(completedModelRun()));
+  const steps = workflowSteps(project, state.path, Boolean(approvedDataset()), Boolean(state.hardware?.training_enabled), Boolean(completedModelRun()), Boolean(validBenchmark()), Boolean(latestAgentPackage()));
   return `<aside class="sidebar">
     <div class="brand"><div class="brand-mark">MIB</div><div><strong>MIB Studio</strong><span>MicroAgent Inventor Blocks</span></div></div>
     <section class="project-switcher"><small>Project</small><strong>${escapeHtml(project?.name || "No project")}</strong><span>${project ? `${project.routes.length} routes - router` : `${state.projects.length} saved`}</span><div class="switcher-actions"><button class="icon-button" title="Refresh" data-action="refresh">R</button><button class="icon-button" title="Create" data-nav="/projects/new">+</button></div></section>
@@ -559,6 +620,7 @@ function page(route) {
   if (route.name === "datasetDetail") return datasetPage();
   if (route.name === "projectTraining") return trainingPage();
   if (route.name === "projectBenchmark") return benchmarkPage();
+  if (route.name === "projectPackage") return packagePage();
   if (route.name === "hardware") return hardwarePage();
   if (route.name === "job") return jobPage(route.jobId);
   if (route.name === "settings") return settingsPage();
@@ -583,7 +645,7 @@ function createProjectPage() {
 
 function dashboardPage() {
   const project = state.selectedProject;
-  return pageShell("Workbench", project?.name || "Project dashboard", "Restart-safe summary for the route contract, examples, hardware preflight, and later locked workflow steps.", `<button class="button" data-action="refresh">Refresh</button>`, `<div class="metric-grid">${metric("route contract", `${project?.routes.length || 0} routes`, "ok")}${metric("datasets", `${state.datasets.length} saved`, state.datasets.length ? "ok" : "warn")}${metric("train runs", `${state.modelRuns.length} queued`, state.modelRuns.length ? "ok" : "blue")}${metric("benchmarks", `${state.benchmarks.length} saved`, state.benchmarks.length ? "ok" : "blue")}</div><div class="action-grid"><button class="action-tile" data-nav="/projects/${project?.id}/define"><strong>Define routes</strong><span>Open the v6 route contract builder.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/datasets/new"><strong>Build examples</strong><span>Create the first approved-ready dataset.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/training"><strong>Train</strong><span>Submit a LoRA job after dataset approval and Hardware Doctor.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/benchmarks/new"><strong>AgentBench</strong><span>Compare the completed small agent against baselines.</span></button></div>`);
+  return pageShell("Workbench", project?.name || "Project dashboard", "Restart-safe summary for the route contract, examples, hardware preflight, and later locked workflow steps.", `<button class="button" data-action="refresh">Refresh</button>`, `<div class="metric-grid">${metric("route contract", `${project?.routes.length || 0} routes`, "ok")}${metric("datasets", `${state.datasets.length} saved`, state.datasets.length ? "ok" : "warn")}${metric("train runs", `${state.modelRuns.length} queued`, state.modelRuns.length ? "ok" : "blue")}${metric("benchmarks", `${state.benchmarks.length} saved`, state.benchmarks.length ? "ok" : "blue")}${metric("packages", `${state.agentPackages.length} built`, state.agentPackages.length ? "ok" : "blue")}</div><div class="action-grid"><button class="action-tile" data-nav="/projects/${project?.id}/define"><strong>Define routes</strong><span>Open the v6 route contract builder.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/datasets/new"><strong>Build examples</strong><span>Create the first approved-ready dataset.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/training"><strong>Train</strong><span>Submit a LoRA job after dataset approval and Hardware Doctor.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/benchmarks/new"><strong>AgentBench</strong><span>Compare the completed small agent against baselines.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/packages"><strong>Package</strong><span>Build an Agent Package and verify it in Playground.</span></button></div>`);
 }
 
 function definePage() {
@@ -692,6 +754,36 @@ function metricValue(target, key) {
   return typeof value === "number" ? Number(value).toFixed(key.includes("cost") ? 6 : 3) : String(value);
 }
 
+function packagePage() {
+  const modelRun = completedModelRun();
+  const benchmark = validBenchmark();
+  const agentPackage = latestAgentPackage();
+  const canBuild = Boolean(modelRun && benchmark);
+  const canRun = Boolean(agentPackage);
+  const actions = `<button class="button primary" data-action="build-package" ${canBuild ? "" : "disabled"}>Build package</button><button class="button" data-action="run-playground" ${canRun ? "" : "disabled"}>Run playground</button>`;
+  const gatePanel = `<div class="metric-grid">${metric("model run", modelRun?.id || "completed run required", modelRun ? "ok" : "warn")}${metric("benchmark", benchmark?.id || "valid report required", benchmark ? "ok" : "warn")}${metric("package", agentPackage?.agent_id || "not built", agentPackage ? "ok" : "blue")}${metric("playground", state.playgroundResult?.verifier_status || "not run", state.playgroundResult?.verifier_status === "PASS" ? "ok" : "blue")}</div>`;
+  return pageShell(
+    "Package",
+    "Package workflow",
+    "Build an immutable Agent Package from the completed model run and valid benchmark report, then run local Playground verification.",
+    actions,
+    `${notice()}${gatePanel}<div class="two-column"><section class="surface"><h2>Package contract</h2>${agentPackage ? `<pre class="codebox">${escapeHtml(agentPackage.contract_yaml)}</pre>` : statePanel("empty", "No package yet", "Build package after a completed model run and valid benchmark report.")}</section><section class="surface"><h2>Playground result</h2>${playgroundResultHtml()}</section></div>${agentPackagesHtml()}`,
+  );
+}
+
+function playgroundResultHtml() {
+  const result = state.playgroundResult;
+  if (!result) return statePanel("empty", "No run yet", "Run Playground after package build.");
+  return `<div class="metric-grid">${metric("verifier", result.verifier_status, result.verifier_status === "PASS" ? "ok" : "warn")}${metric("fallback", result.fallback_used ? "used" : result.fallback_required ? "required" : "not required", result.fallback_required ? "warn" : "ok")}${metric("audit", result.audit_event_id ? result.audit_event_id.slice(0, 8) : "missing", result.audit_event_id ? "ok" : "warn")}</div><pre class="codebox">${escapeHtml(JSON.stringify(result.output, null, 2))}</pre>`;
+}
+
+function agentPackagesHtml() {
+  if (!state.agentPackages.length) return "";
+  return `<div class="table-surface"><table><thead><tr><th>Agent</th><th>Version</th><th>Contract</th><th>Benchmark</th></tr></thead><tbody>${state.agentPackages
+    .map((item) => `<tr><td class="mono">${escapeHtml(item.agent_id)}</td><td>${escapeHtml(item.contract_version)}</td><td class="mono">${escapeHtml(item.contract_sha256.slice(0, 12))}</td><td class="mono">${escapeHtml(item.benchmark_id)}</td></tr>`)
+    .join("")}</tbody></table></div>`;
+}
+
 function jobPage(jobId) {
   const snapshot = state.lastJob?.job_id === jobId ? state.lastJob : null;
   return pageShell("Jobs", "Job monitor", "Poll job state and keep an event-gap banner visible when the stream is incomplete or locked.", `<button class="button" data-action="poll-job">Poll</button>`, `${notice()}<div class="metric-grid">${metric("job", jobId.slice(0, 8), "blue")}${metric("status", snapshot?.status || "unknown", snapshot?.status === "SUCCEEDED" ? "ok" : "warn")}${metric("type", snapshot?.type || "locked", "blue")}</div><section class="surface"><h2>Latest events</h2><pre class="codebox">${escapeHtml(JSON.stringify({ job_id: jobId, status: snapshot?.status || "EVENT_GAP", poll_fallback: true }, null, 2))}</pre></section>`);
@@ -754,6 +846,7 @@ function breadcrumb(route) {
   if (route.name === "datasetDetail") return "datasets / detail";
   if (route.name === "projectTraining") return "projects / training";
   if (route.name === "projectBenchmark") return "projects / benchmarks / AgentBench";
+  if (route.name === "projectPackage") return "projects / package / Playground";
   if (route.name === "hardware") return "hardware / doctor";
   if (route.name === "job") return "jobs / monitor";
   return "settings";

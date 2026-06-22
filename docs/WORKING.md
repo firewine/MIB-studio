@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: FE_V6_BENCHMARK_WORKFLOW_UNLOCK
+phase_id: FE_V6_PACKAGE_PLAYGROUND_WORKFLOW_UNLOCK
 milestone: Final_Program_Development_Closeout
-phase_status: fe_v6_benchmark_workflow_unlocked_not_go_release
-gate_id: mib-studio-fe-v6-benchmark-workflow-unlock
+phase_status: fe_v6_package_playground_workflow_unlocked_not_go_release
+gate_id: mib-studio-fe-v6-package-playground-workflow-unlock
 mode: implement
 product_code_changed: true
 verification_tooling_changed: false
@@ -57,6 +57,60 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-fe-v6-package-playground-workflow-unlock
+objective: unlock the desktop FE v6 Package and Playground workflow using existing agent-package and playground APIs
+
+files:
+  frontend_model:
+    - apps/desktop/src/lib/appModel.mjs
+    - apps/desktop/src/lib/appModel.test.mjs
+  frontend_api_client:
+    - apps/desktop/src/lib/apiClient.mjs
+    - apps/desktop/src/lib/apiClient.test.mjs
+    - apps/desktop/src/lib/generated.ts
+  desktop_shell:
+    - apps/desktop/src/main.mjs
+  browser_mock_and_e2e:
+    - apps/desktop/e2e/mockApi.mjs
+    - apps/desktop/e2e/m1_happy_path.test.mjs
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+package_playground_contract:
+  route: /projects/{id}/packages
+  required_frontend_gates:
+    - completed ModelRun with adapter metadata
+    - completed Benchmark with hash_status=VALID
+  backend_apis_used:
+    - listAgentPackages: GET /projects/{id}/agent-packages
+    - createAgentPackage: POST /projects/{id}/agent-packages
+    - getAgentPackage: GET /agent-packages/{agent_package_id}
+    - runPlayground: POST /agent-packages/{agent_package_id}/playground-runs
+  package_request:
+    agent_slug: support_router
+    fallback:
+      enabled: false
+      provider: none
+      condition:
+        type: disabled
+
+verification:
+  desktop_model_and_api_client: passed
+  desktop_e2e_m1_happy_path_with_package_playground: passed
+  backend_agent_package_contract_builder: passed
+  backend_playground_local_inference: passed
+  release_claimed_go: false
+
+summary:
+  - desktop route parsing and workflow stepper now expose /projects/{id}/packages after a valid benchmark report
+  - Package page builds an AgentPackage through the existing API and displays backend-created contract_yaml without local edits
+  - Playground action calls the existing local daemon playground endpoint and displays verifier status, fallback flags, output JSON, and audit id
+  - browser mock path now reaches Package and Playground after Train and AgentBench while preserving no-release-evidence labeling
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-fe-v6-benchmark-workflow-unlock

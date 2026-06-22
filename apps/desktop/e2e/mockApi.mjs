@@ -8,6 +8,7 @@ export function startMockApi({ port = 8910 } = {}) {
     evalSets: [],
     benchmarks: [],
     benchmarkReports: new Map(),
+    agentPackages: [],
     hardware: null,
     job: null,
     credentials: [],
@@ -73,6 +74,14 @@ async function route(request, response, url, state) {
   if (evalSetsMatch && request.method === "GET") return json(response, 200, { items: state.evalSets, next_cursor: null });
   const benchmarksMatch = url.pathname.match(/^\/projects\/([^/]+)\/benchmarks$/);
   if (benchmarksMatch && request.method === "GET") return json(response, 200, { items: state.benchmarks, next_cursor: null });
+  const agentPackagesMatch = url.pathname.match(/^\/projects\/([^/]+)\/agent-packages$/);
+  if (agentPackagesMatch && request.method === "GET") return json(response, 200, { items: state.agentPackages, next_cursor: null });
+  if (agentPackagesMatch && request.method === "POST") {
+    const body = await readJson(request);
+    const agentPackage = agentPackageRead(agentPackagesMatch[1], body);
+    state.agentPackages = [agentPackage];
+    return json(response, 201, agentPackage);
+  }
   const projectJobsMatch = url.pathname.match(/^\/projects\/([^/]+)\/jobs$/);
   if (projectJobsMatch && request.method === "POST") {
     const body = await readJson(request);
@@ -99,6 +108,16 @@ async function route(request, response, url, state) {
   if (benchmarkMatch && request.method === "GET") {
     const benchmark = state.benchmarks.find((item) => item.id === benchmarkMatch[1]);
     return benchmark ? json(response, 200, benchmark) : json(response, 404, { error_code: "BENCHMARK_NOT_FOUND", message: "No benchmark", details: {}, trace_id: "mock" });
+  }
+  const playgroundMatch = url.pathname.match(/^\/agent-packages\/([^/]+)\/playground-runs$/);
+  if (playgroundMatch && request.method === "POST") {
+    const agentPackage = state.agentPackages.find((item) => item.id === playgroundMatch[1]);
+    return agentPackage ? json(response, 200, playgroundRunRead(agentPackage)) : json(response, 404, { error_code: "AGENT_PACKAGE_NOT_FOUND", message: "No package", details: {}, trace_id: "mock" });
+  }
+  const agentPackageMatch = url.pathname.match(/^\/agent-packages\/([^/]+)$/);
+  if (agentPackageMatch && request.method === "GET") {
+    const agentPackage = state.agentPackages.find((item) => item.id === agentPackageMatch[1]);
+    return agentPackage ? json(response, 200, agentPackage) : json(response, 404, { error_code: "AGENT_PACKAGE_NOT_FOUND", message: "No package", details: {}, trace_id: "mock" });
   }
   const datasetMatch = url.pathname.match(/^\/datasets\/([^/]+)$/);
   if (datasetMatch && request.method === "GET") return json(response, 200, state.datasetWithExamples);
@@ -281,6 +300,52 @@ function benchmarkReportRead(benchmark) {
         { target_key: "rule_router", target_status: "COMPLETED", mean_metrics: { route_accuracy: 0.704, latency_p50_ms: 12, effective_cost_per_task_usd: 0 } },
       ],
     },
+  };
+}
+
+function agentPackageRead(projectId, body) {
+  const contractYaml = [
+    "agent_id: support_router.v1",
+    "agent_type: router",
+    "runtime:",
+    "  engine: local_playground_mock",
+    "adapter:",
+    `  model_run_id: ${body.model_run_id}`,
+    "  sha256: " + "e".repeat(64),
+    "benchmark_report:",
+    `  id: ${body.benchmark_id}`,
+    "fallback:",
+    "  enabled: false",
+  ].join("\n");
+  return {
+    id: "agent_package_1",
+    agent_id: "support_router.v1",
+    project_id: projectId,
+    model_run_id: body.model_run_id,
+    benchmark_id: body.benchmark_id,
+    route_catalog_sha256: "b".repeat(64),
+    contract_version: 1,
+    contract_yaml: contractYaml,
+    contract_sha256: "7".repeat(64),
+    created_at: now(),
+  };
+}
+
+function playgroundRunRead(agentPackage) {
+  return {
+    output: {
+      route: "technical_support",
+      task_type: "generate_report",
+      requires_calculation: false,
+      requires_human_review: false,
+      confidence: 0.94,
+      agent_id: agentPackage.agent_id,
+    },
+    verifier_status: "PASS",
+    verifier_errors: [],
+    fallback_required: false,
+    fallback_used: false,
+    audit_event_id: "audit_playground_1",
   };
 }
 

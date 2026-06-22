@@ -358,7 +358,7 @@ export interface FallbackConfigInput {
   enabled: boolean;
   provider: "openai" | "openai_compatible" | "none";
   model?: string | null;
-  condition?: { type: "confidence_below"; threshold: number } | null;
+  condition?: { type: "confidence_lt" | "verifier_failed" | "disabled"; threshold?: number | null } | null;
 }
 
 export interface AgentPackageRead {

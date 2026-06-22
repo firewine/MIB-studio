@@ -77,6 +77,37 @@ test("createApiClient maps Benchmark workflow routes", async () => {
   assert.equal(JSON.parse(seen[4].init.body).type, "benchmark");
 });
 
+test("createApiClient maps Package and Playground workflow routes", async () => {
+  const seen = [];
+  const api = createApiClient({ baseUrl: "http://local.test", token: "secret" }, async (url, init) => {
+    seen.push({ url, init });
+    return response(200, { items: [], verifier_status: "PASS" });
+  });
+
+  await api.request("listAgentPackages", { params: { id: "proj 1" } });
+  await api.request("createAgentPackage", {
+    params: { id: "proj 1" },
+    body: {
+      agent_slug: "support_router",
+      model_run_id: "model_run_1",
+      benchmark_id: "benchmark_1",
+      fallback: { enabled: false, provider: "none", condition: { type: "disabled" } },
+    },
+  });
+  await api.request("getAgentPackage", { params: { agent_package_id: "pkg 1" } });
+  await api.request("runPlayground", {
+    params: { agent_package_id: "pkg 1" },
+    body: { input: { text: "Need support", allowed_routes: ["technical_support", "human_review"] } },
+  });
+
+  assert.equal(seen[0].url, "http://local.test/projects/proj%201/agent-packages");
+  assert.equal(seen[1].url, "http://local.test/projects/proj%201/agent-packages");
+  assert.equal(seen[1].init.method, "POST");
+  assert.equal(JSON.parse(seen[1].init.body).fallback.condition.type, "disabled");
+  assert.equal(seen[2].url, "http://local.test/agent-packages/pkg%201");
+  assert.equal(seen[3].url, "http://local.test/agent-packages/pkg%201/playground-runs");
+});
+
 test("createApiClient raises typed API errors", async () => {
   const api = createApiClient({ baseUrl: "http://local.test", token: "secret" }, async () =>
     response(409, { error_code: "MILESTONE_LOCKED", message: "locked", details: {}, trace_id: "t1" }),

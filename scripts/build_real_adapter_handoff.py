@@ -195,6 +195,8 @@ def base_commands(args: argparse.Namespace, candidate_scan: dict[str, Any]) -> l
         args.bundle_json_output,
         "--manifest-output",
         args.bundle_manifest_output,
+        "--archive-output",
+        args.bundle_archive_output,
     ]
     return [
         command_row("candidate_scan", scan_argv, note="Find and validate adapter candidates under explicit roots."),
@@ -317,7 +319,7 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
             "The Docker image must package the same adapter hash recorded by manifest.json.",
             "The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.",
             "Capture endpoint evidence before updating M6 review docs to GO; the generated shell stops before M6 GO verification until those docs contain final GO markers.",
-            "Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.",
+            "Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and portable archive, then require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.",
             "M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.",
         ],
     }
@@ -437,6 +439,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bundle-dir", default="artifacts/review/real_adapter_evidence_bundle")
     parser.add_argument("--bundle-json-output", default="artifacts/review/real_adapter_evidence_bundle_verification.json")
     parser.add_argument("--bundle-manifest-output", default="artifacts/review/real_adapter_evidence_bundle_manifest.json")
+    parser.add_argument("--bundle-archive-output", default="artifacts/review/real_adapter_evidence_bundle.tar.gz")
     parser.add_argument("--json-output", default="artifacts/review/real_adapter_cuda_handoff.json")
     parser.add_argument("--markdown-output", default="artifacts/review/real_adapter_cuda_handoff.md")
     parser.add_argument("--shell-output", default="artifacts/review/real_adapter_cuda_handoff.sh")

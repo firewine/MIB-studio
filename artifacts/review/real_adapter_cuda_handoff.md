@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T04:26:48.481802+00:00
+date: 2026-06-22T04:43:47.554070+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false
@@ -52,7 +52,7 @@ v0_unexpected_blockers: []
 - The Docker image must package the same adapter hash recorded by manifest.json.
 - The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.
 - Capture endpoint evidence before updating M6 review docs to GO; the generated shell stops before M6 GO verification until those docs contain final GO markers.
-- Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.
+- Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and portable archive, then require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.
 - M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.
 
 ## Command Sequence
@@ -96,7 +96,7 @@ MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scri
 ### evidence_bundle_assembly
 
 ```bash
-./.venv/bin/python scripts/build_real_adapter_evidence_bundle.py --source-dir artifacts/review --bundle-dir artifacts/review/real_adapter_evidence_bundle --expected-decision GO --verification-output artifacts/review/real_adapter_evidence_bundle_verification.json --manifest-output artifacts/review/real_adapter_evidence_bundle_manifest.json
+./.venv/bin/python scripts/build_real_adapter_evidence_bundle.py --source-dir artifacts/review --bundle-dir artifacts/review/real_adapter_evidence_bundle --expected-decision GO --verification-output artifacts/review/real_adapter_evidence_bundle_verification.json --manifest-output artifacts/review/real_adapter_evidence_bundle_manifest.json --archive-output artifacts/review/real_adapter_evidence_bundle.tar.gz
 ```
 
 ### v0_readiness_recheck

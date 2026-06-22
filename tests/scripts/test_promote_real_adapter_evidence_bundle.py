@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import sys
+import tarfile
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -28,9 +30,18 @@ def write_json(path: Path, value: dict[str, object]) -> None:
     path.write_text(json.dumps(value, sort_keys=True, indent=2) + "\n", encoding="utf-8")
 
 
-def args_for(tmp_path: Path, *, bundle_dir: Path, target_dir: Path, expected: str = "GO", dry_run: bool = False) -> SimpleNamespace:
+def args_for(
+    tmp_path: Path,
+    *,
+    bundle_dir: Path | None = None,
+    bundle_archive: Path | None = None,
+    target_dir: Path,
+    expected: str = "GO",
+    dry_run: bool = False,
+) -> SimpleNamespace:
     return SimpleNamespace(
-        bundle_dir=str(bundle_dir),
+        bundle_dir=str(bundle_dir) if bundle_dir else None,
+        bundle_archive=str(bundle_archive) if bundle_archive else None,
         target_dir=str(target_dir),
         expected_decision=expected,
         dry_run=dry_run,
@@ -120,6 +131,12 @@ self_test: false
     )
 
 
+def write_archive_from_dir(source: Path, archive_path: Path) -> None:
+    with tarfile.open(archive_path, "w:gz") as archive:
+        for path in sorted(source.iterdir()):
+            archive.add(path, arcname=path.name)
+
+
 def test_promotes_complete_go_bundle_into_target(tmp_path: Path) -> None:
     bundle_dir = tmp_path / "bundle"
     target_dir = tmp_path / "review"
@@ -135,6 +152,42 @@ def test_promotes_complete_go_bundle_into_target(tmp_path: Path) -> None:
     assert all(row["copied"] for row in manifest["copied_files"])
     assert (target_dir / "real_trained_adapter_endpoint_evidence.json").is_file()
     assert not (target_dir / "unrelated.txt").exists()
+
+
+def test_promotes_complete_go_archive_into_target(tmp_path: Path) -> None:
+    bundle_dir = tmp_path / "bundle"
+    archive_path = tmp_path / "real_adapter_evidence_bundle.tar.gz"
+    target_dir = tmp_path / "review"
+    write_complete_bundle(bundle_dir)
+    (bundle_dir / "unrelated.txt").write_text("must not be promoted\n", encoding="utf-8")
+    write_archive_from_dir(bundle_dir, archive_path)
+
+    manifest, verification = promotion.promote_bundle(args_for(tmp_path, bundle_archive=archive_path, target_dir=target_dir))
+
+    assert verification["decision"] == "GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
+    assert manifest["promoted"] is True
+    assert manifest["promotion_ok"] is True
+    assert manifest["bundle_archive"] == str(archive_path)
+    assert manifest["bundle_archive_sha256"]
+    assert (target_dir / "real_trained_adapter_endpoint_evidence.json").is_file()
+    assert not (target_dir / "unrelated.txt").exists()
+
+
+def test_rejects_unsafe_bundle_archive_member_path(tmp_path: Path) -> None:
+    archive_path = tmp_path / "unsafe.tar.gz"
+    target_dir = tmp_path / "review"
+    payload = b"{}"
+    with tarfile.open(archive_path, "w:gz") as archive:
+        info = tarfile.TarInfo("../escape.json")
+        info.size = len(payload)
+        archive.addfile(info, io.BytesIO(payload))
+
+    try:
+        promotion.promote_bundle(args_for(tmp_path, bundle_archive=archive_path, target_dir=target_dir))
+    except ValueError as exc:
+        assert "unsafe archive" in str(exc)
+    else:
+        raise AssertionError("unsafe archive member should be rejected")
 
 
 def test_not_go_dry_run_writes_manifest_without_copying(tmp_path: Path) -> None:

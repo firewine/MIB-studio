@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+import tarfile
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -35,6 +36,7 @@ def args_for(tmp_path: Path, *, source: Path, expected: str = "GO") -> SimpleNam
         expected_decision=expected,
         verification_output=str(tmp_path / "verification.json"),
         manifest_output=str(tmp_path / "manifest.json"),
+        archive_output=None,
     )
 
 
@@ -132,6 +134,26 @@ def test_bundle_builder_copies_complete_live_bundle_and_verifies_go(tmp_path: Pa
     assert all(row["present"] for row in manifest["files"])
     assert all(row["sha256"] for row in manifest["files"])
     assert not (tmp_path / "bundle" / "unrelated.txt").exists()
+
+
+def test_bundle_builder_writes_portable_archive_with_fixed_files_and_metadata(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    write_complete_source(source)
+    (source / "unrelated.txt").write_text("not part of release evidence\n", encoding="utf-8")
+    args = args_for(tmp_path, source=source, expected="GO")
+    args.archive_output = str(tmp_path / "real_adapter_evidence_bundle.tar.gz")
+
+    manifest, verification = bundle.build_bundle(args)
+
+    assert verification["decision"] == "GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
+    assert manifest["archive_output"] == args.archive_output
+    assert manifest["archive_sha256"]
+    with tarfile.open(args.archive_output, "r:gz") as archive:
+        names = set(archive.getnames())
+    assert set(bundle.fixed_bundle_files().values()) <= names
+    assert "real_adapter_evidence_bundle_manifest.json" in names
+    assert "real_adapter_evidence_bundle_verification.json" in names
+    assert "unrelated.txt" not in names
 
 
 def test_bundle_builder_removes_stale_fixed_files_before_not_go_verification(tmp_path: Path) -> None:

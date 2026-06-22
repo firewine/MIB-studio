@@ -4,9 +4,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.util
+import io
 import json
 import shutil
 import sys
+import tarfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -32,6 +34,10 @@ verifier = load_verifier_module()
 
 
 SCHEMA_VERSION = "mib_real_adapter_evidence_bundle_manifest.v1"
+ARCHIVE_METADATA_FILES = {
+    "manifest": "real_adapter_evidence_bundle_manifest.json",
+    "verification": "real_adapter_evidence_bundle_verification.json",
+}
 
 
 def now_utc() -> str:
@@ -100,6 +106,36 @@ def expected_decision(value: str) -> str:
     return "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" if value == "GO" else "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
 
 
+def add_json_member(archive: tarfile.TarFile, name: str, value: dict[str, Any]) -> None:
+    payload = json.dumps(value, sort_keys=True, indent=2).encode("utf-8") + b"\n"
+    info = tarfile.TarInfo(name)
+    info.size = len(payload)
+    archive.addfile(info, io.BytesIO(payload))
+
+
+def write_archive(bundle_dir: Path, archive_output: str | None, manifest: dict[str, Any], verification: dict[str, Any]) -> dict[str, Any] | None:
+    if not archive_output:
+        return None
+    output = Path(archive_output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    archived_files: list[str] = []
+    with tarfile.open(output, "w:gz") as archive:
+        for filename in fixed_bundle_files().values():
+            path = bundle_dir / filename
+            if path.is_file():
+                archive.add(path, arcname=filename)
+                archived_files.append(filename)
+        add_json_member(archive, ARCHIVE_METADATA_FILES["manifest"], manifest)
+        add_json_member(archive, ARCHIVE_METADATA_FILES["verification"], verification)
+        archived_files.extend(ARCHIVE_METADATA_FILES.values())
+    return {
+        "path": str(output),
+        "sha256": sha256_file(output),
+        "size_bytes": output.stat().st_size,
+        "files": archived_files,
+    }
+
+
 def build_bundle(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
     source_dir = Path(args.source_dir)
     bundle_dir = Path(args.bundle_dir)
@@ -129,6 +165,11 @@ def build_bundle(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, An
             "blockers": verification["blockers"],
         },
     }
+    archive = write_archive(bundle_dir, getattr(args, "archive_output", None), manifest, verification)
+    if archive:
+        manifest["archive"] = archive
+        manifest["archive_output"] = archive["path"]
+        manifest["archive_sha256"] = archive["sha256"]
     return manifest, verification
 
 
@@ -145,6 +186,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-decision", choices=["GO", "NOT_GO"], default="NOT_GO")
     parser.add_argument("--verification-output", default="artifacts/review/real_adapter_evidence_bundle_verification.json")
     parser.add_argument("--manifest-output", default="artifacts/review/real_adapter_evidence_bundle_manifest.json")
+    parser.add_argument("--archive-output", help="Optional tar.gz archive path for transferring the verified bundle from an external CUDA host.")
     return parser.parse_args()
 
 
@@ -158,6 +200,8 @@ def main() -> int:
             {
                 "manifest_output": args.manifest_output,
                 "verification_output": args.verification_output,
+                "archive_output": args.archive_output,
+                "archive_sha256": manifest.get("archive_sha256"),
                 "decision": verification["decision"],
                 "verification_ok": verification["verification_ok"],
             },

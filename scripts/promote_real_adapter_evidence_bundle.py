@@ -7,6 +7,8 @@ import importlib.util
 import json
 import shutil
 import sys
+import tarfile
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -101,10 +103,44 @@ def add_expected(report: dict[str, Any], expected: str) -> dict[str, Any]:
     return result
 
 
-def promote_bundle(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
-    bundle_dir = Path(args.bundle_dir)
+def assert_safe_archive_member(member: tarfile.TarInfo, destination: Path) -> None:
+    name = member.name
+    target = (destination / name).resolve()
+    try:
+        target.relative_to(destination.resolve())
+    except ValueError as exc:
+        raise ValueError(f"unsafe archive member path: {name}") from exc
+    if Path(name).is_absolute() or ".." in Path(name).parts:
+        raise ValueError(f"unsafe archive member path: {name}")
+    if not (member.isfile() or member.isdir()):
+        raise ValueError(f"unsafe archive member type: {name}")
+
+
+def extract_bundle_archive(archive_path: Path, extraction_root: Path) -> Path:
+    bundle_dir = extraction_root / "bundle"
+    bundle_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        with tarfile.open(archive_path, "r:gz") as archive:
+            for member in archive.getmembers():
+                assert_safe_archive_member(member, bundle_dir)
+                target = bundle_dir / member.name
+                if member.isdir():
+                    target.mkdir(parents=True, exist_ok=True)
+                    continue
+                target.parent.mkdir(parents=True, exist_ok=True)
+                source = archive.extractfile(member)
+                if source is None:
+                    raise ValueError(f"unsafe archive member has no file content: {member.name}")
+                with source, target.open("wb") as output:
+                    shutil.copyfileobj(source, output)
+    except tarfile.TarError as exc:
+        raise ValueError(f"invalid bundle archive: {archive_path}") from exc
+    return bundle_dir
+
+
+def promote_bundle_dir(args: argparse.Namespace, bundle_dir: Path, *, bundle_archive: Path | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
     target_dir = Path(args.target_dir)
-    if bundle_dir.resolve() == target_dir.resolve():
+    if bundle_archive is None and bundle_dir.resolve() == target_dir.resolve():
         raise ValueError("--bundle-dir and --target-dir must be different")
 
     expected = expected_decision(args.expected_decision)
@@ -136,6 +172,8 @@ def promote_bundle(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, 
         "schema_version": SCHEMA_VERSION,
         "date": now_utc(),
         "bundle_dir": str(bundle_dir),
+        "bundle_archive": str(bundle_archive) if bundle_archive else None,
+        "bundle_archive_sha256": sha256_file(bundle_archive) if bundle_archive and bundle_archive.is_file() else None,
         "target_dir": str(target_dir),
         "dry_run": bool(args.dry_run),
         "expected_decision": expected,
@@ -162,6 +200,18 @@ def promote_bundle(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, 
     return manifest, final_verification
 
 
+def promote_bundle(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
+    bundle_archive = getattr(args, "bundle_archive", None)
+    if bundle_archive:
+        archive_path = Path(bundle_archive)
+        with tempfile.TemporaryDirectory(prefix="mib-real-adapter-bundle-") as temp_root:
+            bundle_dir = extract_bundle_archive(archive_path, Path(temp_root))
+            archive_args = argparse.Namespace(**vars(args))
+            archive_args.bundle_dir = str(bundle_dir)
+            return promote_bundle_dir(archive_args, bundle_dir, bundle_archive=archive_path)
+    return promote_bundle_dir(args, Path(args.bundle_dir))
+
+
 def write_json(path: str | Path, value: dict[str, Any]) -> None:
     output = Path(path)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -170,7 +220,9 @@ def write_json(path: str | Path, value: dict[str, Any]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Promote a verified real-adapter evidence bundle into canonical review artifacts.")
-    parser.add_argument("--bundle-dir", required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--bundle-dir")
+    source.add_argument("--bundle-archive", help="tar.gz archive produced by build_real_adapter_evidence_bundle.py --archive-output")
     parser.add_argument("--target-dir", default="artifacts/review")
     parser.add_argument("--expected-decision", choices=["GO", "NOT_GO"], default="GO")
     parser.add_argument("--dry-run", action="store_true")

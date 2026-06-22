@@ -54,6 +54,7 @@ def args_for(tmp_path: Path, *, candidate_scan: dict[str, object], prereq: dict[
         bundle_dir="artifacts/review/real_adapter_evidence_bundle",
         bundle_json_output="artifacts/review/real_adapter_evidence_bundle_verification.json",
         bundle_manifest_output="artifacts/review/real_adapter_evidence_bundle_manifest.json",
+        bundle_archive_output="artifacts/review/real_adapter_evidence_bundle.tar.gz",
         json_output=str(tmp_path / "handoff.json"),
         markdown_output=str(tmp_path / "handoff.md"),
         shell_output=str(tmp_path / "handoff.sh"),
@@ -119,6 +120,8 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert "artifacts/review/real_adapter_evidence_bundle" in bundle_step["argv"]
     assert "--verification-output" in bundle_step["argv"]
     assert "--manifest-output" in bundle_step["argv"]
+    assert "--archive-output" in bundle_step["argv"]
+    assert "artifacts/review/real_adapter_evidence_bundle.tar.gz" in bundle_step["argv"]
     assert "--expected-decision" in bundle_step["argv"]
     assert "GO" in bundle_step["argv"]
     assert "M6-RC remains NOT_GO" in markdown

@@ -2,12 +2,12 @@
 
 ```yaml
 schema_version: mib_external_cuda_operator_packet.v1
-date: 2026-06-22T16:01:48.101224+00:00
+date: 2026-06-22T16:05:33.037040+00:00
 gate: mib-studio-external-cuda-operator-packet
 status: PREPARED_NOT_RUN
 release_claimed_go: false
 m6_rc_claimed_go: false
-git_head: 10ea0cb
+git_head: c38ff33
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 ```
@@ -43,7 +43,7 @@ downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff
 
 ## Operator Sequence
 
-1. Clone or update the repository to commit 10ea0cb.
+1. Keep this packet file from the current checkout; packet.git.head is the required committed file source commit c38ff33 for verifier blob checks.
 2. Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before artifacts/review/real_adapter_cuda_training_handoff.sh.
 3. Allow the verified launcher to invoke artifacts/review/real_adapter_cuda_training_handoff.sh only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.
 4. Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.

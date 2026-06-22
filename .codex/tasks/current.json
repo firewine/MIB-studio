@@ -1,18 +1,16 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Make the external CUDA operator packet name the verified CUDA training launcher as the primary external handoff so operators cannot bypass packet verification by following packet metadata.",
+  "goal": "Clarify the external CUDA operator packet sequence so operators keep the checkout containing the packet and treat packet.git.head as the required-file source commit, not a checkout target that could hide the current packet.",
   "phase": "done",
-  "gate": "mib-studio-external-cuda-packet-primary-verified-launcher",
+  "gate": "mib-studio-external-cuda-packet-checkout-guidance",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "10ea0cb",
+  "head": "c38ff33",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "scripts/build_external_cuda_operator_packet.py",
-    "scripts/verify_external_cuda_operator_packet.py",
     "tests/scripts/test_build_external_cuda_operator_packet.py",
-    "tests/scripts/test_verify_external_cuda_operator_packet.py",
     "artifacts/review/external_cuda_operator_packet.json",
     "artifacts/review/external_cuda_operator_packet.md",
     "artifacts/review/external_cuda_operator_packet_verification.json",
@@ -40,47 +38,44 @@
     "Editing M6 review docs to GO",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may only route the external CUDA operator packet primary handoff to the verified launcher, update focused verifier/generator tests, refresh packet artifacts, update LLM context/working state, completion log, and PABCD contract.",
+  "allowed_edit_paths_scope_note": "This gate may only clarify external CUDA operator packet checkout guidance, update focused generator tests, refresh packet artifacts, update LLM context/working state, completion log, and PABCD contract.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
+    "scripts/verify_external_cuda_operator_packet.py",
     "artifacts/review/verified_external_cuda_training_launcher.sh",
-    "artifacts/review/real_adapter_cuda_training_handoff.sh",
-    "artifacts/review/v0_release_blocker_recertification.json"
+    "artifacts/review/real_adapter_cuda_training_handoff.sh"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 10ea0cb",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head c38ff33",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c \"import json; data=json.load(open('artifacts/review/external_cuda_operator_packet.json', encoding='utf-8')); assert data['primary_external_handoff'] == 'artifacts/review/verified_external_cuda_training_launcher.sh'\"",
-    "rg -n -- \"primary_external_handoff.*verified_external_cuda_training_launcher.sh|recertification_primary_external_handoff.*verified_external_cuda_training_launcher.sh|verified launcher as the primary external handoff|real_trained_adapter_no_fake_endpoint\" scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"Keep this packet file from the current checkout|packet.git.head is the required committed file source|verified_external_cuda_training_launcher.sh|real_trained_adapter_no_fake_endpoint\" scripts/build_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Operator packet primary_external_handoff is artifacts/review/verified_external_cuda_training_launcher.sh.",
-    "Operator packet still records artifacts/review/real_adapter_cuda_training_handoff.sh as the downstream training handoff.",
-    "Packet verifier rejects packets whose primary_external_handoff bypasses the verified launcher.",
+    "Operator sequence tells operators to keep the packet file from the current checkout.",
+    "Operator sequence states packet.git.head is the required committed file source commit.",
     "Packet verification remains GO for packet integrity only and warnings are empty.",
     "Docs state that v0/M6 remain NOT_GO until real trained adapter no-fake endpoint evidence exists."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 10ea0cb",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head c38ff33",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c \"import json; data=json.load(open('artifacts/review/external_cuda_operator_packet.json', encoding='utf-8')); assert data['primary_external_handoff'] == 'artifacts/review/verified_external_cuda_training_launcher.sh'\"",
-    "rg -n -- \"primary_external_handoff.*verified_external_cuda_training_launcher.sh|recertification_primary_external_handoff.*verified_external_cuda_training_launcher.sh|verified launcher as the primary external handoff|real_trained_adapter_no_fake_endpoint\" scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"Keep this packet file from the current checkout|packet.git.head is the required committed file source|verified_external_cuda_training_launcher.sh|real_trained_adapter_no_fake_endpoint\" scripts/build_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
@@ -91,27 +86,27 @@
     "M6-RC and v0 release remain NOT_GO."
   ],
   "phase_notes": {
-    "plan": "Route the packet-level primary operator action through the verified launcher while retaining the training handoff as the launcher's downstream command.",
-    "audit": "The current packet includes the verified launcher and recertification points to it, but packet primary_external_handoff and operator_sequence still name the lower-level training handoff.",
-    "build": "Update packet generator/verifier expectations, focused tests, regenerated packet JSON/Markdown/verification artifacts, and LLM handoff docs.",
-    "check": "Run JSON checks, focused tests, py_compile, packet build/verify, primary handoff assertion, evidence search, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this primary verified launcher routing phase."
+    "plan": "Clarify packet operator sequence semantics without changing release acceptance or runtime behavior.",
+    "audit": "The current packet says to clone/update to packet.git.head, but packet.git.head is only the required-file blob source commit; checking it out can hide the newer packet artifact.",
+    "build": "Update packet generator wording/tests, regenerate packet JSON/Markdown/verification artifacts, and update LLM handoff docs.",
+    "check": "Run JSON checks, focused generator test, py_compile, packet build/verify, evidence search, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this checkout guidance phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-external-cuda-packet-primary-verified-launcher",
+    "gate": "mib-studio-external-cuda-packet-checkout-guidance",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Route external CUDA operator packet primary handoff to verified launcher, update focused tests, regenerated packet artifacts, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD only.",
+    "approved_scope": "Clarify external CUDA operator packet checkout guidance, update focused generator test, regenerated packet artifacts, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD only.",
     "blocked_scope": "No product runtime/API/UI/DB/schema changes, no catalog pin changes, no release acceptance weakening, no M6 GO docs, no model/adapter/Docker/evidence bundle commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Route the packet-level primary operator action through the verified launcher while retaining the training handoff as the launcher's downstream command.",
-    "audit": "The current packet includes the verified launcher and recertification points to it, but packet primary_external_handoff and operator_sequence still name the lower-level training handoff.",
-    "build": "Update packet generator/verifier expectations, focused tests, regenerated packet JSON/Markdown/verification artifacts, and LLM handoff docs.",
-    "check": "Run JSON checks, focused tests, py_compile, packet build/verify, primary handoff assertion, evidence search, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this primary verified launcher routing phase."
+    "plan": "Clarify packet operator sequence semantics without changing release acceptance or runtime behavior.",
+    "audit": "The current packet says to clone/update to packet.git.head, but packet.git.head is only the required-file blob source commit; checking it out can hide the newer packet artifact.",
+    "build": "Update packet generator wording/tests, regenerate packet JSON/Markdown/verification artifacts, and update LLM handoff docs.",
+    "check": "Run JSON checks, focused generator test, py_compile, packet build/verify, evidence search, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this checkout guidance phase."
   }
 }

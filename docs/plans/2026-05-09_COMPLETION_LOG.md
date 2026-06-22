@@ -15,3 +15,4 @@
 - 외부 CUDA operator packet source commit을 `65dfd1a`로 갱신해 최신 verified-launcher required-file 계약에서 warning 없이 검증되도록 했다.
 - 외부 CUDA operator packet verifier가 후속 closeout commit 때문에 current HEAD가 packet.git.head보다 앞서도 commit blob 검증이 통과하면 warning을 내지 않도록 안정화했다.
 - 외부 CUDA operator packet의 primary handoff를 verified launcher로 바꿔 운영자가 packet verifier를 우회해 training handoff를 직접 실행하지 않도록 했다.
+- 외부 CUDA operator packet의 첫 실행 지침을 수정해 `packet.git.head`를 checkout 대상이 아니라 required file blob 검증용 source commit으로 명확히 했다.

@@ -492,7 +492,7 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: 10ea0cb
+handoff_source_commit: c38ff33
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -502,6 +502,9 @@ required_committed_files_include:
   - scripts/prepare_strict_model_cache.py
 training_handoff_command_order_include:
   - prepare_strict_model_cache
+operator_sequence_rule:
+  - keep this packet file from the current checkout
+  - treat packet.git.head as the required committed file source commit for verifier blob checks
 forbidden_committed_artifacts:
   - model weights
   - LoRA adapter files
@@ -522,7 +525,8 @@ m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
   - 17 required committed file sha256/size values
-  - 17 required committed file blobs at handoff source commit 10ea0cb
+  - 17 required committed file blobs at handoff source commit c38ff33
+  - operator sequence keeps the packet file from the current checkout
   - primary handoff must be the verified launcher, not the lower-level training handoff
   - packet.git.head resolves even when current checkout is a later closeout commit
   - 6 package readiness checks

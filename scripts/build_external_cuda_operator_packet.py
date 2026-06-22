@@ -96,6 +96,7 @@ def build_packet(args: argparse.Namespace) -> dict[str, Any]:
     recertification = read_json(root, args.recertification_json)
     recertification_primary = str(recertification.get("primary_external_handoff") or PRIMARY_HANDOFF)
     primary_handoff = VERIFIED_LAUNCHER_HANDOFF
+    packet_head = args.git_head or run_git(root, "rev-parse", "--short", "HEAD")
 
     if recertification_primary != VERIFIED_LAUNCHER_HANDOFF:
         raise ValueError(f"unexpected recertification primary handoff: {recertification_primary}")
@@ -112,7 +113,7 @@ def build_packet(args: argparse.Namespace) -> dict[str, Any]:
         "root": str(root),
         "git": {
             "branch": args.git_branch or run_git(root, "branch", "--show-current"),
-            "head": args.git_head or run_git(root, "rev-parse", "--short", "HEAD"),
+            "head": packet_head,
             "remote_origin": args.remote_origin or run_git(root, "config", "--get", "remote.origin.url"),
             "clean_worktree_required": True,
         },
@@ -130,7 +131,7 @@ def build_packet(args: argparse.Namespace) -> dict[str, Any]:
             "post_transfer_closeout": command_ids(rc_handoff, "post_transfer_closeout_commands"),
         },
         "operator_sequence": [
-            f"Clone or update the repository to commit {args.git_head or run_git(root, 'rev-parse', '--short', 'HEAD')}.",
+            f"Keep this packet file from the current checkout; packet.git.head is the required committed file source commit {packet_head} for verifier blob checks.",
             f"Run {primary_handoff} on the external CUDA host so packet verification runs before {TRAINING_HANDOFF}.",
             f"Allow the verified launcher to invoke {TRAINING_HANDOFF} only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.",
             "Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.",

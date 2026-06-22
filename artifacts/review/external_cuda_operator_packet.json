@@ -24,7 +24,9 @@
       "run_rc_handoff"
     ]
   },
-  "date": "2026-06-22T15:39:55.368255+00:00",
+  "date": "2026-06-22T16:01:48.101224+00:00",
+  "downstream_training_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
+  "downstream_training_handoff_status": "PREPARED_NOT_RUN",
   "expected_return_artifacts": [
     "artifacts/review/real_adapter_evidence_bundle.tar.gz",
     "artifacts/review/real_adapter_evidence_bundle_manifest.json",
@@ -43,7 +45,7 @@
   "git": {
     "branch": "main",
     "clean_worktree_required": true,
-    "head": "65dfd1a",
+    "head": "10ea0cb",
     "remote_origin": "https://github.com/firewine/MIB-studio.git"
   },
   "m6_rc_claimed_go": false,
@@ -52,9 +54,9 @@
     "Do not claim M6-RC or v0 release GO until real trained adapter evidence, accepted M6 review docs, bundle verification, and v0 readiness all return GO."
   ],
   "operator_sequence": [
-    "Clone or update the repository to commit 65dfd1a.",
-    "Verify the required_committed_files sha256 values before running artifacts/review/real_adapter_cuda_training_handoff.sh.",
-    "Run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host and require all package_readiness_checks to pass.",
+    "Clone or update the repository to commit 10ea0cb.",
+    "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before artifacts/review/real_adapter_cuda_training_handoff.sh.",
+    "Allow the verified launcher to invoke artifacts/review/real_adapter_cuda_training_handoff.sh only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.",
     "Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.",
     "Transfer the metadata-bearing artifacts/review/real_adapter_evidence_bundle.tar.gz back to the release workstation.",
     "Run scripts/run_v0_release_closeout_from_bundle.py only after accepted M6 GO review docs are present in the same checkout."
@@ -103,7 +105,7 @@
       "shell_guard": true
     }
   ],
-  "primary_external_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
+  "primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
   "primary_handoff_status": "PREPARED_NOT_RUN",
   "recertification_primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
   "recertification_status": "NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION",

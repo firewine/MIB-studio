@@ -71,7 +71,7 @@ def run_git(root: Path, *args: str) -> str:
 def write_packet(root: Path, *, release_claimed_go: bool = False, bad_hash: bool = False) -> Path:
     rows = [
         required_row(root, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
-        required_row(root, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        required_row(root, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         required_row(root, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
         required_row(root, "training_handoff_json", "artifacts/review/real_adapter_cuda_training_handoff.json"),
         required_row(root, "rc_handoff_shell", "artifacts/review/real_adapter_cuda_handoff.sh"),
@@ -85,6 +85,7 @@ def write_packet(root: Path, *, release_claimed_go: bool = False, bad_hash: bool
         "m6_rc_claimed_go": False,
         "git": {"head": "unitsha"},
         "primary_external_handoff": verifier.PRIMARY_HANDOFF,
+        "downstream_training_handoff": verifier.TRAINING_HANDOFF,
         "required_committed_files": rows,
         "package_readiness_checks": readiness_rows(),
         "command_order": {
@@ -105,6 +106,7 @@ def minimal_packet(root: Path, *, git_head: str, rows: list[dict[str, object]]) 
         "m6_rc_claimed_go": False,
         "git": {"head": git_head},
         "primary_external_handoff": verifier.PRIMARY_HANDOFF,
+        "downstream_training_handoff": verifier.TRAINING_HANDOFF,
         "required_committed_files": rows,
         "package_readiness_checks": readiness_rows(),
         "command_order": {
@@ -149,9 +151,23 @@ def test_verifier_rejects_required_file_hash_mismatch(tmp_path: Path) -> None:
     assert "required_committed_file_hashes" in report["blockers"]
 
 
+def test_verifier_rejects_packet_that_bypasses_verified_launcher_primary(tmp_path: Path) -> None:
+    packet_path = write_packet(tmp_path)
+    data = json.loads(packet_path.read_text(encoding="utf-8"))
+    data["primary_external_handoff"] = verifier.TRAINING_HANDOFF
+    packet_path.write_text(json.dumps(data, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+
+    report = verifier.verify_packet(tmp_path, packet_path)
+
+    assert report["decision"] == verifier.NOT_GO_DECISION
+    assert "packet_contract" in report["blockers"]
+    contract_check = next(row for row in report["checks"] if row["id"] == "packet_contract")
+    assert "primary_external_handoff" in contract_check["missing_markers"]
+
+
 def test_verifier_rejects_packet_missing_verified_launcher_required_file(tmp_path: Path) -> None:
     rows = [
-        required_row(tmp_path, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        required_row(tmp_path, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         required_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
     ]
     packet_path = minimal_packet(tmp_path, git_head="unitsha", rows=rows)
@@ -167,20 +183,20 @@ def test_verifier_rejects_packet_missing_verified_launcher_required_file(tmp_pat
 def test_verifier_accepts_required_file_blobs_at_packet_commit(tmp_path: Path) -> None:
     run_git(tmp_path, "init")
     write_text(tmp_path, verifier.VERIFIED_LAUNCHER_HANDOFF, "verified_launcher\n")
-    write_text(tmp_path, verifier.PRIMARY_HANDOFF, "training_handoff_shell\n")
+    write_text(tmp_path, verifier.TRAINING_HANDOFF, "training_handoff_shell\n")
     write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
     run_git(
         tmp_path,
         "add",
         verifier.VERIFIED_LAUNCHER_HANDOFF,
-        verifier.PRIMARY_HANDOFF,
+        verifier.TRAINING_HANDOFF,
         "scripts/prepare_strict_model_cache.py",
     )
     run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "packet files")
     git_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
     rows = [
         committed_row(tmp_path, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
-        committed_row(tmp_path, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        committed_row(tmp_path, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
     ]
     packet_path = minimal_packet(tmp_path, git_head=git_head, rows=rows)
@@ -194,9 +210,15 @@ def test_verifier_accepts_required_file_blobs_at_packet_commit(tmp_path: Path) -
 def test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit(tmp_path: Path) -> None:
     run_git(tmp_path, "init")
     write_text(tmp_path, verifier.VERIFIED_LAUNCHER_HANDOFF, "verified_launcher\n")
-    write_text(tmp_path, verifier.PRIMARY_HANDOFF, "training_handoff_shell\n")
+    write_text(tmp_path, verifier.TRAINING_HANDOFF, "training_handoff_shell\n")
     write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
-    run_git(tmp_path, "add", verifier.VERIFIED_LAUNCHER_HANDOFF, verifier.PRIMARY_HANDOFF, "scripts/prepare_strict_model_cache.py")
+    run_git(
+        tmp_path,
+        "add",
+        verifier.VERIFIED_LAUNCHER_HANDOFF,
+        verifier.TRAINING_HANDOFF,
+        "scripts/prepare_strict_model_cache.py",
+    )
     run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "packet files")
     packet_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
     write_text(tmp_path, "docs/closeout.md", "closeout\n")
@@ -205,7 +227,7 @@ def test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit(tmp
     current_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
     rows = [
         committed_row(tmp_path, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
-        committed_row(tmp_path, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        committed_row(tmp_path, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
     ]
     packet_path = minimal_packet(tmp_path, git_head=packet_head, rows=rows)
@@ -224,14 +246,14 @@ def test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit(tmp
 def test_verifier_rejects_required_file_missing_at_packet_commit(tmp_path: Path) -> None:
     run_git(tmp_path, "init")
     write_text(tmp_path, verifier.VERIFIED_LAUNCHER_HANDOFF, "verified_launcher\n")
-    write_text(tmp_path, verifier.PRIMARY_HANDOFF, "training_handoff_shell\n")
-    run_git(tmp_path, "add", verifier.VERIFIED_LAUNCHER_HANDOFF, verifier.PRIMARY_HANDOFF)
+    write_text(tmp_path, verifier.TRAINING_HANDOFF, "training_handoff_shell\n")
+    run_git(tmp_path, "add", verifier.VERIFIED_LAUNCHER_HANDOFF, verifier.TRAINING_HANDOFF)
     run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "before strict cache")
     stale_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
     write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
     rows = [
         committed_row(tmp_path, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
-        committed_row(tmp_path, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        committed_row(tmp_path, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
     ]
     packet_path = minimal_packet(tmp_path, git_head=stale_head, rows=rows)

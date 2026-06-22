@@ -97,9 +97,11 @@ def test_packet_is_commit_pinned_and_names_primary_handoff(tmp_path: Path) -> No
     assert result["release_claimed_go"] is False
     assert result["m6_rc_claimed_go"] is False
     assert result["git"]["head"] == "unitsha"
-    assert result["primary_external_handoff"] == "artifacts/review/real_adapter_cuda_training_handoff.sh"
+    assert result["primary_external_handoff"] == "artifacts/review/verified_external_cuda_training_launcher.sh"
+    assert result["downstream_training_handoff"] == "artifacts/review/real_adapter_cuda_training_handoff.sh"
     assert result["recertification_primary_external_handoff"] == "artifacts/review/verified_external_cuda_training_launcher.sh"
     assert result["primary_handoff_status"] == "PREPARED_NOT_RUN"
+    assert result["downstream_training_handoff_status"] == "PREPARED_NOT_RUN"
     assert [row["id"] for row in result["package_readiness_checks"]] == [
         "dataset_jsonl_present",
         "python_executable_present",
@@ -114,6 +116,8 @@ def test_packet_is_commit_pinned_and_names_primary_handoff(tmp_path: Path) -> No
     assert any(row["path"] == "artifacts/review/verified_external_cuda_training_launcher.sh" for row in result["required_committed_files"])
     assert any(row["path"] == "artifacts/review/real_adapter_cuda_training_handoff.sh" for row in result["required_committed_files"])
     assert any(row["path"] == "scripts/prepare_strict_model_cache.py" for row in result["required_committed_files"])
+    assert "verified_external_cuda_training_launcher.sh" in result["operator_sequence"][1]
+    assert "real_adapter_cuda_training_handoff.sh" in result["operator_sequence"][1]
     assert "model weights" in result["forbidden_committed_artifacts"]
     assert "raw live endpoint transcripts" in result["forbidden_committed_artifacts"]
     assert "git_head: unitsha" in markdown

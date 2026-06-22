@@ -16,8 +16,9 @@ PACKET_SCHEMA_VERSION = "mib_external_cuda_operator_packet.v1"
 GO_DECISION = "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION"
 NOT_GO_DECISION = "NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION"
 EXPECTED_STATUS = "PREPARED_NOT_RUN"
-PRIMARY_HANDOFF = "artifacts/review/real_adapter_cuda_training_handoff.sh"
 VERIFIED_LAUNCHER_HANDOFF = "artifacts/review/verified_external_cuda_training_launcher.sh"
+PRIMARY_HANDOFF = VERIFIED_LAUNCHER_HANDOFF
+TRAINING_HANDOFF = "artifacts/review/real_adapter_cuda_training_handoff.sh"
 
 REQUIRED_READINESS_IDS = [
     "dataset_jsonl_present",
@@ -57,7 +58,7 @@ REQUIRED_FORBIDDEN_LABELS = [
 ]
 REQUIRED_COMMITTED_FILE_PATHS = {
     PRIMARY_HANDOFF,
-    VERIFIED_LAUNCHER_HANDOFF,
+    TRAINING_HANDOFF,
     "scripts/prepare_strict_model_cache.py",
 }
 
@@ -131,6 +132,7 @@ def check_packet_contract(packet: dict[str, Any]) -> dict[str, Any]:
         "release_claimed_go_false": packet.get("release_claimed_go") is False,
         "m6_rc_claimed_go_false": packet.get("m6_rc_claimed_go") is False,
         "git_head_present": bool(packet.get("git", {}).get("head")) if isinstance(packet.get("git"), dict) else False,
+        "downstream_training_handoff": packet.get("downstream_training_handoff") == TRAINING_HANDOFF,
     }
     missing = [key for key, ok in requirements.items() if not ok]
     return check_row("packet_contract", not missing, "ok" if not missing else "packet contract failed", missing_markers=missing)

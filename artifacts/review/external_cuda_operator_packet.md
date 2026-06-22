@@ -2,13 +2,14 @@
 
 ```yaml
 schema_version: mib_external_cuda_operator_packet.v1
-date: 2026-06-22T15:39:55.368255+00:00
+date: 2026-06-22T16:01:48.101224+00:00
 gate: mib-studio-external-cuda-operator-packet
 status: PREPARED_NOT_RUN
 release_claimed_go: false
 m6_rc_claimed_go: false
-git_head: 65dfd1a
-primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+git_head: 10ea0cb
+primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 ```
 
 ## Required Committed Files
@@ -42,9 +43,9 @@ primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 
 ## Operator Sequence
 
-1. Clone or update the repository to commit 65dfd1a.
-2. Verify the required_committed_files sha256 values before running artifacts/review/real_adapter_cuda_training_handoff.sh.
-3. Run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host and require all package_readiness_checks to pass.
+1. Clone or update the repository to commit 10ea0cb.
+2. Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before artifacts/review/real_adapter_cuda_training_handoff.sh.
+3. Allow the verified launcher to invoke artifacts/review/real_adapter_cuda_training_handoff.sh only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.
 4. Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.
 5. Transfer the metadata-bearing artifacts/review/real_adapter_evidence_bundle.tar.gz back to the release workstation.
 6. Run scripts/run_v0_release_closeout_from_bundle.py only after accepted M6 GO review docs are present in the same checkout.

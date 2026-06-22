@@ -492,8 +492,9 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: 65dfd1a
-primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+handoff_source_commit: 10ea0cb
+primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 required_committed_files_count: 17
 required_committed_files_include:
@@ -521,7 +522,8 @@ m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
   - 17 required committed file sha256/size values
-  - 17 required committed file blobs at handoff source commit 65dfd1a
+  - 17 required committed file blobs at handoff source commit 10ea0cb
+  - primary handoff must be the verified launcher, not the lower-level training handoff
   - packet.git.head resolves even when current checkout is a later closeout commit
   - 6 package readiness checks
   - training/RC/local-closeout command order

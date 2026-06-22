@@ -12,8 +12,9 @@ from typing import Any
 
 SCHEMA_VERSION = "mib_external_cuda_operator_packet.v1"
 STATUS = "PREPARED_NOT_RUN"
-PRIMARY_HANDOFF = "artifacts/review/real_adapter_cuda_training_handoff.sh"
 VERIFIED_LAUNCHER_HANDOFF = "artifacts/review/verified_external_cuda_training_launcher.sh"
+PRIMARY_HANDOFF = VERIFIED_LAUNCHER_HANDOFF
+TRAINING_HANDOFF = "artifacts/review/real_adapter_cuda_training_handoff.sh"
 REQUIRED_COMMITTED_FILES = {
     "verified_training_launcher": "artifacts/review/verified_external_cuda_training_launcher.sh",
     "training_handoff_json": "artifacts/review/real_adapter_cuda_training_handoff.json",
@@ -94,9 +95,9 @@ def build_packet(args: argparse.Namespace) -> dict[str, Any]:
     rc_handoff = read_json(root, args.rc_handoff_json)
     recertification = read_json(root, args.recertification_json)
     recertification_primary = str(recertification.get("primary_external_handoff") or PRIMARY_HANDOFF)
-    primary_handoff = PRIMARY_HANDOFF
+    primary_handoff = VERIFIED_LAUNCHER_HANDOFF
 
-    if recertification_primary not in {PRIMARY_HANDOFF, VERIFIED_LAUNCHER_HANDOFF}:
+    if recertification_primary != VERIFIED_LAUNCHER_HANDOFF:
         raise ValueError(f"unexpected recertification primary handoff: {recertification_primary}")
     if training.get("release_claimed_go") is True or recertification.get("release_claimed_go") is True:
         raise ValueError("operator packet refuses to build from GO-claiming handoff artifacts")
@@ -116,8 +117,10 @@ def build_packet(args: argparse.Namespace) -> dict[str, Any]:
             "clean_worktree_required": True,
         },
         "primary_external_handoff": primary_handoff,
+        "downstream_training_handoff": TRAINING_HANDOFF,
         "recertification_primary_external_handoff": recertification_primary,
-        "primary_handoff_status": training.get("status"),
+        "primary_handoff_status": STATUS,
+        "downstream_training_handoff_status": training.get("status"),
         "recertification_status": recertification.get("status"),
         "required_committed_files": required_file_rows(root),
         "package_readiness_checks": training.get("package_readiness_checks", []),
@@ -128,8 +131,8 @@ def build_packet(args: argparse.Namespace) -> dict[str, Any]:
         },
         "operator_sequence": [
             f"Clone or update the repository to commit {args.git_head or run_git(root, 'rev-parse', '--short', 'HEAD')}.",
-            f"Verify the required_committed_files sha256 values before running {primary_handoff}.",
-            f"Run {primary_handoff} on the external CUDA host and require all package_readiness_checks to pass.",
+            f"Run {primary_handoff} on the external CUDA host so packet verification runs before {TRAINING_HANDOFF}.",
+            f"Allow the verified launcher to invoke {TRAINING_HANDOFF} only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.",
             "Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.",
             "Transfer the metadata-bearing artifacts/review/real_adapter_evidence_bundle.tar.gz back to the release workstation.",
             "Run scripts/run_v0_release_closeout_from_bundle.py only after accepted M6 GO review docs are present in the same checkout.",
@@ -179,6 +182,7 @@ release_claimed_go: false
 m6_rc_claimed_go: false
 git_head: {packet["git"]["head"]}
 primary_external_handoff: {packet["primary_external_handoff"]}
+downstream_training_handoff: {packet["downstream_training_handoff"]}
 ```
 
 ## Required Committed Files

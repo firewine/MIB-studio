@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_EXTERNAL_CUDA_PACKET_STABLE_HEAD_WARNING
+phase_id: V0_EXTERNAL_CUDA_PACKET_PRIMARY_VERIFIED_LAUNCHER
 milestone: Final_Program_Development_Closeout
-phase_status: v0_external_cuda_packet_stable_head_warning_not_go_release
-gate_id: mib-studio-external-cuda-packet-stable-head-warning
+phase_status: v0_external_cuda_packet_primary_verified_launcher_not_go_release
+gate_id: mib-studio-external-cuda-packet-primary-verified-launcher
 mode: implement
 product_code_changed: false
 verification_tooling_changed: true
@@ -57,6 +57,42 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-packet-primary-verified-launcher
+objective: make the verified external CUDA launcher the packet primary operator handoff
+
+files:
+  packet_generator: scripts/build_external_cuda_operator_packet.py
+  packet_generator_tests: tests/scripts/test_build_external_cuda_operator_packet.py
+  packet_verifier: scripts/verify_external_cuda_operator_packet.py
+  packet_verifier_tests: tests/scripts/test_verify_external_cuda_operator_packet.py
+  operator_packet:
+    - artifacts/review/external_cuda_operator_packet.json
+    - artifacts/review/external_cuda_operator_packet.md
+    - artifacts/review/external_cuda_operator_packet_verification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+operator_packet_contract:
+  schema_version: mib_external_cuda_operator_packet.v1
+  status: PREPARED_NOT_RUN
+  release_claimed_go: false
+  handoff_source_commit: 10ea0cb
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  required_committed_files_count: 17
+  commit_blob_check_detail: verified 17 required file blobs at 10ea0cb
+  verification_warnings: []
+
+summary:
+  - operator packet primary_external_handoff now points to the verified launcher, so packet metadata no longer tells operators to bypass packet verification
+  - verifier rejects packets whose primary_external_handoff is the lower-level training handoff
+  - packet still records the training handoff as downstream_training_handoff and as a required committed file
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-packet-stable-head-warning
@@ -734,6 +770,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  External_CUDA_Operator_Packet_Primary_Verified_Launcher: true
   External_CUDA_Operator_Packet_Stable_Head_Warning: true
   External_CUDA_Operator_Packet_Verified_Launcher_Required_File: true
   External_CUDA_Operator_Packet_Source_Commit_Guard: true
@@ -768,8 +805,17 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_external_cuda_packet_stable_head_warning_not_go_release
+status: v0_external_cuda_packet_primary_verified_launcher_not_go_release
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q
+  - python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 10ea0cb
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json
+  - python3 -m json.tool artifacts/review/external_cuda_operator_packet.json
+  - python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c "import json; data=json.load(open('artifacts/review/external_cuda_operator_packet.json', encoding='utf-8')); assert data['primary_external_handoff'] == 'artifacts/review/verified_external_cuda_training_launcher.sh'"
+  - rg -n -- "primary_external_handoff.*verified_external_cuda_training_launcher.sh|recertification_primary_external_handoff.*verified_external_cuda_training_launcher.sh|verified launcher as the primary external handoff|real_trained_adapter_no_fake_endpoint" scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q
   - python3 -m py_compile scripts/verify_external_cuda_operator_packet.py
@@ -1020,11 +1066,11 @@ passes. This launcher is PREPARED_NOT_RUN and does not claim M6-RC or v0 release
 GO.
 The external CUDA operator packet is
 artifacts/review/external_cuda_operator_packet.json and .md. It pins the handoff
-source commit to 65dfd1a, records required committed file sha256 values, names
-artifacts/review/real_adapter_cuda_training_handoff.sh as the primary external
-handoff, includes artifacts/review/verified_external_cuda_training_launcher.sh
-in required_committed_files, and forbids committing model weights, LoRA adapter
-files, Docker image layers/archives, raw endpoint transcripts, or copied
+source commit to 10ea0cb, records required committed file sha256 values, names
+artifacts/review/verified_external_cuda_training_launcher.sh as the primary
+external handoff, records artifacts/review/real_adapter_cuda_training_handoff.sh
+as the downstream training handoff, and forbids committing model weights, LoRA
+adapter files, Docker image layers/archives, raw endpoint transcripts, or copied
 external evidence bundles.
 Before running that handoff, use
 scripts/verify_external_cuda_operator_packet.py with
@@ -1032,7 +1078,7 @@ artifacts/review/external_cuda_operator_packet.json and require
 GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION. The current verification artifact
 is artifacts/review/external_cuda_operator_packet_verification.json; it verifies
 17 required committed file hashes including artifacts/review/verified_external_cuda_training_launcher.sh and scripts/prepare_strict_model_cache.py,
-17 required committed file blobs at handoff source commit 65dfd1a,
+17 required committed file blobs at handoff source commit 10ea0cb,
 6 package readiness checks, command order,
 forbidden artifact labels, and no forbidden tracked artifacts. The verifier
 allows the current checkout to be a later closeout commit than packet.git.head

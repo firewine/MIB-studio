@@ -113,15 +113,18 @@
       "status": "clean_against_origin_main"
     },
     "packet_refresh": {
-      "status": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+      "status": "COMPLETE_PUSHED",
       "packet_source_commit": "c7acb56",
+      "packet_status": "PREPARED_NOT_RUN",
+      "packet_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
       "release_claimed_go": false,
       "m6_rc_claimed_go": false,
       "operator_packet_ready": true,
       "verification_ok": true,
-      "required_committed_files": 18,
-      "required_commit_blobs": 18,
-      "warnings": []
+      "required_file_hashes": "verified 18 required file hashes",
+      "required_commit_blobs": "verified 18 required file blobs at c7acb56",
+      "forbidden_tracked_artifacts": [],
+      "verification_warnings": []
     },
     "transfer_manifest": {
       "status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
@@ -147,13 +150,13 @@
     "audit": "Current docs mark packet refresh required because recertification refreshed source-pinned release/handoff artifacts.",
     "build": "Regenerate packet JSON/Markdown with --git-head c7acb56, verify packet GO, and confirm transfer readiness to /tmp.",
     "check": "Validate JSON, shell syntax, marker scan, diff checks, and ensure no release GO claims.",
-    "done": "Packet refresh, verification, and transfer readiness passed; commit and push closeout pending. Release remains NOT_GO."
+    "done": "Packet refresh, verification, transfer readiness, commit, and push closeout passed. Release remains NOT_GO."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
     "gate": "mib-studio-external-cuda-operator-packet-refresh-after-c7acb56-recertification",
-    "status": "COMPLETE_PENDING_COMMIT_PUSH",
+    "status": "COMPLETE_PUSHED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
@@ -164,6 +167,6 @@
     "audit": "Current docs mark packet refresh required because recertification refreshed source-pinned release/handoff artifacts.",
     "build": "Regenerate packet JSON/Markdown with --git-head c7acb56, verify packet GO, and confirm transfer readiness to /tmp.",
     "check": "Validate JSON, shell syntax, marker scan, diff checks, and ensure no release GO claims.",
-    "done": "Packet refresh, verification, and transfer readiness passed; commit and push closeout pending. Release remains NOT_GO."
+    "done": "Packet refresh, verification, transfer readiness, commit, and push closeout passed. Release remains NOT_GO."
   }
 }

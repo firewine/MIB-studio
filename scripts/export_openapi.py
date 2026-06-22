@@ -14,9 +14,9 @@ def canonical_json(data: object) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--schema-only-if-missing-deps",
+        "--strict-app-import",
         action="store_true",
-        help="Validate the checked-in schema without importing the FastAPI app when optional runtime deps are unavailable.",
+        help="Fail when optional runtime dependencies are unavailable instead of falling back to schema-only validation.",
     )
     args = parser.parse_args()
 
@@ -33,7 +33,7 @@ def main() -> int:
             from services.api.app.main import app  # type: ignore
         except ModuleNotFoundError as exc:
             missing_name = exc.name or ""
-            if not args.schema_only_if_missing_deps or missing_name.startswith("services"):
+            if args.strict_app_import or missing_name.startswith("services"):
                 raise
             source = f"{seed}:schema-only-missing-dependency:{missing_name}"
         else:

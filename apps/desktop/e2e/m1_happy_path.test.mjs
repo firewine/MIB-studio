@@ -9,7 +9,7 @@ import { startMockApi } from "./mockApi.mjs";
 
 const chromePath = process.env.CHROME_BIN || "/usr/bin/google-chrome";
 
-test("M1 desktop shell happy path reaches project, dataset, hardware, train, and job monitor", async () => {
+test("M1 desktop shell happy path reaches project, dataset, hardware, train, benchmark, and job monitor", async () => {
   const staticPort = 5173;
   const apiPort = 8910;
   const cdpPort = 9223;
@@ -53,8 +53,21 @@ test("M1 desktop shell happy path reaches project, dataset, hardware, train, and
     await waitFor(client, 'document.body.innerText.includes("Training job accepted: QUEUED") && document.body.innerText.includes("model_run_1")');
     await navigate(client, `http://127.0.0.1:${staticPort}/jobs/job_train_1`);
     await waitFor(client, 'document.body.innerText.includes("Job monitor")');
-    const text = await evaluate(client, "document.body.innerText");
+    let text = await evaluate(client, "document.body.innerText");
     assert.match(text, /QUEUED|EVENT_GAP/);
+    await navigate(client, `http://127.0.0.1:${staticPort}/settings/teacher`);
+    await waitFor(client, 'document.body.innerText.includes("Teacher provider")');
+    await fill(client, '[data-field="credential-api-key"]', "test-key");
+    await click(client, '[data-action="save-credential"]');
+    await waitFor(client, 'document.body.innerText.includes("Teacher credential saved")');
+    await navigate(client, `http://127.0.0.1:${staticPort}/projects/proj_1/benchmarks/new`);
+    await waitFor(client, 'document.body.innerText.includes("Benchmark workflow") && document.body.innerText.includes("Run benchmark")');
+    await click(client, '[data-action="run-benchmark"]');
+    await waitFor(client, 'document.body.innerText.includes("Benchmark job accepted: QUEUED") && document.body.innerText.includes("mock-only") && document.body.innerText.includes("benchmark report")');
+    await navigate(client, `http://127.0.0.1:${staticPort}/jobs/job_benchmark_1`);
+    await waitFor(client, 'document.body.innerText.includes("Job monitor")');
+    text = await evaluate(client, "document.body.innerText");
+    assert.match(text, /benchmark|QUEUED|EVENT_GAP/);
   } finally {
     client?.close();
     if (chrome.exitCode === null && !chrome.signalCode) chrome.kill("SIGTERM");
@@ -113,6 +126,14 @@ function connectCdp(wsUrl) {
 
 async function click(client, selector) {
   await evaluate(client, `document.querySelector(${JSON.stringify(selector)}).click()`);
+}
+
+async function fill(client, selector, value) {
+  await evaluate(client, `(() => {
+    const field = document.querySelector(${JSON.stringify(selector)});
+    field.value = ${JSON.stringify(value)};
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
 }
 
 async function navigate(client, url) {

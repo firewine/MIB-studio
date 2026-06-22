@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: FE_V6_TRAIN_WORKFLOW_UNLOCK
+phase_id: FE_V6_BENCHMARK_WORKFLOW_UNLOCK
 milestone: Final_Program_Development_Closeout
-phase_status: fe_v6_train_workflow_unlocked_not_go_release
-gate_id: mib-studio-fe-v6-train-workflow-unlock
+phase_status: fe_v6_benchmark_workflow_unlocked_not_go_release
+gate_id: mib-studio-fe-v6-benchmark-workflow-unlock
 mode: implement
 product_code_changed: true
 verification_tooling_changed: false
@@ -57,6 +57,66 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-fe-v6-benchmark-workflow-unlock
+objective: unlock the FE v6 AgentBench workflow by enabling backend benchmark job queueing and wiring desktop Benchmark UI to existing report APIs
+
+files:
+  backend_submit:
+    - services/api/app/schemas/job.py
+    - services/api/app/services/dataset_job_service.py
+  backend_tests:
+    - tests/eval/test_benchmark_submit.py
+  frontend_model:
+    - apps/desktop/src/lib/appModel.mjs
+    - apps/desktop/src/lib/appModel.test.mjs
+  frontend_api_client:
+    - apps/desktop/src/lib/apiClient.mjs
+    - apps/desktop/src/lib/apiClient.test.mjs
+  desktop_shell:
+    - apps/desktop/src/main.mjs
+  browser_mock_and_e2e:
+    - apps/desktop/e2e/mockApi.mjs
+    - apps/desktop/e2e/m1_happy_path.test.mjs
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+benchmark_workflow_contract:
+  route: /projects/{id}/benchmarks/new
+  backend_submit:
+    endpoint: POST /projects/{id}/jobs
+    type: benchmark
+    creates:
+      - Job(type=benchmark, resource_class=gpu_exclusive, status=QUEUED)
+      - Benchmark(status=QUEUED, parity_status=NA)
+      - JobResource(resource_type=benchmark)
+    requires:
+      - frozen benchmark_gold or finance_reference EvalSet with sample_count >= 200
+      - one completed fine_tuned ModelRun with adapter_sha256 and artifact_manifest_sha256, or two for CUDA/MLX parity
+      - exactly one prompt_only, teacher, and rule_based target
+      - at least three unique seeds
+  desktop_apis_used:
+    - submitProjectJob: POST /projects/{id}/jobs
+    - listModelRuns: GET /projects/{id}/model-runs
+    - listEvalSets: GET /projects/{id}/eval-sets
+    - listBenchmarks: GET /projects/{id}/benchmarks
+    - getBenchmarkReport: GET /benchmarks/{id}/report
+
+verification:
+  backend_benchmark_submit: passed
+  desktop_model_and_api_client: passed
+  desktop_e2e_m1_happy_path_with_train_and_benchmark: passed
+  release_claimed_go: false
+
+summary:
+  - backend now queues valid benchmark jobs instead of returning MILESTONE_LOCKED for type=benchmark
+  - desktop route parsing and workflow stepper now expose /projects/{id}/benchmarks/new after completed ModelRun readiness
+  - AgentBench page displays target contract, gate status, benchmark list, and daemon/worker report data without manual benchmark numbers
+  - browser mock report is explicitly labeled mock-only and is not release evidence
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-fe-v6-train-workflow-unlock

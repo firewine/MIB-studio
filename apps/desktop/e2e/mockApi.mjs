@@ -5,6 +5,9 @@ export function startMockApi({ port = 8910 } = {}) {
     projects: [],
     datasets: [],
     modelRuns: [],
+    evalSets: [],
+    benchmarks: [],
+    benchmarkReports: new Map(),
     hardware: null,
     job: null,
     credentials: [],
@@ -66,13 +69,36 @@ async function route(request, response, url, state) {
   }
   const modelRunsMatch = url.pathname.match(/^\/projects\/([^/]+)\/model-runs$/);
   if (modelRunsMatch && request.method === "GET") return json(response, 200, { items: state.modelRuns, next_cursor: null });
+  const evalSetsMatch = url.pathname.match(/^\/projects\/([^/]+)\/eval-sets$/);
+  if (evalSetsMatch && request.method === "GET") return json(response, 200, { items: state.evalSets, next_cursor: null });
+  const benchmarksMatch = url.pathname.match(/^\/projects\/([^/]+)\/benchmarks$/);
+  if (benchmarksMatch && request.method === "GET") return json(response, 200, { items: state.benchmarks, next_cursor: null });
   const projectJobsMatch = url.pathname.match(/^\/projects\/([^/]+)\/jobs$/);
   if (projectJobsMatch && request.method === "POST") {
     const body = await readJson(request);
-    if (body.type !== "train") return json(response, 409, { error_code: "MILESTONE_LOCKED", message: "Only train is unlocked in this mock.", details: {}, trace_id: "mock" });
-    state.job = trainJobAccepted(projectJobsMatch[1], body);
-    state.modelRuns = [modelRunRead(projectJobsMatch[1], body, state.job.job_id)];
-    return json(response, 202, state.job);
+    if (body.type === "train") {
+      state.job = trainJobAccepted(projectJobsMatch[1], body);
+      state.modelRuns = [modelRunRead(projectJobsMatch[1], body, state.job.job_id)];
+      return json(response, 202, state.job);
+    }
+    if (body.type === "benchmark") {
+      state.job = benchmarkJobAccepted(projectJobsMatch[1], body);
+      const benchmark = benchmarkRead(projectJobsMatch[1], body, state.job.job_id);
+      state.benchmarks = [benchmark];
+      state.benchmarkReports.set(benchmark.id, benchmarkReportRead(benchmark));
+      return json(response, 202, state.job);
+    }
+    return json(response, 409, { error_code: "MILESTONE_LOCKED", message: "Only train and benchmark are unlocked in this mock.", details: {}, trace_id: "mock" });
+  }
+  const benchmarkReportMatch = url.pathname.match(/^\/benchmarks\/([^/]+)\/report$/);
+  if (benchmarkReportMatch && request.method === "GET") {
+    const report = state.benchmarkReports.get(benchmarkReportMatch[1]);
+    return report ? json(response, 200, report) : json(response, 404, { error_code: "BENCHMARK_NOT_FOUND", message: "No benchmark report", details: {}, trace_id: "mock" });
+  }
+  const benchmarkMatch = url.pathname.match(/^\/benchmarks\/([^/]+)$/);
+  if (benchmarkMatch && request.method === "GET") {
+    const benchmark = state.benchmarks.find((item) => item.id === benchmarkMatch[1]);
+    return benchmark ? json(response, 200, benchmark) : json(response, 404, { error_code: "BENCHMARK_NOT_FOUND", message: "No benchmark", details: {}, trace_id: "mock" });
   }
   const datasetMatch = url.pathname.match(/^\/datasets\/([^/]+)$/);
   if (datasetMatch && request.method === "GET") return json(response, 200, state.datasetWithExamples);
@@ -81,6 +107,7 @@ async function route(request, response, url, state) {
     state.datasetWithExamples.frozen_at = now();
     state.datasets[0].status = "APPROVED";
     state.datasets[0].frozen_at = now();
+    state.evalSets = [evalSetRead(state.datasets[0].project_id, state.datasets[0].id)];
     state.datasetWithExamples.examples = state.datasetWithExamples.examples.map((example) => ({ ...example, approved: true, review_status: "APPROVED" }));
     return json(response, 200, state.datasets[0]);
   }
@@ -176,10 +203,10 @@ function modelRunRead(projectId, body, jobId) {
     base_model: body.params.base_model,
     backend: body.params.backend,
     method: body.params.backend === "mlx" ? "mlx_lora" : "qlora",
-    adapter_path: null,
-    status: "QUEUED",
-    adapter_sha256: null,
-    artifact_manifest_sha256: null,
+    adapter_path: "adapters/model_run_1",
+    status: "SUCCEEDED",
+    adapter_sha256: "e".repeat(64),
+    artifact_manifest_sha256: "f".repeat(64),
     seed: body.params.seed,
     config_hash: "d".repeat(64),
     best_checkpoint_id: null,
@@ -187,6 +214,73 @@ function modelRunRead(projectId, body, jobId) {
     started_at: null,
     ended_at: null,
     created_at: now(),
+  };
+}
+
+function evalSetRead(projectId, datasetId) {
+  return {
+    id: "eval_set_1",
+    project_id: projectId,
+    dataset_id: datasetId,
+    purpose: "benchmark_gold",
+    version: 1,
+    path: "eval_sets/eval_set_1.jsonl",
+    sha256: "8".repeat(64),
+    sample_count: 200,
+    route_snapshot_sha256: "b".repeat(64),
+    labeler_ids_json: ["domain_labeler", "security_labeler", "tie_breaker"],
+    kappa: 0.81,
+    frozen_at: now(),
+    created_at: now(),
+  };
+}
+
+function benchmarkJobAccepted(projectId, body) {
+  return {
+    job_id: "job_benchmark_1",
+    project_id: projectId,
+    status: "QUEUED",
+    type: "benchmark",
+    events_url: "/jobs/job_benchmark_1/events",
+    created_resource_type: "benchmark",
+    created_resource_id: "benchmark_1",
+    idempotency_replayed: false,
+    params_json: body.params,
+  };
+}
+
+function benchmarkRead(projectId, body, jobId) {
+  return {
+    id: "benchmark_1",
+    project_id: projectId,
+    job_id: jobId,
+    eval_set_id: body.params.eval_set_id,
+    status: "COMPLETED",
+    report_sha256: "9".repeat(64),
+    hash_status: "VALID",
+    parity_status: "PASS",
+    created_at: now(),
+    completed_at: now(),
+  };
+}
+
+function benchmarkReportRead(benchmark) {
+  return {
+    benchmark_id: benchmark.id,
+    report_sha256: benchmark.report_sha256,
+    hash_status: "VALID",
+    report: {
+      schema_version: "benchmark_report.v1",
+      source: "mock_browser",
+      mock_only: true,
+      eval_set: { purpose: "benchmark_gold", sample_count: 200 },
+      targets: [
+        { target_key: "ft_cuda", target_status: "COMPLETED", mean_metrics: { route_accuracy: 0.918, latency_p50_ms: 420, effective_cost_per_task_usd: 0.00012 } },
+        { target_key: "teacher_gpt", target_status: "COMPLETED", mean_metrics: { route_accuracy: 0.947, latency_p50_ms: 2900, effective_cost_per_task_usd: 0.001 } },
+        { target_key: "prompt_gemma", target_status: "COMPLETED", mean_metrics: { route_accuracy: 0.729, latency_p50_ms: 390, effective_cost_per_task_usd: 0.0001 } },
+        { target_key: "rule_router", target_status: "COMPLETED", mean_metrics: { route_accuracy: 0.704, latency_p50_ms: 12, effective_cost_per_task_usd: 0 } },
+      ],
+    },
   };
 }
 

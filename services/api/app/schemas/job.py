@@ -39,6 +39,36 @@ class TrainParams(StrictModel):
     seed: int = 42
 
 
+class BenchmarkTargetConfig(StrictModel):
+    target_key: str = Field(min_length=1, max_length=80, pattern=r"^[a-z0-9_]+$")
+    target_type: Literal["prompt_only", "fine_tuned", "teacher", "rule_based", "local_large"]
+    backend: Literal["cuda", "mlx", "teacher", "rule_based", "prompt_only", "local_large"]
+    model_run_id: str | None = None
+    base_model: Literal["google/gemma-2b-it", "microsoft/Phi-3.5-mini-instruct"] | None = None
+    prompt_template_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    credential_id: str | None = None
+    teacher_base_url_origin: str | None = None
+    routing_rules_path: str | None = None
+    routing_rules_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    local_large_config: dict[str, Any] | None = None
+    required: bool = True
+
+
+class BenchmarkParams(StrictModel):
+    eval_set_id: str
+    targets: list[BenchmarkTargetConfig] = Field(min_length=1, max_length=6)
+    seeds: list[int] = Field(min_length=3, max_length=10)
+
+    @model_validator(mode="after")
+    def require_stable_target_and_seed_keys(self) -> "BenchmarkParams":
+        target_keys = [target.target_key for target in self.targets]
+        if len(target_keys) != len(set(target_keys)):
+            raise ValueError("benchmark target_key values must be unique")
+        if len(self.seeds) != len(set(self.seeds)):
+            raise ValueError("benchmark seeds must be unique")
+        return self
+
+
 class JobSubmitRequest(StrictModel):
     type: Literal["dataset_gen", "train", "eval", "benchmark"]
     params: dict[str, Any]

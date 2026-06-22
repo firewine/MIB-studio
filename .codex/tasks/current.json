@@ -1,28 +1,36 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Unlock the FE v6 Train workflow screen by wiring the desktop app to the existing project training job and model-run APIs after dataset approval and Hardware Doctor readiness.",
+  "goal": "Unlock the FE v6 Benchmark/AgentBench workflow by enabling benchmark job creation and wiring the desktop app to benchmark, benchmark-report, and model-run APIs without inventing benchmark evidence.",
   "phase": "done",
-  "gate": "mib-studio-fe-v6-train-workflow-unlock",
+  "gate": "mib-studio-fe-v6-benchmark-workflow-unlock",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "049c3c8",
+  "head": "24b3fdc",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "apps/desktop/src/lib/appModel.mjs",
     "apps/desktop/src/lib/appModel.test.mjs",
     "apps/desktop/src/lib/apiClient.mjs",
     "apps/desktop/src/lib/apiClient.test.mjs",
+    "apps/desktop/src/lib/generated.ts",
     "apps/desktop/src/main.mjs",
     "apps/desktop/e2e/mockApi.mjs",
     "apps/desktop/e2e/m1_happy_path.test.mjs",
+    "schemas/openapi.json",
+    "services/api/app/schemas/job.py",
+    "services/api/app/services/dataset_job_service.py",
+    "tests/eval/test_benchmark_submit.py",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
   "blocked_path_prefixes": [
-    "services",
-    "schemas",
+    "services/worker",
+    "services/shared",
+    "services/api/app/routes",
+    "services/api/app/schemas/project.py",
+    "services/api/app/schemas/training.py",
     "docs/foundation",
     "docs/specs",
     "docs/mockup",
@@ -33,75 +41,81 @@
     ".github"
   ],
   "blocked_scope": [
-    "Backend API/schema/DB/worker changes",
-    "Changing release readiness, M6 review docs, model catalog pins, training evidence policy, or CUDA/MLX training acceptance",
+    "DB migrations, worker/eval runner behavior changes, benchmark report methodology changes, and unrelated backend changes outside benchmark submit validation/queueing",
+    "Changing benchmark methodology, report schemas, M6 review docs, release readiness, training evidence policy, model catalog pins, or CUDA/MLX acceptance",
+    "Inventing benchmark numbers or treating mock/browser data as benchmark evidence",
     "Downloading or committing model weights, adapters, Docker images, endpoint transcripts, copied evidence bundles, or GO release evidence",
-    "Implementing benchmark/package/export workflow screens in this phase"
+    "Implementing package/export workflow screens in this phase"
   ],
-  "allowed_edit_paths_scope_note": "This gate may only add frontend API-client routes and desktop UI/model/mock/e2e coverage for the v6 Train screen using existing backend APIs, plus LLM handoff docs, completion log, and PABCD contract.",
+  "allowed_edit_paths_scope_note": "This gate may only add backend benchmark job request validation/queueing, generated OpenAPI/desktop DTO drift updates if needed, frontend API-client routes, desktop UI/model/mock/e2e coverage for the v6 Benchmark screen, plus LLM handoff docs, completion log, and PABCD contract.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/specs/UX_SPEC.md",
+    "docs/specs/EVAL_SPEC.md",
     "docs/mockup/mib_fe_mockup_v6_routes_contract.html",
     "apps/desktop/src/lib/generated.ts",
     "services/api/app/routes/jobs.py",
-    "services/api/app/routes/model_runs.py",
-    "services/api/app/services/training_service.py"
+    "services/api/app/routes/benchmarks.py",
+    "services/api/app/routes/eval_sets.py",
+    "services/api/app/services/benchmark_report.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
+    "PYTHONPATH=. ./.venv/bin/python -m pytest tests/eval/test_benchmark_submit.py -q",
     "COREPACK_HOME=/tmp/corepack node --test apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.test.mjs",
     "COREPACK_HOME=/tmp/corepack node --experimental-websocket --test apps/desktop/e2e/m1_happy_path.test.mjs",
-    "rg -n -- \"projectTraining|submitProjectJob|listModelRuns|Start train|Training job accepted|model run|training_preset|Train workflow\" apps/desktop/src/lib/appModel.mjs apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.mjs apps/desktop/src/lib/apiClient.test.mjs apps/desktop/src/main.mjs apps/desktop/e2e/mockApi.mjs apps/desktop/e2e/m1_happy_path.test.mjs docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"projectBenchmark|listBenchmarks|getBenchmarkReport|Run benchmark|Benchmark job accepted|benchmark report|mock-only|AgentBench|Benchmark workflow\" apps/desktop/src/lib/appModel.mjs apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.mjs apps/desktop/src/lib/apiClient.test.mjs apps/desktop/src/main.mjs apps/desktop/e2e/mockApi.mjs apps/desktop/e2e/m1_happy_path.test.mjs docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Desktop route parsing and workflow stepper expose /projects/{id}/training as the Train workflow route.",
-    "Train page uses existing submitProjectJob and listModelRuns APIs, shows dataset/hardware gates, and does not run training logic in the UI.",
-    "Browser happy path can build and approve a dataset, run Hardware Doctor, open Train, submit a train job, and see the accepted job/model run state.",
+    "Backend accepts type=benchmark project jobs when a frozen benchmark EvalSet, completed fine-tuned ModelRun, and required targets/seeds are present, and creates a queued Benchmark resource.",
+    "Desktop route parsing and workflow stepper expose /projects/{id}/benchmarks/new as the Benchmark workflow route.",
+    "Benchmark page uses submitProjectJob, listBenchmarks, getBenchmarkReport, and listModelRuns APIs and labels mock browser results as non-release evidence.",
+    "Browser happy path can build and approve a dataset, run Hardware Doctor, submit a training job, open Benchmark, submit a benchmark job, and see benchmark/report state from the mock API.",
     "Docs continue to state that v0/M6 release remains NOT_GO until real trained adapter no-fake endpoint evidence exists."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
+    "PYTHONPATH=. ./.venv/bin/python -m pytest tests/eval/test_benchmark_submit.py -q",
     "COREPACK_HOME=/tmp/corepack node --test apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.test.mjs",
     "COREPACK_HOME=/tmp/corepack node --experimental-websocket --test apps/desktop/e2e/m1_happy_path.test.mjs",
-    "rg -n -- \"projectTraining|submitProjectJob|listModelRuns|Start train|Training job accepted|model run|training_preset|Train workflow\" apps/desktop/src/lib/appModel.mjs apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.mjs apps/desktop/src/lib/apiClient.test.mjs apps/desktop/src/main.mjs apps/desktop/e2e/mockApi.mjs apps/desktop/e2e/m1_happy_path.test.mjs docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"projectBenchmark|listBenchmarks|getBenchmarkReport|Run benchmark|Benchmark job accepted|benchmark report|mock-only|AgentBench|Benchmark workflow\" apps/desktop/src/lib/appModel.mjs apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.mjs apps/desktop/src/lib/apiClient.test.mjs apps/desktop/src/main.mjs apps/desktop/e2e/mockApi.mjs apps/desktop/e2e/m1_happy_path.test.mjs docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
-    "This gate submits a queued training job through existing APIs in mock/browser tests only; it does not produce real trained adapter evidence or run CUDA training.",
+    "This gate creates queued benchmark jobs and mock/browser benchmark states; it does not run the benchmark worker, produce accepted benchmark evidence, or create release evidence.",
     "M6-RC and v0 release remain NOT_GO."
   ],
   "phase_notes": {
-    "plan": "Use the canonical FE v6 Train screen as the target and connect it to existing project training job/model-run APIs after Data and Hardware are ready.",
-    "audit": "The current desktop shell keeps Train locked even though backend train submission and model-run APIs exist, so the v6 workflow cannot progress from approved dataset and Hardware Doctor to training job creation.",
-    "build": "Extend desktop route parsing/workflow readiness/API client, add Train page rendering/action, update mock API and e2e happy path.",
-    "check": "Run desktop model/API-client tests, browser happy path, evidence search, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this Train workflow unlock phase."
+    "plan": "Use the canonical FE v6 AgentBench screen as the target, enable backend benchmark queueing for valid benchmark inputs, and connect the desktop page to benchmark/report APIs after a completed model run is available.",
+    "audit": "The current backend rejects type=benchmark project jobs as MILESTONE_LOCKED and the desktop shell keeps Benchmark locked, so the v6 workflow cannot progress from model-run readiness to benchmark job creation or report review.",
+    "build": "Add backend benchmark job validation/queueing, extend desktop route parsing/workflow readiness/API client, add Benchmark page rendering/action, update mock API and e2e happy path.",
+    "check": "Run focused backend benchmark-submit tests, desktop model/API-client tests, browser happy path, evidence search, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this Benchmark workflow unlock phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-fe-v6-train-workflow-unlock",
+    "gate": "mib-studio-fe-v6-benchmark-workflow-unlock",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Unlock the FE v6 Train workflow route in the desktop app using existing training job/model-run APIs; update focused tests/mock/docs/PABCD only.",
-    "blocked_scope": "No backend/API/schema/DB/worker changes, no release GO claim, no M6 review GO edits, no model/catalog/training evidence policy changes, no downloaded weights/adapters/images/evidence bundles, no benchmark/package/export UI implementation in this phase.",
+    "approved_scope": "Unlock the FE v6 Benchmark workflow by enabling backend benchmark job queueing and desktop Benchmark route/API wiring; update focused tests/mock/docs/PABCD only.",
+    "blocked_scope": "No DB migrations, no worker/eval runner changes, no release GO claim, no M6 review GO edits, no model/catalog/training/benchmark evidence policy changes, no downloaded weights/adapters/images/evidence bundles, no package/export UI implementation in this phase.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Use the canonical FE v6 Train screen as the target and connect it to existing project training job/model-run APIs after Data and Hardware are ready.",
-    "audit": "The current desktop shell keeps Train locked even though backend train submission and model-run APIs exist, so the v6 workflow cannot progress from approved dataset and Hardware Doctor to training job creation.",
-    "build": "Extend desktop route parsing/workflow readiness/API client, add Train page rendering/action, update mock API and e2e happy path.",
-    "check": "Run desktop model/API-client tests, browser happy path, evidence search, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this Train workflow unlock phase."
+    "plan": "Use the canonical FE v6 AgentBench screen as the target, enable backend benchmark queueing for valid benchmark inputs, and connect the desktop page to benchmark/report APIs after a completed model run is available.",
+    "audit": "The current backend rejects type=benchmark project jobs as MILESTONE_LOCKED and the desktop shell keeps Benchmark locked, so the v6 workflow cannot progress from model-run readiness to benchmark job creation or report review.",
+    "build": "Add backend benchmark job validation/queueing, extend desktop route parsing/workflow readiness/API client, add Benchmark page rendering/action, update mock API and e2e happy path.",
+    "check": "Run focused backend benchmark-submit tests, desktop model/API-client tests, browser happy path, evidence search, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this Benchmark workflow unlock phase."
   }
 }

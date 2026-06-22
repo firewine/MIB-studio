@@ -26,6 +26,9 @@ const state = {
   datasets: [],
   dataset: null,
   modelRuns: [],
+  evalSets: [],
+  benchmarks: [],
+  benchmarkReport: null,
   hardware: null,
   lastJob: null,
   credentials: [],
@@ -91,8 +94,18 @@ async function loadRouteData() {
   state.selectedProject = "projectId" in route ? state.projects.find((project) => project.id === route.projectId) || null : state.projects[0] || null;
   if (state.selectedProject) {
     state.datasets = (await state.api.request("listDatasets", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
-    if (["projectDashboard", "projectTraining"].includes(route.name)) {
+    if (["projectDashboard", "projectTraining", "projectBenchmark"].includes(route.name)) {
       state.modelRuns = (await state.api.request("listModelRuns", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
+    }
+    if (["projectDashboard", "projectBenchmark"].includes(route.name)) {
+      state.benchmarks = (await state.api.request("listBenchmarks", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
+    }
+    if (route.name === "projectBenchmark") {
+      state.evalSets = (await state.api.request("listEvalSets", { params: { id: state.selectedProject.id, purpose: "benchmark_gold" } }).catch(() => ({ items: [] }))).items || [];
+      const latest = latestBenchmark();
+      state.benchmarkReport = latest ? await state.api.request("getBenchmarkReport", { params: { id: latest.id } }).catch(() => null) : null;
+    } else {
+      state.benchmarkReport = null;
     }
   }
   if (route.name === "projectDefine" && state.selectedProject) state.routes = routesFromProject(state.selectedProject);
@@ -143,6 +156,7 @@ async function onClick(event) {
     if (action === "delete-credential") await deleteCredential();
     if (action === "scan-hardware") await scanHardware();
     if (action === "start-train") await startTrain();
+    if (action === "run-benchmark") await runBenchmark();
     if (action === "poll-job") await pollJob();
     if (action === "select-palette") selectPalette(target.dataset.palette);
     if (action === "insert-block") insertBlock(target.dataset.blockLabel);
@@ -259,8 +273,59 @@ async function startTrain() {
   state.notice = `Training job accepted: ${state.lastJob.status}.`;
 }
 
+async function runBenchmark() {
+  if (!state.selectedProject) return;
+  const modelRun = completedModelRun();
+  const evalSet = benchmarkEvalSet();
+  const credential = teacherCredential();
+  if (!modelRun) {
+    state.notice = "Benchmark requires a completed model run.";
+    return;
+  }
+  if (!evalSet) {
+    state.notice = "Benchmark requires a frozen benchmark_gold EvalSet.";
+    return;
+  }
+  if (!credential) {
+    state.notice = "Benchmark requires a teacher credential baseline.";
+    return;
+  }
+  state.lastJob = await state.api.request("submitProjectJob", {
+    params: { id: state.selectedProject.id },
+    body: {
+      type: "benchmark",
+      params: {
+        eval_set_id: evalSet.id,
+        targets: benchmarkTargets(modelRun, credential),
+        seeds: [42, 123, 456],
+      },
+    },
+    idempotencyKey: idempotencyKey(`benchmark-${modelRun.id}-${evalSet.id}`),
+  });
+  state.benchmarks = (await state.api.request("listBenchmarks", { params: { id: state.selectedProject.id } }).catch(() => ({ items: state.benchmarks }))).items || [];
+  const latest = latestBenchmark();
+  state.benchmarkReport = latest ? await state.api.request("getBenchmarkReport", { params: { id: latest.id } }).catch(() => null) : null;
+  state.notice = `Benchmark job accepted: ${state.lastJob.status}.`;
+}
+
 function approvedDataset() {
   return state.datasets.find((dataset) => dataset.status === "APPROVED" || dataset.frozen_at) || null;
+}
+
+function completedModelRun() {
+  return state.modelRuns.find((run) => run.status === "SUCCEEDED" && run.adapter_sha256 && run.artifact_manifest_sha256) || null;
+}
+
+function benchmarkEvalSet() {
+  return state.evalSets.find((item) => ["benchmark_gold", "finance_reference"].includes(item.purpose)) || null;
+}
+
+function latestBenchmark() {
+  return state.benchmarks[0] || null;
+}
+
+function teacherCredential() {
+  return state.credentials.find((item) => !item.is_revoked) || null;
 }
 
 function trainingBackend() {
@@ -270,6 +335,38 @@ function trainingBackend() {
   if (allowed.includes("cuda")) return "cuda";
   if (allowed.includes("mlx")) return "mlx";
   return "cuda";
+}
+
+function benchmarkTargets(modelRun, credential) {
+  return [
+    {
+      target_key: "prompt_gemma",
+      target_type: "prompt_only",
+      backend: "prompt_only",
+      base_model: modelRun.base_model,
+      prompt_template_sha256: "410ca967a64b6a71d53d82cd9102f0767c5d94d4af27640826fb60feced9e9dd",
+    },
+    {
+      target_key: `ft_${modelRun.backend}`,
+      target_type: "fine_tuned",
+      backend: modelRun.backend,
+      model_run_id: modelRun.id,
+    },
+    {
+      target_key: "teacher_gpt",
+      target_type: "teacher",
+      backend: "teacher",
+      credential_id: credential.id,
+      teacher_base_url_origin: credential.base_url_origin || "https://teacher.example.test",
+    },
+    {
+      target_key: "rule_router",
+      target_type: "rule_based",
+      backend: "rule_based",
+      routing_rules_path: "rules/router.routing_rules.v1.yaml",
+      routing_rules_sha256: "1b9501f1ba0bbd527beacab98e34d5355d676c0ba60b151a22be87e369232934",
+    },
+  ];
 }
 
 async function previewTeacherPacket() {
@@ -437,7 +534,7 @@ function render() {
 
 function sidebar() {
   const project = state.selectedProject;
-  const steps = workflowSteps(project, state.path, Boolean(approvedDataset()), Boolean(state.hardware?.training_enabled));
+  const steps = workflowSteps(project, state.path, Boolean(approvedDataset()), Boolean(state.hardware?.training_enabled), Boolean(completedModelRun()));
   return `<aside class="sidebar">
     <div class="brand"><div class="brand-mark">MIB</div><div><strong>MIB Studio</strong><span>MicroAgent Inventor Blocks</span></div></div>
     <section class="project-switcher"><small>Project</small><strong>${escapeHtml(project?.name || "No project")}</strong><span>${project ? `${project.routes.length} routes - router` : `${state.projects.length} saved`}</span><div class="switcher-actions"><button class="icon-button" title="Refresh" data-action="refresh">R</button><button class="icon-button" title="Create" data-nav="/projects/new">+</button></div></section>
@@ -461,6 +558,7 @@ function page(route) {
   if (route.name === "datasetNew") return examplesPage();
   if (route.name === "datasetDetail") return datasetPage();
   if (route.name === "projectTraining") return trainingPage();
+  if (route.name === "projectBenchmark") return benchmarkPage();
   if (route.name === "hardware") return hardwarePage();
   if (route.name === "job") return jobPage(route.jobId);
   if (route.name === "settings") return settingsPage();
@@ -485,7 +583,7 @@ function createProjectPage() {
 
 function dashboardPage() {
   const project = state.selectedProject;
-  return pageShell("Workbench", project?.name || "Project dashboard", "Restart-safe summary for the route contract, examples, hardware preflight, and later locked workflow steps.", `<button class="button" data-action="refresh">Refresh</button>`, `<div class="metric-grid">${metric("route contract", `${project?.routes.length || 0} routes`, "ok")}${metric("datasets", `${state.datasets.length} saved`, state.datasets.length ? "ok" : "warn")}${metric("train runs", `${state.modelRuns.length} queued`, state.modelRuns.length ? "ok" : "blue")}</div><div class="action-grid"><button class="action-tile" data-nav="/projects/${project?.id}/define"><strong>Define routes</strong><span>Open the v6 route contract builder.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/datasets/new"><strong>Build examples</strong><span>Create the first approved-ready dataset.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/training"><strong>Train</strong><span>Submit a LoRA job after dataset approval and Hardware Doctor.</span></button></div>`);
+  return pageShell("Workbench", project?.name || "Project dashboard", "Restart-safe summary for the route contract, examples, hardware preflight, and later locked workflow steps.", `<button class="button" data-action="refresh">Refresh</button>`, `<div class="metric-grid">${metric("route contract", `${project?.routes.length || 0} routes`, "ok")}${metric("datasets", `${state.datasets.length} saved`, state.datasets.length ? "ok" : "warn")}${metric("train runs", `${state.modelRuns.length} queued`, state.modelRuns.length ? "ok" : "blue")}${metric("benchmarks", `${state.benchmarks.length} saved`, state.benchmarks.length ? "ok" : "blue")}</div><div class="action-grid"><button class="action-tile" data-nav="/projects/${project?.id}/define"><strong>Define routes</strong><span>Open the v6 route contract builder.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/datasets/new"><strong>Build examples</strong><span>Create the first approved-ready dataset.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/training"><strong>Train</strong><span>Submit a LoRA job after dataset approval and Hardware Doctor.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/benchmarks/new"><strong>AgentBench</strong><span>Compare the completed small agent against baselines.</span></button></div>`);
 }
 
 function definePage() {
@@ -543,6 +641,55 @@ function modelRunsHtml() {
   return `<div class="table-surface"><table><thead><tr><th>Model run</th><th>Status</th><th>Backend</th><th>Seed</th><th>Adapter</th></tr></thead><tbody>${state.modelRuns
     .map((run) => `<tr><td class="mono">${escapeHtml(run.id)}</td><td><span class="pill ${run.status === "SUCCEEDED" ? "ok" : "blue"}">${escapeHtml(run.status)}</span></td><td>${escapeHtml(run.backend)} / ${escapeHtml(run.method)}</td><td>${escapeHtml(run.seed)}</td><td>${escapeHtml(run.adapter_path || "pending")}</td></tr>`)
     .join("")}</tbody></table></div>`;
+}
+
+function benchmarkPage() {
+  const modelRun = completedModelRun();
+  const evalSet = benchmarkEvalSet();
+  const credential = teacherCredential();
+  const latest = latestBenchmark();
+  const canRun = Boolean(modelRun && evalSet && credential);
+  const action = `<button class="button primary" data-action="run-benchmark" ${canRun ? "" : "disabled"}>Run benchmark</button>`;
+  const reportStatus = state.benchmarkReport?.hash_status || latest?.hash_status || "MISSING";
+  const gatePanel = `<div class="metric-grid">${metric("model run", modelRun?.id || "completed run required", modelRun ? "ok" : "warn")}${metric("eval set", evalSet?.id || "benchmark_gold required", evalSet ? "ok" : "warn")}${metric("teacher", credential ? "credential ready" : "credential required", credential ? "ok" : "warn")}${metric("benchmark report", reportStatus, reportStatus === "VALID" ? "ok" : "blue")}</div>`;
+  const request = {
+    type: "benchmark",
+    params: {
+      eval_set_id: evalSet?.id || null,
+      targets: modelRun && credential ? benchmarkTargets(modelRun, credential) : [],
+      seeds: [42, 123, 456],
+    },
+  };
+  return pageShell(
+    "AgentBench",
+    "Benchmark workflow",
+    "Queue a reproducible benchmark job and read only daemon-generated benchmark report data.",
+    action,
+    `${notice()}${gatePanel}<div class="two-column"><section class="surface"><h2>Submission contract</h2><pre class="codebox">${escapeHtml(JSON.stringify(request, null, 2))}</pre></section><section class="surface"><h2>Evidence boundary</h2><div class="compact-list"><div class="check-line"><span class="check ok">ok</span>UI never edits benchmark numbers.</div><div class="check-line"><span class="check ${state.benchmarkReport ? "ok" : "bad"}">${state.benchmarkReport ? "ok" : "!"}</span>${state.benchmarkReport ? "benchmark report loaded" : "report appears after worker completion"}</div><div class="check-line"><span class="check bad">!</span>mock-only browser report is not release evidence.</div></div></section></div>${benchmarksHtml()}${benchmarkReportHtml()}`,
+  );
+}
+
+function benchmarksHtml() {
+  if (!state.benchmarks.length) return statePanel("empty", "No benchmarks yet", "Run benchmark after a completed model run and frozen benchmark EvalSet.");
+  return `<div class="table-surface"><table><thead><tr><th>Benchmark</th><th>Status</th><th>Hash</th><th>Parity</th><th>Eval set</th></tr></thead><tbody>${state.benchmarks
+    .map((item) => `<tr><td class="mono">${escapeHtml(item.id)}</td><td><span class="pill ${item.status === "COMPLETED" ? "ok" : "blue"}">${escapeHtml(item.status)}</span></td><td>${escapeHtml(item.hash_status)}</td><td>${escapeHtml(item.parity_status)}</td><td class="mono">${escapeHtml(item.eval_set_id)}</td></tr>`)
+    .join("")}</tbody></table></div>`;
+}
+
+function benchmarkReportHtml() {
+  const report = state.benchmarkReport?.report;
+  if (!report) return "";
+  const mockOnly = report.mock_only || report.source === "mock_browser";
+  const targets = report.targets || [];
+  return `<section class="surface"><div class="split-toolbar"><h2>benchmark report</h2>${mockOnly ? '<span class="pill warn">mock-only</span>' : '<span class="pill ok">daemon report</span>'}</div><div class="metric-grid">${metric("schema", report.schema_version || "unknown", "blue")}${metric("targets", String(targets.length), "ok")}${metric("report sha", (state.benchmarkReport.report_sha256 || "missing").slice(0, 10), state.benchmarkReport.hash_status === "VALID" ? "ok" : "warn")}</div><div class="table-surface"><table><thead><tr><th>Target</th><th>Status</th><th>Route accuracy</th><th>Latency p50</th><th>Cost</th></tr></thead><tbody>${targets
+    .map((target) => `<tr><td class="mono">${escapeHtml(target.target_key)}</td><td>${escapeHtml(target.target_status || "COMPLETED")}</td><td>${escapeHtml(metricValue(target, "route_accuracy"))}</td><td>${escapeHtml(metricValue(target, "latency_p50_ms"))}</td><td>${escapeHtml(metricValue(target, "effective_cost_per_task_usd"))}</td></tr>`)
+    .join("")}</tbody></table></div></section>`;
+}
+
+function metricValue(target, key) {
+  const value = target.mean_metrics?.[key] ?? target.metrics?.[key];
+  if (value === undefined || value === null) return "not reported";
+  return typeof value === "number" ? Number(value).toFixed(key.includes("cost") ? 6 : 3) : String(value);
 }
 
 function jobPage(jobId) {
@@ -606,6 +753,7 @@ function breadcrumb(route) {
   if (route.name === "datasetNew") return "projects / datasets / new";
   if (route.name === "datasetDetail") return "datasets / detail";
   if (route.name === "projectTraining") return "projects / training";
+  if (route.name === "projectBenchmark") return "projects / benchmarks / AgentBench";
   if (route.name === "hardware") return "hardware / doctor";
   if (route.name === "job") return "jobs / monitor";
   return "settings";

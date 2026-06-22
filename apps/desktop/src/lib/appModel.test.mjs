@@ -20,6 +20,7 @@ test("parseAppRoute resolves M1 shell routes", () => {
   assert.deepEqual(parseAppRoute("/projects/new"), { name: "projectNew" });
   assert.deepEqual(parseAppRoute("/projects/proj_1/define"), { name: "projectDefine", projectId: "proj_1" });
   assert.deepEqual(parseAppRoute("/projects/proj_1/training"), { name: "projectTraining", projectId: "proj_1" });
+  assert.deepEqual(parseAppRoute("/projects/proj_1/benchmarks/new"), { name: "projectBenchmark", projectId: "proj_1" });
   assert.deepEqual(parseAppRoute("/datasets/dataset_1"), { name: "datasetDetail", datasetId: "dataset_1" });
   assert.deepEqual(parseAppRoute("/hardware"), { name: "hardware" });
 });
@@ -46,6 +47,10 @@ test("workflowSteps locks later milestones but keeps M1 shell routes", () => {
   assert.equal(steps.find((step) => step.id === "train").state, "locked");
   const ready = workflowSteps(project, "/projects/proj_1/training", true, true);
   assert.equal(ready.find((step) => step.id === "train").state, "current");
+  assert.equal(ready.find((step) => step.id === "benchmark").state, "locked");
+  const benchmark = workflowSteps(project, "/projects/proj_1/benchmarks/new", true, true, true);
+  assert.equal(benchmark.find((step) => step.id === "train").state, "done");
+  assert.equal(benchmark.find((step) => step.id === "benchmark").state, "current");
 });
 
 test("createContract keeps v6 router contract fields", () => {

@@ -56,6 +56,7 @@ M1_to_M5_Local_Evidence: verified
 FE_V6_Mockup_Verified: true
 FE_V6_Route_Contract_Persistence_Verified: true
 FE_V6_Train_Workflow_Unlocked: true
+FE_V6_Benchmark_Workflow_Unlocked: true
 M6_RC_Signoff: NOT_GO
 V0_Release_Readiness: NOT_GO
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
@@ -200,6 +201,26 @@ ui:
       - worker scheduling
       - adapter artifact creation
       - release evidence
+  benchmark_workflow_v6:
+    route: /projects/{id}/benchmarks/new
+    uses_apis:
+      - POST /projects/{id}/jobs with type=benchmark
+      - GET /projects/{id}/model-runs
+      - GET /projects/{id}/eval-sets
+      - GET /projects/{id}/benchmarks
+      - GET /benchmarks/{id}/report
+    required_runtime_gates:
+      - frozen benchmark_gold or finance_reference EvalSet
+      - completed fine_tuned ModelRun with adapter lineage
+      - prompt_only, fine_tuned, teacher, and rule_based targets
+      - at least three unique seeds
+    ui_must:
+      - display only daemon/worker-provided benchmark report data
+      - label mock browser data as mock-only and not release evidence
+    ui_must_not:
+      - invent benchmark numbers
+      - treat queued benchmark jobs as completed benchmark evidence
+      - change release readiness
 
 daemon:
   must:
@@ -429,11 +450,15 @@ route-contract mockup and evidence:
 ```yaml
 FE_V6_Mockup_Verified: true
 FE_V6_Train_Workflow_Unlocked: true
+FE_V6_Benchmark_Workflow_Unlocked: true
 canonical_mockup: docs/mockup/mib_fe_mockup_v6_routes_contract.html
 evidence: artifacts/review/fe_v6_evidence.md
 verifier_check: fe_v6_applied
 train_workflow_evidence:
   - apps/desktop/e2e/m1_happy_path.test.mjs covers dataset approval, Hardware Doctor, Train submit, queued model run, and job monitor in mock/browser smoke
+benchmark_workflow_evidence:
+  - tests/eval/test_benchmark_submit.py covers backend benchmark job queueing with frozen EvalSet, completed ModelRun, teacher credential, required targets, seeds, and idempotency
+  - apps/desktop/e2e/m1_happy_path.test.mjs covers AgentBench navigation, benchmark submit, mock-only report display, and benchmark job monitor in browser smoke
 release_impact: no_release_go_claim
 ```
 

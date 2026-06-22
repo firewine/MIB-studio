@@ -14,8 +14,8 @@ from pathlib import Path
 
 SECRET_PATTERNS = [
     re.compile(rb"sk-[A-Za-z0-9_-]{20,}"),
-    re.compile(rb"(?i)api[_-]?key\\s*[:=]\\s*['\\\"]?[A-Za-z0-9_-]{16,}"),
-    re.compile(rb"(?i)bearer\\s+[A-Za-z0-9._-]{20,}"),
+    re.compile(rb"(?i)api[_-]?key\s*[:=]\s*['\"]?[A-Za-z0-9_-]{16,}"),
+    re.compile(rb"(?i)bearer\s+[A-Za-z0-9._-]{20,}"),
 ]
 
 
@@ -90,8 +90,6 @@ def artifact_read(path: Path, name: str) -> bytes | None:
 
 
 def validate_manifest(path: Path) -> list[str]:
-    from jsonschema import Draft7Validator
-
     names = artifact_names(path)
     if not names:
         return []
@@ -109,6 +107,11 @@ def validate_manifest(path: Path) -> list[str]:
         return validate_docker_image_manifest(path, names, manifest)
     if not isinstance(manifest, dict):
         return [f"manifest.json: must be an object or Docker image manifest list"]
+
+    try:
+        from jsonschema import Draft7Validator
+    except ModuleNotFoundError as exc:
+        return [f"{path}: jsonschema is required to validate export manifest: {exc.name}"]
 
     schema = json.loads(Path("schemas/export_manifest.schema.json").read_text())
     errors = [f"manifest.json: {error.message}" for error in Draft7Validator(schema).iter_errors(manifest)]

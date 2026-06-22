@@ -18,6 +18,22 @@ DEFAULT_SCAN_ROOTS = [
     "/tmp/mib-real-adapter",
     "/tmp/mib-phi-docker-export-_vgqfd4g",
 ]
+TRAINING_HANDOFF_SHELL = "artifacts/review/real_adapter_cuda_training_handoff.sh"
+TRAINING_HANDOFF_REASONS = {
+    "no_go_adapter_candidates",
+    "docker_base_image_env_digest",
+    "backend_config_ready",
+    "strict_model_cache_files",
+    "cuda_visible",
+    "docker_base_image_available",
+    "adapter_dir_present",
+    "adapter_safetensors_present",
+    "adapter_config_present",
+    "adapter_manifest_present",
+    "model_cache_dir_present",
+    "docker_image_available",
+    "host_cuda_visible",
+}
 
 Runner = Callable[[list[str], Path, int], subprocess.CompletedProcess[str]]
 
@@ -332,6 +348,10 @@ def operator_next_actions(reasons: list[str]) -> list[str]:
 
     if any(reason.startswith("child_command_failed:") for reason in reasons):
         add("Inspect the failed child command stderr/stdout tail in commands, fix the tool/runtime failure, and rerun recertification.")
+    if TRAINING_HANDOFF_REASONS & set(reasons):
+        add(
+            f"Run {TRAINING_HANDOFF_SHELL} on the external CUDA host first; its package_readiness_checks must pass before training."
+        )
     if "no_go_adapter_candidates" in reasons:
         add("Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.")
     if {
@@ -407,6 +427,7 @@ def recertify(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> d
         "current_state": state,
         "blocking_reasons": reasons,
         "operator_next_actions": actions,
+        "primary_external_handoff": TRAINING_HANDOFF_SHELL if TRAINING_HANDOFF_REASONS & set(reasons) else None,
         "outputs": {
             "candidate_scan": args.candidate_scan_output,
             "training_preflight": args.training_preflight_output,
@@ -418,7 +439,7 @@ def recertify(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> d
             "handoff_shell": args.handoff_shell_output,
         },
         "operator_next_step": (
-            "Run the external CUDA host handoff to produce a real trained adapter and no-fake endpoint evidence."
+            f"Run {TRAINING_HANDOFF_SHELL} to produce a real trained adapter, then run the downstream no-fake endpoint handoff."
             if status != GO_STATUS
             else "Run final release closeout review and do not claim GO until M6 review docs and v0 readiness are confirmed."
         ),

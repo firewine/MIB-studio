@@ -372,6 +372,7 @@ current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 ```
 
 Continuation sequence for future LLM agents:
@@ -424,8 +425,10 @@ summary_file: artifacts/review/v0_release_blocker_recertification.json
 top_level_fields:
   - blocking_reasons
   - operator_next_actions
+  - primary_external_handoff
 current_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 release_claimed_go: false
+primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 current_blocking_reasons_include:
   - no_go_adapter_candidates
   - docker_base_image_env_digest
@@ -442,6 +445,7 @@ current_blocking_reasons_include:
   - endpoint_live_no_fake_json
   - real_trained_adapter_no_fake_endpoint
 next_actions_are_in_artifact: true
+first_operator_action: run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host and require package_readiness_checks before training
 ```
 
 Current external CUDA training handoff package:

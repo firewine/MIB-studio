@@ -1,9 +1,8 @@
 {
-  "date": "2026-06-22T14:12:20.105552+00:00",
+  "date": "2026-06-22T14:25:06.538532+00:00",
   "decision": "NOT_READY",
   "endpoint_evidence_only": false,
   "errors": [
-    "adapter_dir_present: missing adapter directory: /tmp/mib-real-adapter/adapter",
     "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
     "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
     "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
@@ -101,9 +100,9 @@
       "ok": true
     },
     {
-      "detail": "missing adapter directory: /tmp/mib-real-adapter/adapter",
+      "detail": "ok",
       "id": "adapter_dir_present",
-      "ok": false
+      "ok": true
     },
     {
       "detail": "missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
@@ -144,7 +143,6 @@
       "skipped": true,
       "skipped_prereq_ids": [
         "adapter_manifest_sha256_unavailable",
-        "adapter_dir_present",
         "docker_image_available"
       ]
     },

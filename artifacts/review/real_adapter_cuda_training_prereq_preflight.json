@@ -1,7 +1,6 @@
 {
   "blockers": [
     "docker_base_image_env_digest",
-    "backend_config_ready",
     "strict_model_cache_files",
     "cuda_visible",
     "docker_base_image_available"
@@ -27,9 +26,10 @@
       "row_count": 20
     },
     {
-      "detail": "missing backend_config.yaml: /tmp/mib-real-adapter/backend_config.yaml",
+      "detail": "ok",
       "id": "backend_config_ready",
-      "ok": false,
+      "mismatches": [],
+      "ok": true,
       "path": "/tmp/mib-real-adapter/backend_config.yaml"
     },
     {
@@ -94,7 +94,7 @@
       "returncode": null
     }
   ],
-  "date": "2026-06-22T14:12:20.069516+00:00",
+  "date": "2026-06-22T14:25:06.500501+00:00",
   "env_requirements": {
     "docker_base_image_digest_present": false,
     "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",

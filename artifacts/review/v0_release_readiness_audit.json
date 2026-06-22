@@ -99,7 +99,6 @@
     {
       "decision": "NOT_READY",
       "errors": [
-        "adapter_dir_present: missing adapter directory: /tmp/mib-real-adapter/adapter",
         "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
         "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
         "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
@@ -109,7 +108,6 @@
       ],
       "id": "m6_real_adapter_prereq_audit",
       "missing_prereq_ids": [
-        "adapter_dir_present",
         "adapter_safetensors_present",
         "adapter_config_present",
         "adapter_manifest_present",
@@ -155,7 +153,6 @@
     "real_adapter_evidence_bundle_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
     "real_adapter_evidence_bundle_ready": false,
     "real_adapter_missing_prereq_ids": [
-      "adapter_dir_present",
       "adapter_safetensors_present",
       "adapter_config_present",
       "adapter_manifest_present",

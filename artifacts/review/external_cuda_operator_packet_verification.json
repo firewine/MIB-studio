@@ -1,0 +1,81 @@
+{
+  "blockers": [],
+  "checks": [
+    {
+      "detail": "ok",
+      "id": "packet_json",
+      "missing_markers": [],
+      "ok": true,
+      "path": "/home/firewine/MIB-studio/artifacts/review/external_cuda_operator_packet.json"
+    },
+    {
+      "detail": "ok",
+      "id": "packet_contract",
+      "missing_markers": [],
+      "ok": true,
+      "path": null
+    },
+    {
+      "detail": "verified 15 required file hashes",
+      "id": "required_committed_file_hashes",
+      "missing_markers": [],
+      "ok": true,
+      "path": null
+    },
+    {
+      "detail": "ok",
+      "id": "package_readiness_checks",
+      "missing_markers": [],
+      "ok": true,
+      "path": null
+    },
+    {
+      "detail": "ok",
+      "id": "command_order",
+      "missing_markers": [],
+      "ok": true,
+      "path": null
+    },
+    {
+      "detail": "ok",
+      "id": "forbidden_committed_artifacts",
+      "missing_markers": [],
+      "ok": true,
+      "path": null
+    },
+    {
+      "detail": "ok",
+      "id": "forbidden_tracked_artifacts",
+      "missing_markers": [],
+      "ok": true,
+      "path": null
+    },
+    {
+      "detail": "ok",
+      "id": "packet_git_head_resolves",
+      "missing_markers": [],
+      "ok": true,
+      "path": null
+    }
+  ],
+  "date": "2026-06-22T14:42:58.886349+00:00",
+  "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+  "decision_matches_expected": true,
+  "expected_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+  "m6_rc_claimed_go": false,
+  "operator_packet_ready": true,
+  "packet_handoff_source_commit": "d6ecc02",
+  "packet_json": "/home/firewine/MIB-studio/artifacts/review/external_cuda_operator_packet.json",
+  "primary_external_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
+  "release_claimed_go": false,
+  "schema_version": "mib_external_cuda_operator_packet_verification.v1",
+  "summary": {
+    "forbidden_tracked_artifacts": [],
+    "package_readiness_checks": 6,
+    "required_committed_files": 15
+  },
+  "verification_ok": true,
+  "warnings": [
+    "current checkout head 6588915 differs from packet handoff source commit d6ecc02"
+  ]
+}

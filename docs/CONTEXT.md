@@ -369,6 +369,7 @@ release_readiness_report: artifacts/review/v0_release_readiness_audit.json
 release_blocker_recertification: artifacts/review/v0_release_blocker_recertification.json
 cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.json
 external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.json
+external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 current_local_unexpected_blockers: []
@@ -472,6 +473,7 @@ Current external CUDA operator packet:
 ```yaml
 packet_json: artifacts/review/external_cuda_operator_packet.json
 packet_markdown: artifacts/review/external_cuda_operator_packet.md
+packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
@@ -485,10 +487,31 @@ forbidden_committed_artifacts:
   - copied external real-adapter evidence bundles
 ```
 
+Current external CUDA operator packet verification:
+
+```yaml
+verification_json: artifacts/review/external_cuda_operator_packet_verification.json
+schema_version: mib_external_cuda_operator_packet_verification.v1
+decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+operator_packet_ready: true
+release_claimed_go: false
+m6_rc_claimed_go: false
+validated:
+  - packet contract and no-GO claims
+  - 15 required committed file sha256/size values
+  - 6 package readiness checks
+  - training/RC/local-closeout command order
+  - forbidden committed artifact labels
+  - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
+warning: packet handoff source commit d6ecc02 differs from current packet-management checkout 6588915
+meaning: packet integrity is GO; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
+```
+
 Recommended external CUDA host sequence:
 
 ```yaml
 external_cuda_host_sequence:
+  - run scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO
   - run artifacts/review/real_adapter_cuda_training_handoff.sh
   - run artifacts/review/real_adapter_docker_image_handoff.sh
   - run scripts/run_m6_real_adapter_rc_gate.py --endpoint-evidence-only

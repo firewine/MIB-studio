@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_EXTERNAL_CUDA_OPERATOR_PACKET
+phase_id: V0_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFIER
 milestone: Final_Program_Development_Closeout
-phase_status: v0_external_cuda_operator_packet_prepared_not_go
-gate_id: mib-studio-external-cuda-operator-packet
+phase_status: v0_external_cuda_operator_packet_verified_not_go_release
+gate_id: mib-studio-external-cuda-operator-packet-verifier
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,43 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-operator-packet-verifier
+objective: verify the external CUDA operator packet before real-adapter CUDA execution
+
+files:
+  verifier: scripts/verify_external_cuda_operator_packet.py
+  verifier_tests: tests/scripts/test_verify_external_cuda_operator_packet.py
+  verifier_output: artifacts/review/external_cuda_operator_packet_verification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+operator_packet_verification:
+  schema_version: mib_external_cuda_operator_packet_verification.v1
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  operator_packet_ready: true
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  packet_handoff_source_commit: d6ecc02
+  primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  verified:
+    - packet contract and no-GO claims
+    - 15 required committed file sha256/size values
+    - 6 package readiness checks
+    - training/RC/local-closeout command order
+    - forbidden committed artifact labels
+    - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
+  warning:
+    - current checkout head 6588915 differs from packet handoff source commit d6ecc02
+
+summary:
+  - verifier gives operators a focused preflight command before running artifacts/review/real_adapter_cuda_training_handoff.sh
+  - focused tests cover ready packet, hash mismatch, GO-claiming packet rejection, and forbidden tracked artifact matching
+  - verifier GO is packet integrity only and does not claim M6-RC GO or v0 release GO
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-operator-packet
@@ -444,6 +481,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  External_CUDA_Operator_Packet_Verification: true
   External_CUDA_Operator_Packet: true
   V0_Release_Blocker_Recertification_Training_Handoff_Action: true
   Real_Adapter_CUDA_Training_Handoff_Preflight_Guards: true
@@ -471,8 +509,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_external_cuda_operator_packet_prepared_not_go
+status: v0_external_cuda_operator_packet_verified_not_go_release
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q
+  - python3 -m py_compile scripts/verify_external_cuda_operator_packet.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json
+  - python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json
+  - rg -n -- "external_cuda_operator_packet_verification|verify_external_cuda_operator_packet|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|release_claimed_go|forbidden_tracked_artifacts|real_adapter_cuda_training_handoff.sh|real_trained_adapter_no_fake_endpoint" scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py -q
   - python3 -m py_compile scripts/build_external_cuda_operator_packet.py
@@ -610,6 +654,7 @@ prepare_strict_toolchain_before_strict_checks:
     --json-output /tmp/mib-strict-toolchain-preparation.json
 
 external_cuda_host_flow:
+  - run scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO before external CUDA handoff execution
   - run artifacts/review/real_adapter_cuda_training_handoff.sh on a CUDA host
   - run artifacts/review/real_adapter_docker_image_handoff.sh after a real adapter exists
   - run scripts/run_m6_real_adapter_rc_gate.py --endpoint-evidence-only for live no-fake endpoint evidence
@@ -656,6 +701,14 @@ source commit to d6ecc02, records required committed file sha256 values, names
 artifacts/review/real_adapter_cuda_training_handoff.sh as the primary external
 handoff, and forbids committing model weights, LoRA adapter files, Docker image
 layers/archives, raw endpoint transcripts, or copied external evidence bundles.
+Before running that handoff, use
+scripts/verify_external_cuda_operator_packet.py with
+artifacts/review/external_cuda_operator_packet.json and require
+GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION. The current verification artifact
+is artifacts/review/external_cuda_operator_packet_verification.json; it verifies
+15 required committed file hashes, 6 package readiness checks, command order,
+forbidden artifact labels, and no forbidden tracked artifacts. This is packet
+integrity GO only, not M6-RC or v0 release GO.
 The generated CUDA training handoff now embeds package_readiness_checks and its
 shell fails fast if the dataset JSONL, repo Python, LLaMA-Factory CLI, strict
 model cache, backend_config.yaml, or downstream RC handoff shell is missing.

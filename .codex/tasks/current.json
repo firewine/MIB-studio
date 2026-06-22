@@ -1,26 +1,27 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Refresh the external CUDA operator packet and verification to current HEAD 222f00c after the v0 blocker recertification closeout, without claiming M6-RC or v0 release GO.",
+  "goal": "Resolve the services/shared/db/repositories/training_store.py code-shape soft warning by extracting training job status transitions into a narrowly owned repository helper without behavior changes.",
   "phase": "done",
-  "gate": "mib-studio-current-head-222f00c-external-cuda-operator-packet-refresh",
+  "gate": "mib-studio-training-store-status-transitions-extraction",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "222f00c",
+  "head": "068b8bb",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet.md",
-    "artifacts/review/external_cuda_operator_packet_verification.json",
-    "docs/CONTEXT.md",
+    "services/shared/db/repositories/training_store.py",
+    "services/shared/db/repositories/training_status_store.py",
+    "artifacts/review/file_size_report.json",
+    "artifacts/review/import_boundary_report.json",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
   "blocked_path_prefixes": [
     "apps",
-    "services",
+    "services/api",
+    "services/worker",
     "packages",
     "presets",
     "examples",
@@ -38,43 +39,46 @@
     ".github"
   ],
   "blocked_scope": [
-    "Changing product runtime behavior, FE workflow behavior, API contracts, schemas, mock data, model catalog, verifier acceptance criteria, release readiness logic, or operator packet generator/verifier code",
+    "Changing training API behavior, worker training behavior, DB schema, Job/ModelRun status names, JobEvent payloads, checkpoint/resume semantics, release readiness logic, verifier criteria, or frontend behavior",
     "Inventing real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO or weakening any no-fake evidence gate",
     "Committing model weights, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Regenerate only the external CUDA operator packet and packet verification artifacts so required committed file hashes point at current HEAD 222f00c after the latest recertification artifact commit.",
+  "allowed_edit_paths_scope_note": "Move only training status transition methods and their event-writing helper from training_store.py into services/shared/db/repositories/training_status_store.py; preserve existing TrainingStore public API through delegation.",
   "reference_only_paths": [
     "/home/firewine/getbeta/docs/guides/VS_CODE_MULTI_AGENT_GATE_PROTOCOL_V4.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/build_external_cuda_operator_packet.py",
-    "scripts/verify_external_cuda_operator_packet.py",
-    "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet_verification.json",
-    "artifacts/review/v0_release_blocker_recertification.json"
+    "services/shared/db/repositories/training_store.py",
+    "tests/training/test_cuda_wrapper.py",
+    "tests/training/test_mlx_wrapper.py",
+    "tests/training/test_checkpoint_resume.py",
+    "tests/training/test_cuda_oom_isolation.py",
+    "tests/training/test_dry_run_estimate.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 222f00c --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "rg -n -- \"222f00c|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|verified_external_cuda_training_launcher.sh|required committed file source commit|real_trained_adapter_no_fake_endpoint|release_claimed_go|m6_rc_claimed_go\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "python3 -m py_compile services/shared/db/repositories/training_store.py services/shared/db/repositories/training_status_store.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py tests/training/test_checkpoint_resume.py tests/training/test_cuda_oom_isolation.py tests/training/test_dry_run_estimate.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+    "python3 -m json.tool artifacts/review/file_size_report.json",
+    "python3 -m json.tool artifacts/review/import_boundary_report.json",
+    "sed -n '$=' services/shared/db/repositories/training_store.py",
+    "sed -n '$=' services/shared/db/repositories/training_status_store.py",
+    "rg -n -- \"TrainingStatusStore|mark_running|mark_succeeded|mark_dry_run_succeeded|mark_failed|mark_cancelled|request_cancel|append_event|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/shared/db/repositories/training_store.py services/shared/db/repositories/training_status_store.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "External CUDA operator packet git.head is 222f00c.",
-    "Packet verification returns GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION with operator_packet_ready=true.",
-    "Packet and verification continue to set release_claimed_go=false and m6_rc_claimed_go=false.",
-    "Primary external handoff remains artifacts/review/verified_external_cuda_training_launcher.sh.",
-    "No model weights, adapter artifacts, Docker artifacts, endpoint transcripts, or copied evidence bundles are touched."
+    "services/shared/db/repositories/training_store.py is below the 260-line default soft warning threshold.",
+    "services/shared/db/repositories/training_status_store.py has narrow status-transition ownership and stays below the 260-line default soft warning threshold.",
+    "Focused CUDA/MLX/checkpoint/dry-run/OOM training tests pass.",
+    "Code-shape check has 0 hard violations and removes training_store.py from soft warnings.",
+    "No release GO is claimed and real_trained_adapter_no_fake_endpoint remains the active release blocker."
   ],
   "executed_verification_commands": [
     {
@@ -82,32 +86,40 @@
       "result": "passed after final done-state update"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-      "result": "passed: 11 passed"
-    },
-    {
-      "command": "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
+      "command": "python3 -m py_compile services/shared/db/repositories/training_store.py services/shared/db/repositories/training_status_store.py",
       "result": "passed"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 222f00c --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md",
-      "result": "passed: status PREPARED_NOT_RUN, release_claimed_go false, primary_external_handoff artifacts/review/verified_external_cuda_training_launcher.sh"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py tests/training/test_checkpoint_resume.py tests/training/test_cuda_oom_isolation.py tests/training/test_dry_run_estimate.py -q",
+      "result": "passed: 14 passed"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-      "result": "passed: decision GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION, operator_packet_ready true, verification_ok true"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
+      "result": "passed: 115 files checked, 0 hard violations, 3 remaining pre-existing soft warnings; services/shared/db/repositories/training_store.py removed from violations"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+      "result": "passed: violations []"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/review/file_size_report.json",
       "result": "passed"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
+      "command": "python3 -m json.tool artifacts/review/import_boundary_report.json",
       "result": "passed"
     },
     {
-      "command": "rg -n -- \"222f00c|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|verified_external_cuda_training_launcher.sh|required committed file source commit|real_trained_adapter_no_fake_endpoint|release_claimed_go|m6_rc_claimed_go\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
-      "result": "passed: expected source commit, packet verification, no-GO claims, primary handoff, and release blocker markers found"
+      "command": "sed -n '$=' services/shared/db/repositories/training_store.py",
+      "result": "passed: 240"
+    },
+    {
+      "command": "sed -n '$=' services/shared/db/repositories/training_status_store.py",
+      "result": "passed: 141"
+    },
+    {
+      "command": "rg -n -- \"TrainingStatusStore|mark_running|mark_succeeded|mark_dry_run_succeeded|mark_failed|mark_cancelled|request_cancel|append_event|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/shared/db/repositories/training_store.py services/shared/db/repositories/training_status_store.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+      "result": "passed: extraction references and NOT_GO/release blocker guardrails found"
     },
     {
       "command": "git diff --check",
@@ -120,50 +132,48 @@
   ],
   "failed_verification_commands": [],
   "observed_evidence": {
-    "packet_source_commit": "222f00c",
-    "packet_status": "PREPARED_NOT_RUN",
-    "packet_schema_version": "mib_external_cuda_operator_packet.v1",
-    "packet_required_committed_files": 17,
-    "packet_primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
-    "packet_downstream_training_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
-    "packet_release_claimed_go": false,
-    "packet_m6_rc_claimed_go": false,
-    "verification_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
-    "verification_ok": true,
-    "operator_packet_ready": true,
-    "verification_warnings": [],
-    "verified_required_file_hashes": 17,
-    "verified_required_file_commit_blobs_at": "222f00c",
-    "forbidden_tracked_artifacts": [],
+    "training_store_before_lines": 312,
+    "training_store_after_lines": 240,
+    "training_status_store_lines": 141,
+    "training_store_removed_from_soft_warnings": true,
+    "hard_limit_violations": 0,
+    "soft_warnings_remaining": [
+      "services/worker/handlers/dataset_gen.py",
+      "services/api/app/services/dataset_service.py",
+      "services/api/app/services/training_service.py"
+    ],
+    "focused_training_tests": "14 passed",
+    "import_boundary_violations": [],
+    "release_claimed_go": false,
     "v0_release_ready": false,
     "sole_expected_release_blocker": "real_trained_adapter_no_fake_endpoint"
   },
   "warnings": [
-    "This phase refreshes the operator packet only.",
+    "This is a behavior-preserving training repository code-shape refactor only.",
     "M6-RC and v0 release remain NOT_GO until accepted real no-fake endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Refresh the external CUDA operator packet and verification after current HEAD advanced to 222f00c.",
-    "audit": "Current docs report external_cuda_operator_packet.git.head as c38ff33 while current main is 222f00c and latest recertification artifacts were updated after that source commit.",
-    "build": "Regenerate packet JSON/Markdown with --git-head 222f00c and rerun packet verification.",
-    "check": "Run focused packet tests, py_compile, packet generation, packet verification, JSON validation, evidence search, and diff hygiene checks.",
-    "done": "After verification passes, stage, commit, and push this packet refresh phase."
+    "plan": "Extract TrainingStore status transition methods into a focused TrainingStatusStore helper while keeping TrainingStore callers unchanged.",
+    "audit": "services/shared/db/repositories/training_store.py is 312 lines, over the 260-line default soft warning threshold but below the 400-line hard limit.",
+    "build": "Move mark_running, mark_succeeded, mark_dry_run_succeeded, mark_failed, mark_cancelled, request_cancel, and append_event into training_status_store.py; delegate from TrainingStore.",
+    "check": "Run py_compile, focused training tests, code-shape checks, import-boundary checks, evidence search, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this refactor phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-current-head-222f00c-external-cuda-operator-packet-refresh",
+    "gate": "mib-studio-training-store-status-transitions-extraction",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Current-head external CUDA operator packet artifact refresh plus LLM docs only.",
-    "blocked_scope": "No product behavior changes, no script/test changes, no release GO claim, no M6 review GO edits, no model/adapter/Docker/endpoint/bundle artifacts, no verifier/evidence-policy weakening.",
+    "approved_scope": "Behavior-preserving extraction of TrainingStore status transitions into a focused shared DB repository helper, plus generated code-shape artifacts and LLM docs.",
+    "blocked_scope": "No behavior/API/schema/test/frontend/release-readiness changes, no release GO claim, no M6 review GO edits, no model/adapter/Docker/endpoint/bundle artifacts, no verifier/evidence-policy weakening.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Refresh the external CUDA operator packet and verification after current HEAD advanced to 222f00c.",
-    "audit": "Current docs report external_cuda_operator_packet.git.head as c38ff33 while current main is 222f00c and latest recertification artifacts were updated after that source commit.",
-    "build": "Regenerate packet JSON/Markdown with --git-head 222f00c and rerun packet verification.",
-    "check": "Run focused packet tests, py_compile, packet generation, packet verification, JSON validation, evidence search, and diff hygiene checks.",
-    "done": "After verification passes, stage, commit, and push this packet refresh phase."
+    "plan": "Extract TrainingStore status transition methods into a focused TrainingStatusStore helper while keeping TrainingStore callers unchanged.",
+    "audit": "services/shared/db/repositories/training_store.py is 312 lines, over the 260-line default soft warning threshold but below the 400-line hard limit.",
+    "build": "Move mark_running, mark_succeeded, mark_dry_run_succeeded, mark_failed, mark_cancelled, request_cancel, and append_event into training_status_store.py; delegate from TrainingStore.",
+    "check": "Run py_compile, focused training tests, code-shape checks, import-boundary checks, evidence search, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this refactor phase."
   }
 }

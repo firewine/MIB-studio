@@ -41,12 +41,12 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_222F00C_REFRESH
+phase_id: TRAINING_STORE_STATUS_TRANSITIONS_EXTRACTION
 milestone: Final_Program_Development_Closeout
-phase_status: external_cuda_operator_packet_current_head_verified
-gate_id: mib-studio-current-head-222f00c-external-cuda-operator-packet-refresh
+phase_status: training_store_soft_warning_resolved_not_go_release
+gate_id: mib-studio-training-store-status-transitions-extraction
 mode: development
-product_code_changed: false
+product_code_changed: true
 verification_tooling_changed: false
 release_claimed_go: false
 
@@ -57,6 +57,56 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-training-store-status-transitions-extraction
+objective: resolve the training_store.py code-shape soft warning without behavior changes
+
+files:
+  shared_db_repositories:
+    - services/shared/db/repositories/training_store.py
+    - services/shared/db/repositories/training_status_store.py
+  regenerated_verification_artifacts:
+    - artifacts/review/file_size_report.json
+    - artifacts/review/import_boundary_report.json
+  llm_context:
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+line_counts:
+  training_store_before_lines: 312
+  training_store_after_lines: 240
+  training_status_store_lines: 141
+  default_soft_warning_threshold: 260
+  training_store_below_soft_warning_threshold: true
+
+scope:
+  behavior_preserving: true
+  status_transitions_extracted: true
+  training_store_public_api_changed: false
+  db_schema_changed: false
+  tests_changed: false
+
+code_shape:
+  hard_limit_violations: 0
+  soft_warnings_remaining:
+    - services/worker/handlers/dataset_gen.py
+    - services/api/app/services/dataset_service.py
+    - services/api/app/services/training_service.py
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - TrainingStore status transition and JobEvent writing logic moved into TrainingStatusStore
+  - TrainingStore keeps the same public methods and delegates to the focused helper
+  - focused CUDA, MLX, checkpoint/resume, CUDA OOM, and dry-run training tests pass
+  - this phase does not change release readiness or create real adapter evidence
+```
 
 ```yaml
 gate: mib-studio-current-head-222f00c-external-cuda-operator-packet-refresh

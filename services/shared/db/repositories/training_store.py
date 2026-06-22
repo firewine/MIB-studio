@@ -4,11 +4,12 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
-from services.shared.db.models import Checkpoint, Job, JobEvent, JobResource, ModelRun
+from services.shared.db.models import Checkpoint, Job, JobResource, ModelRun
 from services.shared.db.repositories.dataset_store import canonical_json, new_id, sha256_text
+from services.shared.db.repositories.training_status_store import TrainingStatusStore
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ class CheckpointRecordInput:
 class TrainingStore:
     def __init__(self, session: Session) -> None:
         self.session = session
+        self.status_store = TrainingStatusStore(session)
 
     def create_queued_training_run(self, payload: TrainingRunInput) -> TrainingRunRows:
         model_run_id = new_id()
@@ -115,13 +117,7 @@ class TrainingStore:
         return row.resource_id
 
     def mark_running(self, *, job: Job, model_run: ModelRun, ts: str) -> None:
-        job.status = "RUNNING"
-        job.started_at = job.started_at or ts
-        job.attempt_count = job.attempt_count + 1
-        model_run.status = "RUNNING"
-        model_run.started_at = model_run.started_at or ts
-        self.append_event(job=job, ts=ts, level="info", event_type="status_change", payload={"status": "RUNNING"})
-        self.session.flush()
+        self.status_store.mark_running(job=job, model_run=model_run, ts=ts)
 
     def mark_succeeded(
         self,
@@ -133,27 +129,14 @@ class TrainingStore:
         artifact_manifest_sha256: str,
         ts: str,
     ) -> None:
-        model_run.status = "SUCCEEDED"
-        model_run.adapter_path = adapter_path
-        model_run.adapter_sha256 = adapter_sha256
-        model_run.artifact_manifest_sha256 = artifact_manifest_sha256
-        model_run.resumable = 1
-        model_run.ended_at = ts
-        job.status = "SUCCEEDED"
-        job.ended_at = ts
-        self.append_event(
+        self.status_store.mark_succeeded(
             job=job,
+            model_run=model_run,
+            adapter_path=adapter_path,
+            adapter_sha256=adapter_sha256,
+            artifact_manifest_sha256=artifact_manifest_sha256,
             ts=ts,
-            level="info",
-            event_type="artifact",
-            payload={
-                "phase": "completed",
-                "model_run_id": model_run.id,
-                "adapter_sha256": adapter_sha256,
-                "artifact_manifest_sha256": artifact_manifest_sha256,
-            },
         )
-        self.session.flush()
 
     def mark_dry_run_succeeded(
         self,
@@ -165,65 +148,23 @@ class TrainingStore:
         report: dict[str, Any],
         ts: str,
     ) -> None:
-        model_run.status = "SUCCEEDED"
-        model_run.resumable = 0
-        model_run.ended_at = ts
-        job.status = "SUCCEEDED"
-        job.ended_at = ts
-        self.append_event(
+        self.status_store.mark_dry_run_succeeded(
             job=job,
+            model_run=model_run,
+            report_path=report_path,
+            report_sha256=report_sha256,
+            report=report,
             ts=ts,
-            level="info",
-            event_type="artifact",
-            payload={
-                "phase": "dry_run_completed",
-                "model_run_id": model_run.id,
-                "dry_run_report_path": report_path,
-                "dry_run_report_sha256": report_sha256,
-                "predicted_vram_peak_mb": report["predicted_vram_peak_mb"],
-                "observed_vram_peak_mb": report["observed_vram_peak_mb"],
-                "tokens_per_sec": report["tokens_per_sec"],
-                "predicted_duration_seconds": report["predicted_duration_seconds"],
-                "estimate_error_pct": report["estimate_error_pct"],
-            },
         )
-        self.session.flush()
 
     def mark_failed(self, *, job: Job, model_run: ModelRun, error_class: str, error_message: str, ts: str) -> None:
-        job.status = "FAILED"
-        job.error_class = error_class
-        job.error_message = error_message
-        job.ended_at = ts
-        model_run.status = "FAILED"
-        model_run.ended_at = ts
-        self.append_event(
-            job=job,
-            ts=ts,
-            level="error",
-            event_type="error",
-            payload={"phase": "failed", "model_run_id": model_run.id, "error_class": error_class, "message": error_message},
-        )
-        self.session.flush()
+        self.status_store.mark_failed(job=job, model_run=model_run, error_class=error_class, error_message=error_message, ts=ts)
 
     def mark_cancelled(self, *, job: Job, model_run: ModelRun | None, ts: str) -> None:
-        job.status = "CANCELLED"
-        job.ended_at = ts
-        if model_run is not None:
-            model_run.status = "CANCELLED"
-            model_run.ended_at = ts
-        self.append_event(job=job, ts=ts, level="info", event_type="status_change", payload={"status": "CANCELLED"})
-        self.session.flush()
+        self.status_store.mark_cancelled(job=job, model_run=model_run, ts=ts)
 
     def request_cancel(self, *, job: Job, ts: str) -> None:
-        job.cancel_requested_at = ts
-        self.append_event(
-            job=job,
-            ts=ts,
-            level="info",
-            event_type="status_change",
-            payload={"status": job.status, "cancel_requested": True},
-        )
-        self.session.flush()
+        self.status_store.request_cancel(job=job, ts=ts)
 
     def cancel_requested(self, job_id: str) -> bool:
         job = self.session.get(Job, job_id)
@@ -273,20 +214,7 @@ class TrainingStore:
         return child_resource
 
     def append_event(self, *, job: Job, ts: str, level: str, event_type: str, payload: dict[str, Any]) -> None:
-        next_seq = int(self.session.scalar(select(func.max(JobEvent.seq)).where(JobEvent.job_id == job.id)) or 0) + 1
-        self.session.add(
-            JobEvent(
-                id=new_id(),
-                job_id=job.id,
-                seq=next_seq,
-                ts=ts,
-                level=level,
-                event_type=event_type,
-                payload_json=canonical_json(payload),
-                trace_id=job.trace_id,
-            )
-        )
-        self.session.flush()
+        self.status_store.append_event(job=job, ts=ts, level=level, event_type=event_type, payload=payload)
 
     def list_model_runs(
         self,

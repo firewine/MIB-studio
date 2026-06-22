@@ -37,10 +37,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: HOST_ACCESS_RELEASE_BLOCKER_RECERTIFICATION
+phase_id: FINAL_VERIFICATION_TEST_HARNESS
 milestone: Final_Program_Development_Closeout
-phase_status: host_access_release_blocker_recertification_verified_not_go
-gate_id: mib-studio-host-access-release-blocker-recertification
+phase_status: final_verification_pytest_and_fe_e2e_verified_not_go
+gate_id: mib-studio-final-verification-pytest-collection
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -54,10 +54,12 @@ current_decision:
 ## 2. Latest Work
 
 ```yaml
-gate: mib-studio-host-access-release-blocker-recertification
-objective: refresh current release-blocker evidence with host Docker access
+gate: mib-studio-final-verification-pytest-collection
+objective: make full Python and FE verification runnable for final completion checks
 
 files:
+  pytest_config: pytest.ini
+  frontend_scripts: package.json
   runner: scripts/run_v0_release_blocker_recertification.py
   tests: tests/scripts/test_run_v0_release_blocker_recertification.py
   summary: artifacts/review/v0_release_blocker_recertification.json
@@ -85,6 +87,10 @@ runner_contract:
   release_claimed_go: false
 
 summary:
+  - full pytest now collects duplicate-basename tests safely through pytest importlib mode
+  - full Python regression passes: 193 passed
+  - FE unit, build, M1 e2e, and FE v6 route-contract e2e pass with the strict local Node/pnpm toolchain
+  - pnpm run e2e now invokes Node with --experimental-websocket, which is required by the Chrome CDP client
   - host Docker daemon access is confirmed by docker ps and docker_daemon_available ok:true in the CUDA preflight artifact
   - host-access recertification refreshes candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle verification, v0 readiness, and CUDA handoff artifacts
   - Docker-related evidence now records actual missing image/base-image state instead of sandbox permission denial
@@ -133,9 +139,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: host_access_release_blocker_recertification_verified_not_go
+status: final_verification_pytest_and_fe_e2e_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs test
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run e2e
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs
   - docker ps
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
   - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
@@ -146,6 +157,10 @@ passed:
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
   - git diff --check
   - git diff --cached --check
+
+fixed_verification_blockers:
+  - full_pytest_import_file_mismatch_from_duplicate_test_basenames
+  - fe_e2e_missing_node_experimental_websocket_flag
 
 warnings:
   - M6-RC remains NOT_GO.

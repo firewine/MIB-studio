@@ -1,14 +1,16 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Refresh the current v0 release blocker evidence using the existing recertification runner with host Docker access, so Docker-related blockers reflect the real host state rather than sandbox permission denial, without changing release policy or claiming GO.",
+  "goal": "Fix the full Python test collection blocker discovered during final program completion verification, without changing product behavior or release policy.",
   "phase": "done",
-  "gate": "mib-studio-host-access-release-blocker-recertification",
+  "gate": "mib-studio-final-verification-pytest-collection",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "70e0c55",
+  "head": "9370aab",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
+    "package.json",
+    "pytest.ini",
     "artifacts/review/real_adapter_candidate_scan.json",
     "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
     "artifacts/review/m6_real_adapter_prereq_audit.json",
@@ -30,8 +32,8 @@
     "docs/mockup",
     "docs/handoffs",
     "docs/reviews",
-    ".github",
-    "artifacts/security"
+    "artifacts/security",
+    ".github"
   ],
   "blocked_scope": [
     "Product runtime/API/UI/DB/schema/training behavior changes",
@@ -40,74 +42,85 @@
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may refresh current NOT_GO review artifacts by running the existing recertification runner with host Docker access, update WORKING.md, and update this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may add repo-local pytest collection configuration, fix the FE e2e script invocation flags, refresh current NOT_GO release-blocker review artifacts, update WORKING.md, and update this PABCD contract only.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
-    "scripts/run_v0_release_blocker_recertification.py",
-    "scripts/check_cuda_lora_training_prereqs.py",
-    "scripts/run_m6_real_adapter_rc_gate.py",
-    "scripts/verify_v0_release_readiness.py"
+    "docs/WORKING.md",
+    "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
+    "tests/export/test_docker_export_security.py",
+    "tests/export/test_exported_runtime_smoke.py",
+    "packages/agent-runtime/tests/test_docker_export_security.py",
+    "packages/agent-runtime/tests/test_exported_runtime_smoke.py",
+    "apps/desktop/e2e/m1_happy_path.test.mjs",
+    "apps/desktop/e2e/fe_v6_route_contract.test.mjs",
+    "artifacts/review/v0_release_blocker_recertification.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "docker ps",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
-    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "rg -n -- \"docker_daemon_available|No such image|permission denied|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|mib-export:test\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/real_adapter_cuda_training_prereq_preflight.json artifacts/review/m6_real_adapter_prereq_audit.json artifacts/review/v0_release_readiness_audit.json docs/WORKING.md",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs test",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run e2e",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Host Docker daemon is reachable during the recertification run",
-    "Docker-related blockers reflect actual missing image/base-image state rather than sandbox permission denial",
+    "Full pytest no longer fails during collection due duplicate test basenames",
+    "pnpm run e2e invokes Node with WebSocket support required by the CDP client",
+    "FE v6 route-contract tests still pass",
+    "Bootstrap m1-smoke still passes",
     "Current v0 readiness remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker",
     "No release GO is claimed"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "docker ps",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs test",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run e2e",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs",
+    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
     "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
-    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "rg -n -- \"docker_daemon_available|No such image|permission denied|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|mib-export:test\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/real_adapter_cuda_training_prereq_preflight.json artifacts/review/m6_real_adapter_prereq_audit.json artifacts/review/v0_release_readiness_audit.json docs/WORKING.md",
-    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+    "rg -n -- \"193 passed|--experimental-websocket|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|full_pytest_import_file_mismatch|fe_e2e_missing_node_experimental_websocket_flag\" docs/WORKING.md package.json artifacts/review/v0_release_blocker_recertification.json",
     "git diff --check",
     "git diff --cached --check"
   ],
-  "failed_verification_commands": [],
+  "failed_verification_commands": [
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest # failed before this gate: import file mismatch between tests/export and packages/agent-runtime/tests duplicate basenames",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run e2e # failed before package.json fix and outside-sandbox Chrome execution",
+    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs # failed inside command sandbox because Chrome cannot run there"
+  ],
   "warnings": [
     "M6-RC and v0 remain NOT_GO until real trained CUDA adapter no-fake Docker endpoint evidence exists.",
-    "This gate only refreshes evidence using existing strict checks; it does not edit release review docs or verifier acceptance criteria."
+    "This gate fixes test collection and e2e invocation only; it does not edit product behavior or release verifier acceptance criteria."
   ],
   "phase_notes": {
-    "plan": "Refresh release-blocker evidence with host Docker access.",
-    "audit": "The last recertification was valid but recorded sandbox permission denial for Docker image checks; docker ps shows host Docker is reachable.",
-    "build": "Run the existing recertification runner with host Docker access and update current NOT_GO artifacts.",
-    "check": "Host-access recertification and bootstrap verification passed; Docker daemon is reachable, mib-export:test is missing, and v0 remains expected NOT_GO.",
-    "done": "Ready to stage, run git diff --cached --check, commit, and push this verified evidence refresh."
+    "plan": "Use pytest importlib import mode to make duplicate basename tests collectible as distinct modules, and make the FE e2e npm script use Node WebSocket support required by the CDP client.",
+    "audit": "Full pytest failed during collection because duplicate basename tests exist in both tests/export and packages/agent-runtime/tests. FE e2e also requires Chrome outside the command sandbox and Node --experimental-websocket for the CDP client.",
+    "build": "Add repo-local pytest configuration, fix package.json e2e invocation flags, and update current working state after verification.",
+    "check": "Full pytest passes with 193 tests, FE unit/build/M1 e2e/v6 e2e pass, bootstrap passes, and release recertification remains expected NOT_GO.",
+    "done": "Ready to stage, run git diff --cached --check, commit, and push this verified test harness fix."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-host-access-release-blocker-recertification",
-    "status": "MIB_STUDIO_HOST_ACCESS_RELEASE_BLOCKER_RECERTIFICATION_VERIFIED_NOT_GO",
+    "gate": "mib-studio-final-verification-pytest-collection",
+    "status": "MIB_STUDIO_FINAL_VERIFICATION_PYTEST_COLLECTION_VERIFIED_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Host-access refresh of current NOT_GO release-blocker artifacts, WORKING.md, and PABCD contract only.",
-    "blocked_scope": "No product code changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
+    "approved_scope": "Fix full pytest collection configuration, FE e2e script invocation flags, refresh current NOT_GO release-blocker artifacts, update WORKING.md, and update PABCD contract only.",
+    "blocked_scope": "No product behavior changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Refresh release-blocker evidence with host Docker access.",
-    "audit": "The last recertification was valid but recorded sandbox permission denial for Docker image checks; docker ps shows host Docker is reachable.",
-    "build": "Run the existing recertification runner with host Docker access and update current NOT_GO artifacts.",
-    "check": "Host-access recertification and bootstrap verification passed; Docker daemon is reachable, mib-export:test is missing, and v0 remains expected NOT_GO.",
-    "done": "Ready to stage, run git diff --cached --check, commit, and push this verified evidence refresh."
+    "plan": "Use pytest importlib import mode to make duplicate basename tests collectible as distinct modules, and make the FE e2e npm script use Node WebSocket support required by the CDP client.",
+    "audit": "Full pytest failed during collection because duplicate basename tests exist in both tests/export and packages/agent-runtime/tests. FE e2e also requires Chrome outside the command sandbox and Node --experimental-websocket for the CDP client.",
+    "build": "Add repo-local pytest configuration, fix package.json e2e invocation flags, and update current working state after verification.",
+    "check": "Full pytest passes with 193 tests, FE unit/build/M1 e2e/v6 e2e pass, bootstrap passes, and release recertification remains expected NOT_GO.",
+    "done": "Ready to stage, run git diff --cached --check, commit, and push this verified test harness fix."
   }
 }

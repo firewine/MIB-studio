@@ -201,7 +201,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T05:19:03.600078+00:00",
+  "date": "2026-06-22T06:02:43.758467+00:00",
   "expectation_checks": [
     {
       "actual": "NOT_READY_CUDA_LORA_TRAINING",

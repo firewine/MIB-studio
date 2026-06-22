@@ -6,7 +6,7 @@
     "dev": "node apps/desktop/scripts/dev-server.mjs",
     "build": "node apps/desktop/scripts/build.mjs",
     "test": "node --test apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.test.mjs",
-    "e2e": "node --test apps/desktop/e2e/m1_happy_path.test.mjs",
+    "e2e": "node --experimental-websocket --test apps/desktop/e2e/m1_happy_path.test.mjs",
     "tauri": "echo \"Use cargo tauri after Tauri dependencies are vendored for this no-install phase\""
   },
   "dependencies": {},

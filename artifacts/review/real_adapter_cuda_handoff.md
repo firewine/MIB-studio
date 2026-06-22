@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T18:16:20.199823+00:00
+date: 2026-06-22T18:39:07.424582+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false

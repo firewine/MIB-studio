@@ -37,10 +37,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_RELEASE_CLOSEOUT_FROM_BUNDLE
+phase_id: CONTEXT_CURRENT_STATE_ALIGNMENT
 milestone: Final_Program_Development_Closeout
-phase_status: v0_release_closeout_from_bundle_verified_not_go
-gate_id: mib-studio-v0-release-closeout-from-bundle
+phase_status: context_current_state_alignment_verified_not_go
+gate_id: mib-studio-context-current-state-alignment
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -80,6 +80,8 @@ runner_contract:
     - DRY_RUN_V0_RELEASE_CLOSEOUT
 
 summary:
+  - docs/CONTEXT.md is being aligned with the current v0 closeout state so future LLMs do not restart from stale M1 startup instructions.
+  - current context alignment keeps FE v6 as verified via docs/mockup/mib_fe_mockup_v6_routes_contract.html and artifacts/review/fe_v6_evidence.md.
   - run_v0_release_closeout_from_bundle promotes a verified external evidence bundle into artifacts/review using the existing strict promotion verifier.
   - It writes artifacts/review/real_adapter_evidence_bundle_verification.json before running v0 readiness, so readiness evaluates the promoted bundle in the same command.
   - It reports GO_V0_RELEASE_CLOSEOUT only when bundle promotion succeeds and v0 readiness verifies GO.
@@ -122,12 +124,10 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_release_closeout_from_bundle_verified_not_go
+status: context_current_state_alignment_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_v0_release_closeout_from_bundle.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_closeout_from_bundle.py -q
-  - rg -n -- "run_v0_release_closeout_from_bundle|bundle-archive|GO_V0_RELEASE_CLOSEOUT|NOT_GO_V0_READINESS|NOT_GO_BUNDLE_PROMOTION|v0_release_closeout" scripts/run_v0_release_closeout_from_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py docs/WORKING.md
+  - rg -n -- "current_development_state|FE_V6_Mockup_Verified|mib_fe_mockup_v6_routes_contract|V0_RELEASE_CLOSEOUT_FROM_BUNDLE|real_trained_adapter_no_fake_endpoint|authorized_milestone|product_code_started" docs/CONTEXT.md docs/WORKING.md
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install

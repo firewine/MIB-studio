@@ -4,8 +4,8 @@
 doc_type: llm_bootstrap_context
 audience: llm_agents_only
 purpose: load_before_planning_or_editing
-version: v0.2
-updated: 2026-06-21
+version: v0.3
+updated: 2026-06-22
 canonical_ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
 active_state: docs/WORKING.md
 ```
@@ -47,12 +47,16 @@ Router preset
   -> package/export artifact
 ```
 
-Current planning state:
+Current development state:
 
 ```yaml
 document_state: Implementation-Ready v0.3
 M0_Product_Lock: GO
-M1_Core: authorized
+M1_to_M5_Local_Evidence: verified
+FE_V6_Mockup_Verified: true
+M6_RC_Signoff: NOT_GO
+V0_Release_Readiness: NOT_GO
+sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 target_user_v0: tech-savvy work user who can handle GPU/Python environments
 ```
 
@@ -133,6 +137,8 @@ ux:
     - screens
     - workflow
     - UI states
+  canonical_mockup: docs/mockup/mib_fe_mockup_v6_routes_contract.html
+  evidence: artifacts/review/fe_v6_evidence.md
 ```
 
 ## 3. System Mental Model
@@ -348,61 +354,102 @@ pre_edit_checklist:
 If required context is missing, stop and update the task contract or ask for the
 missing gate/handoff before implementation.
 
-## 8. Program Development Startup
+## 8. Program Development Continuation / Closeout
 
 Current development entry point:
 
 ```yaml
-authorized_milestone: M1_Core
-first_required_stage: Day_0_Bootstrap
-day_0_source: docs/specs/IMPLEMENTATION_GUIDE.md#4-day-0-bootstrap
-m1_ticket_source: docs/specs/IMPLEMENTATION_GUIDE.md#8-m1-core
-first_m1_ticket_after_day_0: M1-001 API bootstrap
-product_code_started: false
+current_development_state: v0_release_closeout
+authorized_milestone: V0_Release_Closeout
+product_code_started: true
+frontend_canonical_mockup: docs/mockup/mib_fe_mockup_v6_routes_contract.html
+frontend_evidence: artifacts/review/fe_v6_evidence.md
+latest_operational_state: docs/WORKING.md
+release_readiness_report: artifacts/review/v0_release_readiness_audit.json
+current_local_release_decision: NOT_GO
+current_local_unexpected_blockers: []
+sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
-Startup sequence for future LLM agents:
+Continuation sequence for future LLM agents:
 
 ```yaml
-development_start_sequence:
+development_continuation_sequence:
   - read docs/WORKING.md
-  - confirm current_work.status and active milestone
-  - read IMPLEMENTATION_GUIDE section 4 for Day-0 Bootstrap readiness
-  - check whether Day-0 scaffold files already exist before creating or editing them
-  - if Day-0 is incomplete, prepare a Day-0 bootstrap task contract before product code work
-  - after Day-0 readiness, read IMPLEMENTATION_GUIDE section 8 and start M1-001 only
-  - keep M1 tickets sequential: M1-001 -> M1-002 -> M1-003 -> M1-004 -> M1-005 -> M1-006 -> M1-007
+  - read .codex/tasks/current.json
+  - read only the SSOT/spec sections relevant to the active closeout slice
+  - do not restart from M1 or Day-0 bootstrap
+  - create_or_update_pabcd_contract_before_edits
+  - keep allowed_edit_paths narrow and explicit
+  - verify current release state with scripts/verify_v0_release_readiness.py
+  - stage_commit_push_after_verified_phase_completion
 ```
 
-Do not start from arbitrary app files. The first implementation decision is
-whether Day-0 Bootstrap is already complete. If it is not complete, the next
-task is Day-0 scaffold/readiness, not M1 API or UI implementation.
-
-Minimum M1 preparation context:
+The FE requirement from the user objective is already represented by the v6
+route-contract mockup and evidence:
 
 ```yaml
-read_for_development_prep:
-  - docs/foundation/MIB_Studio_Dev_Plan_v0.3.md section 22 Phase 1
-  - docs/foundation/MIB_Studio_Dev_Plan_v0.3.md section 22.8 M1 row
-  - docs/specs/IMPLEMENTATION_GUIDE.md section 4 Day-0 Bootstrap
-  - docs/specs/IMPLEMENTATION_GUIDE.md section 8 M1 Core implementation tickets
+FE_V6_Mockup_Verified: true
+canonical_mockup: docs/mockup/mib_fe_mockup_v6_routes_contract.html
+evidence: artifacts/review/fe_v6_evidence.md
+verifier_check: fe_v6_applied
 ```
 
-Day-0/M1 guardrails:
+The remaining release path is evidence-driven, not a normal M1-M6 feature
+implementation loop:
+
+```yaml
+required_before_release_go:
+  - real trained CUDA lora_adapter artifact:
+      adapter_dir: /tmp/mib-real-adapter/adapter
+      manifest: /tmp/mib-real-adapter/manifest.json
+  - digest-pinned CUDA/Python Docker base image on the CUDA host
+  - mib-export:test image built with the real adapter
+  - no-fake-backend live Docker endpoint evidence
+  - accepted review of that endpoint evidence
+  - M6 review docs changed to GO only after the evidence is accepted
+  - GO_REAL_ADAPTER_EVIDENCE_BUNDLE promoted into artifacts/review
+  - v0 release readiness decision GO
+```
+
+Recommended external CUDA host sequence:
+
+```yaml
+external_cuda_host_sequence:
+  - run artifacts/review/real_adapter_cuda_training_handoff.sh
+  - run artifacts/review/real_adapter_docker_image_handoff.sh
+  - run scripts/run_m6_real_adapter_rc_gate.py --endpoint-evidence-only
+  - review artifacts/review/real_trained_adapter_endpoint_evidence.md and .json
+  - update docs/reviews/M6/SIGNOFF_MATRIX.md and docs/reviews/M6/CTO_DECISION.md to GO only after accepted evidence review
+  - run scripts/run_m6_real_adapter_rc_gate.py --m6-verification-only
+  - run scripts/build_real_adapter_evidence_bundle.py --archive-output artifacts/review/real_adapter_evidence_bundle.tar.gz
+```
+
+Recommended local closeout after transferring a GO bundle:
+
+```yaml
+local_closeout_command: >
+  PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python
+  scripts/run_v0_release_closeout_from_bundle.py
+  --bundle-archive <copied_real_adapter_evidence_bundle.tar.gz>
+  --expected-bundle-decision GO
+  --expected-readiness-decision GO
+expected_success_status: GO_V0_RELEASE_CLOSEOUT
+```
+
+Closeout guardrails:
 
 ```yaml
 must:
-  - keep Docker out of normal M1 development unless the spec explicitly requires export smoke
-  - use repo-local .venv for M1-M5 development
-  - create the local Python environment with python3 -m venv .venv before installing dependencies
+  - use repo-local .venv for Python commands
   - keep .venv ignored by git
-  - update API, DTO, OpenAPI, generated TS, DB, repository, fixtures, and tests together when contracts change
-  - keep the first M1 product implementation limited to M1-001 API bootstrap after Day-0 readiness
-  - at verified phase completion, stage explicit files, commit, and push the completed phase
+  - keep release claims tied to verifier evidence
+  - treat fixture adapters, self-tests, and mockup values as non-release evidence
+  - preserve FE v6 as the canonical frontend implementation baseline unless UX_SPEC changes
 must_not:
-  - skip Day-0 readiness
-  - implement M1-002+ before M1-001 is complete
-  - edit foundation/spec docs unless the task explicitly asks for contract repair
-  - claim M1 done without smoke, schema, DB integrity, Hardware Doctor, and review evidence
+  - claim M6-RC GO or v0 GO from current local artifacts
+  - edit docs/reviews/M6 to GO before accepted real no-fake endpoint evidence exists
+  - weaken verifier acceptance criteria to pass without real adapter evidence
+  - commit model weights, adapter artifacts, Docker images, endpoint transcripts, or copied external bundles unless a future scoped gate explicitly allows it
   - stage, commit, or push before verification passes and phase closeout is reached
 ```

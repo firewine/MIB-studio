@@ -1,18 +1,17 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Add a local v0 release closeout runner that promotes a verified external real-adapter evidence bundle directory or tar.gz archive into canonical artifacts/review and immediately runs v0 release readiness verification, without changing bundle, M6, or v0 acceptance policy.",
+  "goal": "Align the LLM-facing project context with the current final-program development state so future work starts from the real v0 closeout position: FE v6 is applied, M0-M6 local evidence is present, and release remains NOT_GO only until real trained adapter no-fake endpoint evidence is supplied.",
   "phase": "done",
-  "gate": "mib-studio-v0-release-closeout-from-bundle",
+  "gate": "mib-studio-context-current-state-alignment",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "99f7b7e",
+  "head": "69d7a9f",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/run_v0_release_closeout_from_bundle.py",
-    "tests/scripts/test_run_v0_release_closeout_from_bundle.py",
-    "artifacts/review/v0_release_readiness_audit.json",
-    "docs/WORKING.md"
+    "docs/CONTEXT.md",
+    "docs/WORKING.md",
+    "artifacts/review/v0_release_readiness_audit.json"
   ],
   "blocked_path_prefixes": [
     "apps",
@@ -34,22 +33,21 @@
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may add a local closeout orchestration script for an externally supplied bundle directory/archive, focused tests, refreshed current NOT_GO v0 readiness, WORKING.md, and this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may update LLM-facing CONTEXT/WORKING state docs, refresh current NOT_GO v0 readiness, and update this PABCD contract only.",
   "reference_only_paths": [
-    "docs/CONTEXT.md",
-    "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/promote_real_adapter_evidence_bundle.py",
-    "scripts/verify_v0_release_readiness.py",
-    "scripts/verify_real_adapter_evidence_bundle.py",
-    "artifacts/review/real_adapter_evidence_bundle_verification.json"
+    "docs/specs/IMPLEMENTATION_GUIDE.md",
+    "docs/specs/UX_SPEC.md",
+    "docs/mockup/mib_fe_mockup_v6_routes_contract.html",
+    "artifacts/review/fe_v6_evidence.md",
+    "artifacts/review/v0_release_readiness_audit.json",
+    "artifacts/review/m6_real_adapter_prereq_audit.json",
+    "artifacts/review/real_adapter_candidate_scan.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_v0_release_closeout_from_bundle.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_closeout_from_bundle.py -q",
-    "rg -n -- \"run_v0_release_closeout_from_bundle|bundle-archive|GO_V0_RELEASE_CLOSEOUT|NOT_GO_V0_READINESS|NOT_GO_BUNDLE_PROMOTION|v0_release_closeout\" scripts/run_v0_release_closeout_from_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py docs/WORKING.md",
+    "rg -n -- \"current_development_state|FE_V6_Mockup_Verified|mib_fe_mockup_v6_routes_contract|V0_RELEASE_CLOSEOUT_FROM_BUNDLE|real_trained_adapter_no_fake_endpoint|authorized_milestone|product_code_started\" docs/CONTEXT.md docs/WORKING.md",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
@@ -57,16 +55,14 @@
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Closeout runner accepts either --bundle-dir or --bundle-archive and delegates to the existing strict bundle promotion verifier",
-    "Closeout runner runs v0 readiness after promotion and reports GO only when v0 readiness also verifies GO",
-    "Focused tests cover GO archive closeout, NOT_GO promotion refusal, and NOT_GO readiness after successful bundle promotion when M6 docs are not GO",
-    "Current local v0 readiness remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker"
+    "docs/CONTEXT.md no longer instructs future agents to start from stale M1-only/product_code_started_false state",
+    "docs/CONTEXT.md identifies FE v6 mockup application as verified and points to the v6 mockup/evidence",
+    "docs/CONTEXT.md identifies current v0 readiness as expected NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker",
+    "Current v0 readiness verification remains expected NOT_GO with no unexpected blockers"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_v0_release_closeout_from_bundle.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_closeout_from_bundle.py -q",
-    "rg -n -- \"run_v0_release_closeout_from_bundle|bundle-archive|GO_V0_RELEASE_CLOSEOUT|NOT_GO_V0_READINESS|NOT_GO_BUNDLE_PROMOTION|v0_release_closeout\" scripts/run_v0_release_closeout_from_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py docs/WORKING.md",
+    "rg -n -- \"current_development_state|FE_V6_Mockup_Verified|mib_fe_mockup_v6_routes_contract|V0_RELEASE_CLOSEOUT_FROM_BUNDLE|real_trained_adapter_no_fake_endpoint|authorized_milestone|product_code_started\" docs/CONTEXT.md docs/WORKING.md",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
@@ -76,30 +72,30 @@
   "failed_verification_commands": [],
   "warnings": [
     "M6-RC and v0 remain NOT_GO until real trained CUDA adapter no-fake Docker endpoint evidence exists.",
-    "This gate does not edit release review docs or verifier acceptance criteria."
+    "This gate updates LLM-facing state docs only and does not edit release review docs or verifier acceptance criteria."
   ],
   "phase_notes": {
-    "plan": "Add local closeout orchestration for externally supplied real-adapter evidence bundle archive/directory.",
-    "audit": "Confirmed archive production and promotion exist, but local promotion plus v0 readiness closeout is still a manual command sequence.",
-    "build": "Created a runner that promotes a strict bundle source and then runs v0 readiness verification with explicit expected decision handling and root-relative bundle path resolution.",
-    "check": "JSON contract, py_compile, focused pytest, rg evidence, v0 readiness expected NOT_GO, json.tool, m1-smoke bootstrap, git diff --check, and git diff --cached --check passed.",
-    "done": "Phase verified. The runner is ready for an externally supplied GO evidence bundle archive/directory; current local release readiness remains NOT_GO with real_trained_adapter_no_fake_endpoint as the sole blocker."
+    "plan": "Replace stale LLM startup context with the current v0 closeout state and explicit remaining release blocker.",
+    "audit": "Current CONTEXT still describes M1 startup/product_code_started false, while WORKING and readiness evidence show FE v6 verified and v0 closeout blocked only by real adapter endpoint evidence.",
+    "build": "Updated docs/CONTEXT.md and docs/WORKING.md to guide future LLMs from the current v0 closeout state without changing SSOT or release policy.",
+    "check": "JSON contract, rg evidence, v0 readiness expected NOT_GO, json.tool, m1-smoke bootstrap, git diff --check, and git diff --cached --check passed.",
+    "done": "Phase verified. LLM context now points to FE v6 evidence, current closeout tooling, and the real_trained_adapter_no_fake_endpoint release blocker instead of stale M1 startup instructions."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-v0-release-closeout-from-bundle",
-    "status": "MIB_STUDIO_V0_RELEASE_CLOSEOUT_FROM_BUNDLE_VERIFIED_NOT_GO",
+    "gate": "mib-studio-context-current-state-alignment",
+    "status": "MIB_STUDIO_CONTEXT_CURRENT_STATE_ALIGNMENT_VERIFIED_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Local closeout runner for external bundle directory/archive, focused tests, refreshed current NOT_GO v0 readiness, WORKING.md, and PABCD contract only.",
+    "approved_scope": "LLM-facing CONTEXT/WORKING state alignment, refreshed current NOT_GO v0 readiness, and PABCD contract only.",
     "blocked_scope": "No product code changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Add local closeout orchestration for externally supplied real-adapter evidence bundle archive/directory.",
-    "audit": "Confirmed archive production and promotion exist, but local promotion plus v0 readiness closeout is still a manual command sequence.",
-    "build": "Created a runner that promotes a strict bundle source and then runs v0 readiness verification with explicit expected decision handling and root-relative bundle path resolution.",
-    "check": "JSON contract, py_compile, focused pytest, rg evidence, v0 readiness expected NOT_GO, json.tool, m1-smoke bootstrap, git diff --check, and git diff --cached --check passed.",
-    "done": "Phase verified. The runner is ready for an externally supplied GO evidence bundle archive/directory; current local release readiness remains NOT_GO with real_trained_adapter_no_fake_endpoint as the sole blocker."
+    "plan": "Replace stale LLM startup context with the current v0 closeout state and explicit remaining release blocker.",
+    "audit": "Current CONTEXT still describes M1 startup/product_code_started false, while WORKING and readiness evidence show FE v6 verified and v0 closeout blocked only by real adapter endpoint evidence.",
+    "build": "Updated docs/CONTEXT.md and docs/WORKING.md to guide future LLMs from the current v0 closeout state without changing SSOT or release policy.",
+    "check": "JSON contract, rg evidence, v0 readiness expected NOT_GO, json.tool, m1-smoke bootstrap, git diff --check, and git diff --cached --check passed.",
+    "done": "Phase verified. LLM context now points to FE v6 evidence, current closeout tooling, and the real_trained_adapter_no_fake_endpoint release blocker instead of stale M1 startup instructions."
   }
 }

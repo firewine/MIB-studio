@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: TRAINING_STORE_STATUS_TRANSITIONS_EXTRACTION
+phase_id: DATASET_SERVICE_READ_MODEL_EXTRACTION
 milestone: Final_Program_Development_Closeout
-phase_status: training_store_soft_warning_resolved_not_go_release
-gate_id: mib-studio-training-store-status-transitions-extraction
+phase_status: dataset_service_soft_warning_resolved_not_go_release
+gate_id: mib-studio-dataset-service-read-model-extraction
 mode: development
 product_code_changed: true
 verification_tooling_changed: false
@@ -57,6 +57,71 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-dataset-service-read-model-extraction
+objective: resolve the dataset_service.py code-shape soft warning without behavior changes
+
+files:
+  api_services:
+    - services/api/app/services/dataset_service.py
+    - services/api/app/services/dataset_read_models.py
+  regenerated_verification_artifacts:
+    - artifacts/review/file_size_report.json
+    - artifacts/review/import_boundary_report.json
+  verified_bootstrap_artifacts:
+    - artifacts/review/toolchain_report.json
+    - artifacts/security/model_manifest_verification.json
+    - artifacts/security/pii_holdout_report.json
+    - artifacts/security/pip_audit_cuda.json
+    - artifacts/security/pip_audit_cuda_exceptions.json
+  llm_context:
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+line_counts:
+  dataset_service_before_lines: 264
+  dataset_service_after_lines: 237
+  dataset_read_models_lines: 36
+  service_soft_warning_threshold: 260
+  dataset_service_below_soft_warning_threshold: true
+
+scope:
+  behavior_preserving: true
+  read_model_conversion_extracted: true
+  dataset_service_public_api_changed: false
+  api_schema_changed: false
+  db_schema_changed: false
+  tests_changed: false
+
+verification:
+  py_compile: passed
+  focused_dataset_tests: 4 passed, 5 warnings
+  strict_m1_smoke_bootstrap: passed, 1 passed, 3 warnings
+  toolchain_checks_all_true: true
+  pip_audit_cuda_status: skipped_in_skip_install_environment
+  import_boundary_violations: []
+
+code_shape:
+  files_checked: 116
+  hard_limit_violations: 0
+  soft_warnings_remaining:
+    - services/worker/handlers/dataset_gen.py
+    - services/api/app/services/training_service.py
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - Dataset/Example ORM-to-schema conversion moved into dataset_read_models.py
+  - DatasetService keeps the same public methods and delegates read conversion to the focused helper
+  - strict bootstrap m1-smoke now passes with .venv and /tmp/corepack; toolchain checks are all true
+  - this phase does not change release readiness or create real adapter evidence
+```
 
 ```yaml
 gate: mib-studio-training-store-status-transitions-extraction

@@ -19,6 +19,7 @@ from services.api.app.schemas.dataset import (
 )
 from services.api.app.schemas.router_validation import validate_router_example
 from services.api.app.services.dataset_job_service import DatasetJobServiceMixin, utc_now
+from services.api.app.services.dataset_read_models import read_dataset, read_example
 from services.shared.db.models import Dataset, Example, Project
 from services.shared.db.repositories.dataset_store import (
     DatasetExampleInput,
@@ -60,7 +61,7 @@ class DatasetService(DatasetJobServiceMixin):
             route_snapshot_sha256=sha256_text(route_snapshot_json),
             created_at=now,
         )
-        return self._read_dataset(dataset)
+        return read_dataset(dataset)
 
     def list_datasets(
         self,
@@ -79,7 +80,7 @@ class DatasetService(DatasetJobServiceMixin):
         statement = statement.order_by(Dataset.version.desc()).limit(limit + 1)
         datasets = list(self.session.scalars(statement))
         next_cursor = str(datasets[limit - 1].version) if len(datasets) > limit else None
-        return DatasetPage(items=[self._read_dataset(dataset) for dataset in datasets[:limit]], next_cursor=next_cursor)
+        return DatasetPage(items=[read_dataset(dataset) for dataset in datasets[:limit]], next_cursor=next_cursor)
 
     def get_dataset(self, dataset_id: str, *, cursor: str | None = None, limit: int = 50) -> DatasetWithExamples:
         dataset = self._dataset_or_404(dataset_id)
@@ -89,10 +90,10 @@ class DatasetService(DatasetJobServiceMixin):
         statement = statement.order_by(Example.row_index.asc()).limit(limit + 1)
         examples = list(self.session.scalars(statement))
         next_cursor = str(examples[limit - 1].row_index) if len(examples) > limit else None
-        base = self._read_dataset(dataset).model_dump()
+        base = read_dataset(dataset).model_dump()
         return DatasetWithExamples(
             **base,
-            examples=[self._read_example(example) for example in examples[:limit]],
+            examples=[read_example(example) for example in examples[:limit]],
             next_cursor=next_cursor,
         )
 
@@ -134,7 +135,7 @@ class DatasetService(DatasetJobServiceMixin):
             dataset.status = payload.status
 
         self.session.flush()
-        return self._read_dataset(dataset)
+        return read_dataset(dataset)
 
     def patch_example(self, example_id: str, payload: ExamplePatch) -> ExampleRead:
         example = self._example_or_404(example_id)
@@ -160,7 +161,7 @@ class DatasetService(DatasetJobServiceMixin):
             example.review_status = "EDITED"
         example.approved = 1 if example.review_status == "APPROVED" else 0
         self.session.flush()
-        return self._read_example(example)
+        return read_example(example)
 
     def _project_or_404(self, project_id: str) -> Project:
         project = self.session.get(Project, project_id)
@@ -234,31 +235,3 @@ class DatasetService(DatasetJobServiceMixin):
                 status_code=422,
                 details={"row_errors": row_errors},
             )
-
-    def _read_dataset(self, dataset: Dataset) -> DatasetRead:
-        return DatasetRead(
-            id=dataset.id,
-            project_id=dataset.project_id,
-            version=dataset.version,
-            status=dataset.status,  # type: ignore[arg-type]
-            path=dataset.path,
-            sample_count=dataset.sample_count,
-            sha256=dataset.sha256,
-            schema_version=dataset.schema_version,
-            route_snapshot_sha256=dataset.route_snapshot_sha256,
-            created_at=dataset.created_at,
-            frozen_at=dataset.frozen_at,
-        )
-
-    def _read_example(self, example: Example) -> ExampleRead:
-        return ExampleRead(
-            id=example.id,
-            dataset_id=example.dataset_id,
-            source=example.source,  # type: ignore[arg-type]
-            input=json.loads(example.input_json),
-            output=json.loads(example.output_json),
-            review_status=example.review_status,  # type: ignore[arg-type]
-            approved=bool(example.approved),
-            validation_errors=[],
-            created_at=example.created_at,
-        )

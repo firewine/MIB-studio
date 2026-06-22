@@ -1,27 +1,32 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Resolve the services/shared/db/repositories/training_store.py code-shape soft warning by extracting training job status transitions into a narrowly owned repository helper without behavior changes.",
+  "goal": "Resolve the services/api/app/services/dataset_service.py code-shape soft warning by extracting read-model conversion into a narrowly owned helper without behavior changes, then rerun the strict M1 smoke bootstrap verification.",
   "phase": "done",
-  "gate": "mib-studio-training-store-status-transitions-extraction",
+  "gate": "mib-studio-dataset-service-read-model-extraction",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "068b8bb",
+  "head": "9fd2d96",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "services/shared/db/repositories/training_store.py",
-    "services/shared/db/repositories/training_status_store.py",
+    "services/api/app/services/dataset_service.py",
+    "services/api/app/services/dataset_read_models.py",
     "artifacts/review/file_size_report.json",
     "artifacts/review/import_boundary_report.json",
+    "artifacts/review/toolchain_report.json",
+    "artifacts/security/model_manifest_verification.json",
+    "artifacts/security/pii_holdout_report.json",
+    "artifacts/security/pip_audit_cuda.json",
+    "artifacts/security/pip_audit_cuda_exceptions.json",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
   "blocked_path_prefixes": [
     "apps",
-    "services/api",
     "services/worker",
+    "services/shared",
     "packages",
     "presets",
     "examples",
@@ -39,63 +44,76 @@
     ".github"
   ],
   "blocked_scope": [
-    "Changing training API behavior, worker training behavior, DB schema, Job/ModelRun status names, JobEvent payloads, checkpoint/resume semantics, release readiness logic, verifier criteria, or frontend behavior",
+    "Changing dataset API behavior, dataset approval semantics, example validation, route snapshot hashing, DB schema, worker behavior, training behavior, frontend behavior, release readiness logic, verifier criteria, or evidence policy",
     "Inventing real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO or weakening any no-fake evidence gate",
     "Committing model weights, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Move only training status transition methods and their event-writing helper from training_store.py into services/shared/db/repositories/training_status_store.py; preserve existing TrainingStore public API through delegation.",
+  "allowed_edit_paths_scope_note": "Move only Dataset/Example ORM-to-schema read conversion from dataset_service.py into services/api/app/services/dataset_read_models.py; preserve DatasetService public behavior and all API schemas.",
   "reference_only_paths": [
     "/home/firewine/getbeta/docs/guides/VS_CODE_MULTI_AGENT_GATE_PROTOCOL_V4.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "services/shared/db/repositories/training_store.py",
-    "tests/training/test_cuda_wrapper.py",
-    "tests/training/test_mlx_wrapper.py",
-    "tests/training/test_checkpoint_resume.py",
-    "tests/training/test_cuda_oom_isolation.py",
-    "tests/training/test_dry_run_estimate.py"
+    "rules/code_shape.json",
+    "scripts/bootstrap_dev.sh",
+    "scripts/check_file_size.py",
+    "scripts/check_import_boundaries.py",
+    "tests/dataset/test_dataset_builder.py",
+    "tests/smoke/test_m1_smoke.py",
+    "services/api/app/routes/datasets.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "python3 -m py_compile services/shared/db/repositories/training_store.py services/shared/db/repositories/training_status_store.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py tests/training/test_checkpoint_resume.py tests/training/test_cuda_oom_isolation.py tests/training/test_dry_run_estimate.py -q",
+    "python3 -m py_compile services/api/app/services/dataset_service.py services/api/app/services/dataset_read_models.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/dataset/test_dataset_builder.py -q",
+    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
     "python3 -m json.tool artifacts/review/file_size_report.json",
     "python3 -m json.tool artifacts/review/import_boundary_report.json",
-    "sed -n '$=' services/shared/db/repositories/training_store.py",
-    "sed -n '$=' services/shared/db/repositories/training_status_store.py",
-    "rg -n -- \"TrainingStatusStore|mark_running|mark_succeeded|mark_dry_run_succeeded|mark_failed|mark_cancelled|request_cancel|append_event|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/shared/db/repositories/training_store.py services/shared/db/repositories/training_status_store.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "python3 -m json.tool artifacts/review/toolchain_report.json",
+    "python3 -m json.tool artifacts/security/model_manifest_verification.json",
+    "python3 -m json.tool artifacts/security/pii_holdout_report.json",
+    "python3 -m json.tool artifacts/security/pip_audit_cuda.json",
+    "python3 -m json.tool artifacts/security/pip_audit_cuda_exceptions.json",
+    "sed -n '$=' services/api/app/services/dataset_service.py",
+    "sed -n '$=' services/api/app/services/dataset_read_models.py",
+    "rg -n -- \"read_dataset|read_example|DatasetService|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/api/app/services/dataset_service.py services/api/app/services/dataset_read_models.py artifacts/review/file_size_report.json artifacts/review/toolchain_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "services/shared/db/repositories/training_store.py is below the 260-line default soft warning threshold.",
-    "services/shared/db/repositories/training_status_store.py has narrow status-transition ownership and stays below the 260-line default soft warning threshold.",
-    "Focused CUDA/MLX/checkpoint/dry-run/OOM training tests pass.",
-    "Code-shape check has 0 hard violations and removes training_store.py from soft warnings.",
+    "services/api/app/services/dataset_service.py is below the 260-line service soft warning threshold.",
+    "services/api/app/services/dataset_read_models.py has narrow read-model conversion ownership and stays below the 260-line service soft warning threshold.",
+    "Focused dataset builder tests pass.",
+    "Strict M1 smoke bootstrap verification passes with .venv and COREPACK_HOME=/tmp/corepack.",
+    "Code-shape check has 0 hard violations and removes dataset_service.py from soft warnings.",
+    "Import-boundary check has no violations.",
     "No release GO is claimed and real_trained_adapter_no_fake_endpoint remains the active release blocker."
   ],
   "executed_verification_commands": [
     {
       "command": "python3 -m json.tool .codex/tasks/current.json",
-      "result": "passed after final done-state update"
+      "result": "passed before build; rerun after final done-state update"
     },
     {
-      "command": "python3 -m py_compile services/shared/db/repositories/training_store.py services/shared/db/repositories/training_status_store.py",
+      "command": "python3 -m py_compile services/api/app/services/dataset_service.py services/api/app/services/dataset_read_models.py",
       "result": "passed"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/training/test_cuda_wrapper.py tests/training/test_mlx_wrapper.py tests/training/test_checkpoint_resume.py tests/training/test_cuda_oom_isolation.py tests/training/test_dry_run_estimate.py -q",
-      "result": "passed: 14 passed"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/dataset/test_dataset_builder.py -q",
+      "result": "passed: 4 passed, 5 warnings"
+    },
+    {
+      "command": "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+      "result": "passed: toolchain versions OK, code-shape hard violations 0, import-boundary violations [], M1 smoke 1 passed, 3 warnings; pip-audit skipped in --skip-install environment"
     },
     {
       "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-      "result": "passed: 115 files checked, 0 hard violations, 3 remaining pre-existing soft warnings; services/shared/db/repositories/training_store.py removed from violations"
+      "result": "passed: 116 files checked, 0 hard violations, 2 remaining pre-existing soft warnings; services/api/app/services/dataset_service.py removed from violations"
     },
     {
       "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
@@ -110,15 +128,35 @@
       "result": "passed"
     },
     {
-      "command": "sed -n '$=' services/shared/db/repositories/training_store.py",
-      "result": "passed: 240"
+      "command": "python3 -m json.tool artifacts/review/toolchain_report.json",
+      "result": "passed: checks all true"
     },
     {
-      "command": "sed -n '$=' services/shared/db/repositories/training_status_store.py",
-      "result": "passed: 141"
+      "command": "python3 -m json.tool artifacts/security/model_manifest_verification.json",
+      "result": "passed: errors []"
     },
     {
-      "command": "rg -n -- \"TrainingStatusStore|mark_running|mark_succeeded|mark_dry_run_succeeded|mark_failed|mark_cancelled|request_cancel|append_event|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/shared/db/repositories/training_store.py services/shared/db/repositories/training_status_store.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+      "command": "python3 -m json.tool artifacts/security/pii_holdout_report.json",
+      "result": "passed: errors []"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/security/pip_audit_cuda.json",
+      "result": "passed: valid JSON, skipped in --skip-install environment"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/security/pip_audit_cuda_exceptions.json",
+      "result": "passed"
+    },
+    {
+      "command": "sed -n '$=' services/api/app/services/dataset_service.py",
+      "result": "passed: 237"
+    },
+    {
+      "command": "sed -n '$=' services/api/app/services/dataset_read_models.py",
+      "result": "passed: 36"
+    },
+    {
+      "command": "rg -n -- \"read_dataset|read_example|DatasetService|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/api/app/services/dataset_service.py services/api/app/services/dataset_read_models.py artifacts/review/file_size_report.json artifacts/review/toolchain_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
       "result": "passed: extraction references and NOT_GO/release blocker guardrails found"
     },
     {
@@ -127,53 +165,55 @@
     },
     {
       "command": "git diff --cached --check",
-      "result": "passed"
+      "result": "passed before staging; rerun after final staging"
     }
   ],
   "failed_verification_commands": [],
   "observed_evidence": {
-    "training_store_before_lines": 312,
-    "training_store_after_lines": 240,
-    "training_status_store_lines": 141,
-    "training_store_removed_from_soft_warnings": true,
+    "dataset_service_before_lines": 264,
+    "dataset_service_after_lines": 237,
+    "dataset_read_models_lines": 36,
+    "dataset_service_removed_from_soft_warnings": true,
     "hard_limit_violations": 0,
     "soft_warnings_remaining": [
       "services/worker/handlers/dataset_gen.py",
-      "services/api/app/services/dataset_service.py",
       "services/api/app/services/training_service.py"
     ],
-    "focused_training_tests": "14 passed",
+    "focused_dataset_tests": "4 passed, 5 warnings",
+    "strict_m1_smoke_bootstrap": "passed: 1 passed, 3 warnings",
+    "toolchain_checks_all_true": true,
     "import_boundary_violations": [],
+    "pip_audit_cuda_status": "skipped in --skip-install environment",
     "release_claimed_go": false,
     "v0_release_ready": false,
     "sole_expected_release_blocker": "real_trained_adapter_no_fake_endpoint"
   },
   "warnings": [
-    "This is a behavior-preserving training repository code-shape refactor only.",
+    "This is a behavior-preserving dataset service code-shape refactor only.",
     "M6-RC and v0 release remain NOT_GO until accepted real no-fake endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Extract TrainingStore status transition methods into a focused TrainingStatusStore helper while keeping TrainingStore callers unchanged.",
-    "audit": "services/shared/db/repositories/training_store.py is 312 lines, over the 260-line default soft warning threshold but below the 400-line hard limit.",
-    "build": "Move mark_running, mark_succeeded, mark_dry_run_succeeded, mark_failed, mark_cancelled, request_cancel, and append_event into training_status_store.py; delegate from TrainingStore.",
-    "check": "Run py_compile, focused training tests, code-shape checks, import-boundary checks, evidence search, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this refactor phase."
+    "plan": "Extract Dataset and Example ORM-to-schema read conversion into a focused helper while keeping DatasetService callers unchanged.",
+    "audit": "services/api/app/services/dataset_service.py was 264 lines, over the 260-line service soft warning threshold but below the 400-line hard limit.",
+    "build": "Added services/api/app/services/dataset_read_models.py with read_dataset/read_example helpers; updated DatasetService to import and call them.",
+    "check": "Ran JSON validation, py_compile, focused dataset tests, strict M1 smoke bootstrap, code-shape checks, import-boundary checks, artifact JSON validation, evidence search, and diff checks.",
+    "done": "Verification passed; LLM docs updated; stage, commit, and push this phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-training-store-status-transitions-extraction",
+    "gate": "mib-studio-dataset-service-read-model-extraction",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Behavior-preserving extraction of TrainingStore status transitions into a focused shared DB repository helper, plus generated code-shape artifacts and LLM docs.",
+    "approved_scope": "Behavior-preserving extraction of DatasetService read-model conversion into a focused API service helper, plus generated verification artifacts and LLM docs.",
     "blocked_scope": "No behavior/API/schema/test/frontend/release-readiness changes, no release GO claim, no M6 review GO edits, no model/adapter/Docker/endpoint/bundle artifacts, no verifier/evidence-policy weakening.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Extract TrainingStore status transition methods into a focused TrainingStatusStore helper while keeping TrainingStore callers unchanged.",
-    "audit": "services/shared/db/repositories/training_store.py is 312 lines, over the 260-line default soft warning threshold but below the 400-line hard limit.",
-    "build": "Move mark_running, mark_succeeded, mark_dry_run_succeeded, mark_failed, mark_cancelled, request_cancel, and append_event into training_status_store.py; delegate from TrainingStore.",
-    "check": "Run py_compile, focused training tests, code-shape checks, import-boundary checks, evidence search, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this refactor phase."
+    "plan": "Extract Dataset and Example ORM-to-schema read conversion into a focused helper while keeping DatasetService callers unchanged.",
+    "audit": "services/api/app/services/dataset_service.py was 264 lines, over the 260-line service soft warning threshold but below the 400-line hard limit.",
+    "build": "Added services/api/app/services/dataset_read_models.py with read_dataset/read_example helpers; updated DatasetService to import and call them.",
+    "check": "Ran JSON validation, py_compile, focused dataset tests, strict M1 smoke bootstrap, code-shape checks, import-boundary checks, artifact JSON validation, evidence search, and diff checks.",
+    "done": "Verification passed; LLM docs updated; stage, commit, and push this phase."
   }
 }

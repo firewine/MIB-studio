@@ -1,34 +1,19 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Refresh current-HEAD v0 release blocker recertification after code-shape cleanup and rerun the strict venv/bootstrap smoke verification without changing product behavior or release criteria.",
+  "goal": "Refresh the external CUDA operator packet after current-head blocker recertification so packet verification is GO again for the current checkout without changing release criteria or claiming M6/v0 GO.",
   "phase": "done",
-  "gate": "mib-studio-current-head-20701d1-blocker-recertification",
+  "gate": "mib-studio-current-head-external-cuda-packet-refresh",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "20701d1",
+  "head": "a1dd0cc",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "artifacts/review/toolchain_report.json",
-    "artifacts/security/model_manifest_verification.json",
-    "artifacts/review/file_size_report.json",
-    "artifacts/review/import_boundary_report.json",
-    "artifacts/security/pii_holdout_report.json",
-    "artifacts/review/real_adapter_candidate_scan.json",
-    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "artifacts/review/m6_real_adapter_prereq_audit.json",
-    "artifacts/review/real_adapter_artifact_intake.json",
-    "artifacts/review/real_trained_adapter_endpoint_evidence.md",
-    "artifacts/review/real_trained_adapter_endpoint_evidence.json",
-    "artifacts/review/m6_rc_evidence_verification.json",
-    "artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "artifacts/review/v0_release_readiness_audit.json",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/real_adapter_cuda_handoff.md",
-    "artifacts/review/real_adapter_cuda_handoff.sh",
-    "artifacts/review/v0_release_blocker_recertification.json",
+    "artifacts/review/external_cuda_operator_packet.json",
+    "artifacts/review/external_cuda_operator_packet.md",
+    "artifacts/review/external_cuda_operator_packet_verification.json",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
@@ -54,60 +39,52 @@
   ],
   "blocked_scope": [
     "Changing product runtime code, API behavior, frontend behavior, DB schema, source tests, scripts, model catalog, examples, schemas, or release readiness acceptance criteria",
-    "Weakening no-fake endpoint evidence checks, M6-RC evidence verification, bundle verification, or v0 readiness blockers",
+    "Changing real-adapter recertification results, v0 readiness results, M6 RC acceptance criteria, or no-fake endpoint evidence checks",
     "Inventing or copying real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO",
     "Committing model weights, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Refresh generated verification artifacts and LLM-facing operational docs only; keep local release decision NOT_GO and keep real_trained_adapter_no_fake_endpoint as the only expected v0 release blocker.",
+  "allowed_edit_paths_scope_note": "Regenerate only the external CUDA operator packet JSON/Markdown and its verification artifact at current source commit a1dd0cc, then update LLM-facing operational docs.",
   "reference_only_paths": [
     "/home/firewine/getbeta/docs/guides/VS_CODE_MULTI_AGENT_GATE_PROTOCOL_V4.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/bootstrap_dev.sh",
-    "scripts/run_v0_release_blocker_recertification.py",
-    "tests/scripts/test_run_v0_release_blocker_recertification.py",
-    "scripts/verify_v0_release_readiness.py",
-    "scripts/check_cuda_lora_training_prereqs.py",
-    "scripts/run_m6_real_adapter_rc_gate.py",
-    "scripts/verify_real_adapter_evidence_bundle.py",
-    "scripts/build_real_adapter_handoff.py",
-    ".gitignore"
+    "scripts/build_external_cuda_operator_packet.py",
+    "scripts/verify_external_cuda_operator_packet.py",
+    "tests/scripts/test_build_external_cuda_operator_packet.py",
+    "tests/scripts/test_verify_external_cuda_operator_packet.py",
+    "artifacts/review/real_adapter_cuda_training_handoff.json",
+    "artifacts/review/real_adapter_cuda_training_handoff.md",
+    "artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "artifacts/review/real_adapter_cuda_handoff.json",
+    "artifacts/review/real_adapter_cuda_handoff.md",
+    "artifacts/review/real_adapter_cuda_handoff.sh",
+    "artifacts/review/v0_release_blocker_recertification.json",
+    "/tmp/mib-current-external-packet-verification.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
-    "python3 -m py_compile scripts/run_v0_release_blocker_recertification.py",
-    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/toolchain_report.json",
-    "python3 -m json.tool artifacts/security/model_manifest_verification.json",
-    "python3 -m json.tool artifacts/review/file_size_report.json",
-    "python3 -m json.tool artifacts/review/import_boundary_report.json",
-    "python3 -m json.tool artifacts/security/pii_holdout_report.json",
-    "python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json",
-    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
-    "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"20701d1|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|release_claimed_go|v0_unexpected_blockers|WAITING_FOR_REAL_ADAPTER_INPUTS|violations.*\\[\\]|toolchain\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/toolchain_report.json artifacts/review/file_size_report.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head a1dd0cc",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
+    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
+    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
+    "rg -n -- \"a1dd0cc|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|required file hashes|required file blobs at a1dd0cc|release_claimed_go|real_trained_adapter_no_fake_endpoint|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|external_cuda_operator_packet_source_commit\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
     "PABCD contract is valid JSON and includes mode=development plus phase notes for plan, audit, build, check, and done.",
-    ".venv/ remains ignored by git.",
-    "Strict bootstrap m1-smoke passes with COREPACK_HOME=/tmp/corepack, PYTHONDONTWRITEBYTECODE=1, and PYTHON_BIN=./.venv/bin/python.",
-    "v0 release blocker recertification passes as an expected NOT_GO state.",
+    "Pre-audit showed the old packet verifier failed in the current checkout due stale hashes for real_adapter_cuda_handoff.json, real_adapter_cuda_handoff.md, and v0_release_blocker_recertification.json.",
+    "External CUDA operator packet git.head is updated to a1dd0cc.",
+    "Packet verifier returns GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION with verification_ok true and warnings [].",
+    "Verifier confirms 17 required file hashes and 17 required file blobs at a1dd0cc.",
     "release_claimed_go remains false and m6_rc_claimed_go remains false.",
-    "v0 readiness decision remains NOT_GO with v0_unexpected_blockers [].",
-    "The only expected v0 release blocker remains real_trained_adapter_no_fake_endpoint.",
-    "Code-shape artifacts continue to report violations [].",
+    "v0 release remains NOT_GO with real_trained_adapter_no_fake_endpoint as the active release blocker.",
     "No product code, tests, scripts, schemas, foundation specs, M6 review docs, model artifacts, or evidence bundles are edited."
   ],
   "executed_verification_commands": [
@@ -116,72 +93,32 @@
       "result": "passed before build; rerun after final done-state update"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
-      "result": "passed: 2 passed in 0.02s"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
+      "result": "passed: 11 passed in 0.11s"
     },
     {
-      "command": "python3 -m py_compile scripts/run_v0_release_blocker_recertification.py",
+      "command": "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
       "result": "passed"
     },
     {
-      "command": "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-      "result": "passed: toolchain versions OK; smoke test 1 passed, 3 warnings"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head a1dd0cc",
+      "result": "passed: packet status PREPARED_NOT_RUN, primary_external_handoff verified launcher, release_claimed_go false"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-      "result": "passed: status NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION, recertification_ok true, release_claimed_go false"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
+      "result": "passed: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION, verification_ok true"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/toolchain_report.json",
-      "result": "passed: strict true; node, pnpm, python, rust, sqlite checks true"
+      "command": "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
+      "result": "passed: git.head a1dd0cc, release_claimed_go false, 17 required committed files"
     },
     {
-      "command": "python3 -m json.tool artifacts/security/model_manifest_verification.json",
-      "result": "passed: errors []"
+      "command": "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
+      "result": "passed: required file hashes verified, required file blobs at a1dd0cc verified, warnings []"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/file_size_report.json",
-      "result": "passed: files_checked 119, violations []"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/import_boundary_report.json",
-      "result": "passed: violations []"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/security/pii_holdout_report.json",
-      "result": "passed: errors []"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json",
-      "result": "passed: NO_GO_CANDIDATES_FOUND, go_candidate_count 0"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-      "result": "passed: NOT_READY_CUDA_LORA_TRAINING with expected local CUDA/Docker/cache blockers"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
-      "result": "passed: NOT_READY_PRECHECK_FAILED"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
-      "result": "passed: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE, verification_ok true"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-      "result": "passed: decision NOT_GO, unexpected_blockers []"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
-      "result": "passed: WAITING_FOR_REAL_ADAPTER_INPUTS"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-      "result": "passed: recertification_ok true, release_claimed_go false"
-    },
-    {
-      "command": "rg -n -- \"20701d1|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|release_claimed_go|v0_unexpected_blockers|WAITING_FOR_REAL_ADAPTER_INPUTS|violations.*\\[\\]|toolchain\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/toolchain_report.json artifacts/review/file_size_report.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
-      "result": "passed: current HEAD, NOT_GO guardrails, release_claimed_go false, v0_unexpected_blockers [], code-shape violations [], and toolchain evidence found"
+      "command": "rg -n -- \"a1dd0cc|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|required file hashes|required file blobs at a1dd0cc|release_claimed_go|real_trained_adapter_no_fake_endpoint|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|external_cuda_operator_packet_source_commit\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+      "result": "passed: current packet source commit, GO packet verification, no-GO release guardrails, and active release blocker references found"
     },
     {
       "command": "git diff --check",
@@ -194,30 +131,32 @@
   ],
   "failed_verification_commands": [],
   "observed_evidence": {
-    "source_head": "20701d1",
-    "venv_gitignored": true,
-    "strict_bootstrap_m1_smoke": "passed: 1 passed, 3 warnings",
-    "toolchain_strict": true,
-    "toolchain_checks_all_true": true,
-    "recertification_status": "NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION",
-    "recertification_ok": true,
+    "pre_audit_packet_verification": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output /tmp/mib-current-external-packet-verification.json",
+      "result": "failed as expected before this phase: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+      "blockers": [
+        "required_committed_file_hashes"
+      ],
+      "stale_paths": [
+        "artifacts/review/real_adapter_cuda_handoff.json:sha256",
+        "artifacts/review/real_adapter_cuda_handoff.md:sha256",
+        "artifacts/review/v0_release_blocker_recertification.json:sha256"
+      ]
+    },
+    "packet_git_head": "a1dd0cc",
+    "packet_status": "PREPARED_NOT_RUN",
+    "packet_required_committed_files": 17,
+    "packet_verification_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+    "packet_verification_ok": true,
+    "packet_operator_ready": true,
+    "packet_verification_warnings": [],
+    "packet_handoff_source_commit": "a1dd0cc",
+    "required_file_hashes": "verified 17 required file hashes",
+    "required_commit_blobs": "verified 17 required file blobs at a1dd0cc",
     "release_claimed_go": false,
     "m6_rc_claimed_go": false,
-    "candidate_scan_decision": "NO_GO_CANDIDATES_FOUND",
-    "go_candidate_count": 0,
-    "fixture_like_candidate_count": 0,
-    "cuda_training_status": "NOT_READY_CUDA_LORA_TRAINING",
-    "m6_rc_prereq_status": "NOT_READY_PRECHECK_FAILED",
-    "bundle_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
-    "v0_readiness_decision": "NOT_GO",
     "v0_release_ready": false,
-    "v0_unexpected_blockers": [],
-    "sole_v0_blocker": "real_trained_adapter_no_fake_endpoint",
-    "handoff_decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
-    "primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
-    "code_shape_files_checked": 119,
-    "code_shape_violations": [],
-    "import_boundary_violations": [],
+    "active_release_blocker": "real_trained_adapter_no_fake_endpoint",
     "product_code_changed": false,
     "tests_changed": false,
     "scripts_changed": false,
@@ -226,31 +165,31 @@
     "real_adapter_evidence_created": false
   },
   "warnings": [
-    "This phase refreshes verification artifacts and LLM operational docs only.",
+    "This phase refreshes packet integrity artifacts only.",
     "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Refresh current-head release blocker recertification at 20701d1 and rerun strict venv bootstrap smoke verification while keeping edits to generated artifacts and LLM docs.",
-    "audit": "Current docs still reference older recertification head d28b071; .venv/ is already gitignored; release remains NOT_GO because no accepted real trained adapter no-fake endpoint evidence exists.",
-    "build": "Regenerate existing verification artifacts with existing scripts only; update docs/CONTEXT.md, docs/WORKING.md, and completion log to describe the current NOT_GO state.",
-    "check": "Run JSON validation, recertification unit test, py_compile, strict bootstrap m1-smoke, recertification script, artifact JSON validation, evidence search, and diff checks.",
-        "done": "Required verification passed; LLM docs updated; stage, commit, and push this phase while keeping release GO claims false."
+    "plan": "Regenerate the external CUDA operator packet at source commit a1dd0cc after current-head recertification changed required handoff artifact hashes.",
+    "audit": "Old packet verification failed in the current checkout because real_adapter_cuda_handoff.json, real_adapter_cuda_handoff.md, and v0_release_blocker_recertification.json hashes no longer matched the packet generated at 222f00c.",
+    "build": "Run the existing packet generator with --git-head a1dd0cc, then verify the packet with the existing verifier and update LLM operational docs.",
+    "check": "Run generator/verifier unit tests, py_compile, packet generation, packet verification, JSON validation, evidence search, and diff checks.",
+    "done": "Required verification passed; LLM docs updated; stage, commit, and push this phase while keeping release GO claims false."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-current-head-20701d1-blocker-recertification",
+    "gate": "mib-studio-current-head-external-cuda-packet-refresh",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Refresh current-head NOT_GO release blocker artifacts and LLM docs plus strict venv/bootstrap smoke verification.",
+    "approved_scope": "Refresh external CUDA operator packet integrity artifacts and LLM docs for current checkout commit a1dd0cc.",
     "blocked_scope": "No product/runtime/test/script/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model, adapter, Docker, endpoint, evidence bundle, or venv artifacts.",
     "phase_completion_git_policy": "After verification passes, stage, commit, and push this phase.",
-    "plan": "Refresh current-head release blocker recertification at 20701d1 and rerun strict venv bootstrap smoke verification while keeping edits to generated artifacts and LLM docs.",
-    "audit": "Current docs still reference older recertification head d28b071; .venv/ is already gitignored; release remains NOT_GO because no accepted real trained adapter no-fake endpoint evidence exists.",
-    "build": "Regenerate existing verification artifacts with existing scripts only; update docs/CONTEXT.md, docs/WORKING.md, and completion log to describe the current NOT_GO state.",
-    "check": "Run JSON validation, recertification unit test, py_compile, strict bootstrap m1-smoke, recertification script, artifact JSON validation, evidence search, and diff checks.",
+    "plan": "Regenerate the external CUDA operator packet at source commit a1dd0cc after current-head recertification changed required handoff artifact hashes.",
+    "audit": "Old packet verification failed in the current checkout because real_adapter_cuda_handoff.json, real_adapter_cuda_handoff.md, and v0_release_blocker_recertification.json hashes no longer matched the packet generated at 222f00c.",
+    "build": "Run the existing packet generator with --git-head a1dd0cc, then verify the packet with the existing verifier and update LLM operational docs.",
+    "check": "Run generator/verifier unit tests, py_compile, packet generation, packet verification, JSON validation, evidence search, and diff checks.",
     "done": "Required verification passed; LLM docs updated; stage, commit, and push this phase while keeping release GO claims false."
   }
 }

@@ -39,3 +39,4 @@
 - training service의 ModelRun read-model 변환 로직을 `training_read_models.py`로 분리해 `training_service.py` code-shape soft warning을 해소했다.
 - dataset generation worker의 계약 타입과 teacher synthetic validation 로직을 전용 모듈로 분리해 `dataset_gen.py` code-shape soft warning을 해소하고 code-shape violations 0을 확인했다.
 - current HEAD `20701d1` 기준 v0 release blocker recertification과 strict bootstrap m1-smoke를 다시 실행해 toolchain mismatch 없이 통과하고, unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다.
+- 외부 CUDA operator packet을 current HEAD `a1dd0cc` 기준으로 재생성해 stale hash NOT_GO를 해소하고 verifier가 17개 required file hash와 17개 commit blob을 GO로 확인하도록 복구했다.

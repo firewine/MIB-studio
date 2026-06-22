@@ -24,7 +24,7 @@
       "run_rc_handoff"
     ]
   },
-  "date": "2026-06-22T18:45:03.959427+00:00",
+  "date": "2026-06-22T19:43:19.369434+00:00",
   "downstream_training_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
   "downstream_training_handoff_status": "PREPARED_NOT_RUN",
   "expected_return_artifacts": [
@@ -45,7 +45,7 @@
   "git": {
     "branch": "main",
     "clean_worktree_required": true,
-    "head": "222f00c",
+    "head": "a1dd0cc",
     "remote_origin": "https://github.com/firewine/MIB-studio.git"
   },
   "m6_rc_claimed_go": false,
@@ -54,7 +54,7 @@
     "Do not claim M6-RC or v0 release GO until real trained adapter evidence, accepted M6 review docs, bundle verification, and v0 readiness all return GO."
   ],
   "operator_sequence": [
-    "Keep this packet file from the current checkout; packet.git.head is the required committed file source commit 222f00c for verifier blob checks.",
+    "Keep this packet file from the current checkout; packet.git.head is the required committed file source commit a1dd0cc for verifier blob checks.",
     "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Allow the verified launcher to invoke artifacts/review/real_adapter_cuda_training_handoff.sh only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.",
     "Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.",
@@ -138,13 +138,13 @@
     {
       "path": "artifacts/review/real_adapter_cuda_handoff.json",
       "role": "rc_handoff_json",
-      "sha256": "c3c3c25d98816e82dc5bb238a1054e4f9e14827a24034232208f8b3c58c30905",
+      "sha256": "5704a48efaa17227e1997a2bba5a9ae8f4438596619dec04fd46b99f503db144",
       "size_bytes": 17907
     },
     {
       "path": "artifacts/review/real_adapter_cuda_handoff.md",
       "role": "rc_handoff_markdown",
-      "sha256": "d40fa1a75f904b027b005c3cdd3e61d2dba244d8078398267898311a198d16c1",
+      "sha256": "6346bd989162af10febc3517c18955ff646902dca883964c374dab32cb28e94d",
       "size_bytes": 10100
     },
     {
@@ -156,7 +156,7 @@
     {
       "path": "artifacts/review/v0_release_blocker_recertification.json",
       "role": "recertification_summary",
-      "sha256": "971ca4ce1a4dddd9e871c6c39fd4e085ecbf85771260b576fec2566e09ab57e0",
+      "sha256": "f8de64235db6b0edad8c22499019e657d40213222c03ac8fb952db2efd4a50ef",
       "size_bytes": 14165
     },
     {

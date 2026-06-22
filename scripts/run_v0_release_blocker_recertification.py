@@ -18,6 +18,7 @@ DEFAULT_SCAN_ROOTS = [
     "/tmp/mib-real-adapter",
     "/tmp/mib-phi-docker-export-_vgqfd4g",
 ]
+VERIFIED_LAUNCHER_SHELL = "artifacts/review/verified_external_cuda_training_launcher.sh"
 TRAINING_HANDOFF_SHELL = "artifacts/review/real_adapter_cuda_training_handoff.sh"
 TRAINING_HANDOFF_REASONS = {
     "no_go_adapter_candidates",
@@ -350,7 +351,7 @@ def operator_next_actions(reasons: list[str]) -> list[str]:
         add("Inspect the failed child command stderr/stdout tail in commands, fix the tool/runtime failure, and rerun recertification.")
     if TRAINING_HANDOFF_REASONS & set(reasons):
         add(
-            f"Run {TRAINING_HANDOFF_SHELL} on the external CUDA host first; its package_readiness_checks must pass before training."
+            f"Run {VERIFIED_LAUNCHER_SHELL} on the external CUDA host first; it verifies the operator packet before invoking {TRAINING_HANDOFF_SHELL}."
         )
     if "no_go_adapter_candidates" in reasons:
         add("Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.")
@@ -427,7 +428,7 @@ def recertify(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> d
         "current_state": state,
         "blocking_reasons": reasons,
         "operator_next_actions": actions,
-        "primary_external_handoff": TRAINING_HANDOFF_SHELL if TRAINING_HANDOFF_REASONS & set(reasons) else None,
+        "primary_external_handoff": VERIFIED_LAUNCHER_SHELL if TRAINING_HANDOFF_REASONS & set(reasons) else None,
         "outputs": {
             "candidate_scan": args.candidate_scan_output,
             "training_preflight": args.training_preflight_output,
@@ -439,7 +440,7 @@ def recertify(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> d
             "handoff_shell": args.handoff_shell_output,
         },
         "operator_next_step": (
-            f"Run {TRAINING_HANDOFF_SHELL} to produce a real trained adapter, then run the downstream no-fake endpoint handoff."
+            f"Run {VERIFIED_LAUNCHER_SHELL} to verify the operator packet and produce a real trained adapter, then run the downstream no-fake endpoint handoff."
             if status != GO_STATUS
             else "Run final release closeout review and do not claim GO until M6 review docs and v0 readiness are confirmed."
         ),

@@ -234,7 +234,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T14:25:06.621905+00:00",
+  "date": "2026-06-22T14:59:24.314284+00:00",
   "decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
   "executable_artifact": "artifacts/review/real_adapter_cuda_handoff.sh",
   "gate": "mib-studio-real-adapter-cuda-handoff",

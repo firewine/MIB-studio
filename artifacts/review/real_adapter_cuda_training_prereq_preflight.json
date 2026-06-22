@@ -3,6 +3,7 @@
     "docker_base_image_env_digest",
     "strict_model_cache_files",
     "cuda_visible",
+    "docker_daemon_available",
     "docker_base_image_available"
   ],
   "checks": [
@@ -76,10 +77,10 @@
         "--format",
         "{{.Server.Version}}"
       ],
-      "detail": "ok",
+      "detail": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock",
       "id": "docker_daemon_available",
-      "ok": true,
-      "returncode": 0
+      "ok": false,
+      "returncode": 1
     },
     {
       "command": [
@@ -94,7 +95,7 @@
       "returncode": null
     }
   ],
-  "date": "2026-06-22T14:25:06.500501+00:00",
+  "date": "2026-06-22T14:59:24.193640+00:00",
   "env_requirements": {
     "docker_base_image_digest_present": false,
     "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",

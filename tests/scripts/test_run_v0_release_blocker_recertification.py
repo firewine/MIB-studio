@@ -165,9 +165,9 @@ def test_recertification_summarizes_current_expected_not_go(tmp_path: Path) -> N
         "real_trained_adapter_no_fake_endpoint",
         "WAITING_FOR_REAL_ADAPTER_INPUTS",
     ]
-    assert summary["primary_external_handoff"] == "artifacts/review/real_adapter_cuda_training_handoff.sh"
+    assert summary["primary_external_handoff"] == "artifacts/review/verified_external_cuda_training_launcher.sh"
     assert summary["operator_next_actions"] == [
-        "Run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host first; its package_readiness_checks must pass before training.",
+        "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host first; it verifies the operator packet before invoking artifacts/review/real_adapter_cuda_training_handoff.sh.",
         "Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.",
         "Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.",
         "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.",
@@ -177,7 +177,7 @@ def test_recertification_summarizes_current_expected_not_go(tmp_path: Path) -> N
         "Follow artifacts/review/real_adapter_cuda_handoff.sh on the external CUDA host, then transfer the metadata-bearing evidence bundle back.",
     ]
     assert all(row["ok"] for row in summary["expectation_checks"])
-    assert summary["operator_next_step"].startswith("Run artifacts/review/real_adapter_cuda_training_handoff.sh")
+    assert summary["operator_next_step"].startswith("Run artifacts/review/verified_external_cuda_training_launcher.sh")
 
 
 def test_recertification_refuses_failed_child_command(tmp_path: Path) -> None:
@@ -201,6 +201,6 @@ def test_recertification_refuses_failed_child_command(tmp_path: Path) -> None:
         "Inspect the failed child command stderr/stdout tail in commands, fix the tool/runtime failure, and rerun recertification."
     )
     assert summary["operator_next_actions"][1] == (
-        "Run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host first; its package_readiness_checks must pass before training."
+        "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host first; it verifies the operator packet before invoking artifacts/review/real_adapter_cuda_training_handoff.sh."
     )
     assert [row["id"] for row in summary["commands"]] == ["candidate_scan", "cuda_training_preflight"]

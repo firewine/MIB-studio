@@ -4,6 +4,7 @@
     "docker_base_image_env_digest",
     "strict_model_cache_files",
     "cuda_visible",
+    "docker_daemon_available",
     "docker_base_image_available",
     "adapter_safetensors_present",
     "adapter_config_present",
@@ -78,7 +79,7 @@
       "output": "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
       "returncode": 0,
       "stderr_tail": "",
-      "stdout_tail": "{\"blockers\": [\"docker_base_image_env_digest\", \"strict_model_cache_files\", \"cuda_visible\", \"docker_base_image_available\"], \"json_output\": \"artifacts/review/real_adapter_cuda_training_prereq_preflight.json\", \"status\": \"NOT_READY_CUDA_LORA_TRAINING\"}\n"
+      "stdout_tail": "{\"blockers\": [\"docker_base_image_env_digest\", \"strict_model_cache_files\", \"cuda_visible\", \"docker_daemon_available\", \"docker_base_image_available\"], \"json_output\": \"artifacts/review/real_adapter_cuda_training_prereq_preflight.json\", \"status\": \"NOT_READY_CUDA_LORA_TRAINING\"}\n"
     },
     {
       "command": [
@@ -201,6 +202,7 @@
       "docker_base_image_env_digest",
       "strict_model_cache_files",
       "cuda_visible",
+      "docker_daemon_available",
       "docker_base_image_available"
     ],
     "cuda_training_status": "NOT_READY_CUDA_LORA_TRAINING",
@@ -213,7 +215,7 @@
       "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
       "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
       "model_cache_dir_present: missing model cache dir: /tmp/mib-strict-model-cache-phi/model_cache",
-      "docker_image_available: Error response from daemon: No such image: mib-export:test",
+      "docker_image_available: permission denied while trying to connect to the docker API at unix:///var/run/docker.sock",
       "host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'"
     ],
     "m6_rc_prereq_status": "NOT_READY_PRECHECK_FAILED",
@@ -224,7 +226,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T14:25:06.626735+00:00",
+  "date": "2026-06-22T14:59:24.319729+00:00",
   "expectation_checks": [
     {
       "actual": "NOT_READY_CUDA_LORA_TRAINING",
@@ -259,7 +261,7 @@
   "gate": "mib-studio-v0-release-blocker-recertification",
   "m6_rc_claimed_go": false,
   "operator_next_actions": [
-    "Run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host first; its package_readiness_checks must pass before training.",
+    "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host first; it verifies the operator packet before invoking artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.",
     "Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.",
     "Prepare the strict model cache at /tmp/mib-strict-model-cache-phi/model_cache with required base-model files and hashes.",
@@ -269,7 +271,7 @@
     "Run the real-adapter M6 RC gate against a live no-fake Docker endpoint and collect accepted JSON/markdown evidence.",
     "Follow artifacts/review/real_adapter_cuda_handoff.sh on the external CUDA host, then transfer the metadata-bearing evidence bundle back."
   ],
-  "operator_next_step": "Run artifacts/review/real_adapter_cuda_training_handoff.sh to produce a real trained adapter, then run the downstream no-fake endpoint handoff.",
+  "operator_next_step": "Run artifacts/review/verified_external_cuda_training_launcher.sh to verify the operator packet and produce a real trained adapter, then run the downstream no-fake endpoint handoff.",
   "outputs": {
     "bundle_verification": "artifacts/review/real_adapter_evidence_bundle_verification.json",
     "candidate_scan": "artifacts/review/real_adapter_candidate_scan.json",
@@ -280,7 +282,7 @@
     "readiness": "artifacts/review/v0_release_readiness_audit.json",
     "training_preflight": "artifacts/review/real_adapter_cuda_training_prereq_preflight.json"
   },
-  "primary_external_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
+  "primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
   "recertification_ok": true,
   "release_claimed_go": false,
   "root": "/home/firewine/MIB-studio",

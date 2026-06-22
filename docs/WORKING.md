@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_VERIFIED_EXTERNAL_CUDA_TRAINING_LAUNCHER
+phase_id: V0_RECERTIFICATION_VERIFIED_LAUNCHER_ROUTING
 milestone: Final_Program_Development_Closeout
-phase_status: v0_verified_external_cuda_training_launcher_prepared_not_go_release
-gate_id: mib-studio-verified-external-cuda-training-launcher
+phase_status: v0_recertification_verified_launcher_routing_not_go_release
+gate_id: mib-studio-recertification-verified-launcher-routing
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,42 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-recertification-verified-launcher-routing
+objective: route current recertification operator actions to the verified launcher first
+
+files:
+  recertification_tool: scripts/run_v0_release_blocker_recertification.py
+  recertification_tests: tests/scripts/test_run_v0_release_blocker_recertification.py
+  recertification_summary: artifacts/review/v0_release_blocker_recertification.json
+  refreshed_not_go_artifacts:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_readiness_audit.json
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+recertification_action_contract:
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  top_level_fields:
+    - blocking_reasons
+    - operator_next_actions
+    - primary_external_handoff
+  first_operator_action: run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before training handoff execution
+
+summary:
+  - run_v0_release_blocker_recertification.py now emits the verified launcher as primary_external_handoff for missing real-adapter/CUDA setup paths
+  - operator_next_actions now names artifacts/review/verified_external_cuda_training_launcher.sh before lower-level training or RC handoff paths
+  - focused tests verify current NOT_GO and failed child-command routing to the launcher
+  - host-access recertification remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole v0 release blocker
+  - no M6-RC GO or v0 GO is claimed from current local artifacts
+```
 
 ```yaml
 gate: mib-studio-verified-external-cuda-training-launcher
@@ -486,10 +522,9 @@ summary:
   - full Python regression passes: 193 passed
   - FE unit, build, M1 e2e, and FE v6 route-contract e2e pass with the strict local Node/pnpm toolchain
   - pnpm run e2e now invokes Node with --experimental-websocket, which is required by the Chrome CDP client
-  - host Docker daemon access is confirmed by docker ps and docker_daemon_available ok:true in the CUDA preflight artifact
   - host-access recertification refreshes candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle verification, v0 readiness, and CUDA handoff artifacts
-  - Docker-related evidence now records actual missing image/base-image state instead of sandbox permission denial
-  - mib-export:test is currently missing on the host: Error response from daemon: No such image: mib-export:test
+  - the latest current-state recertification records Docker API permission denial in this execution context
+  - docker_daemon_available and docker_image_available are current diagnostic blockers alongside missing CUDA/model/adapter inputs
   - the current local state remains NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
   - FE v6 remains verified through docs/mockup/mib_fe_mockup_v6_routes_contract.html and artifacts/review/fe_v6_evidence.md
   - current scan found 0 candidates and 0 GO candidates; /tmp/mib-real-adapter and /tmp/mib-phi-docker-export-_vgqfd4g are currently absent
@@ -515,6 +550,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  V0_Release_Blocker_Recertification_Verified_Launcher_Routing: true
   Verified_External_CUDA_Training_Launcher: true
   External_CUDA_Operator_Packet_Verification: true
   External_CUDA_Operator_Packet: true
@@ -544,8 +580,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_verified_external_cuda_training_launcher_prepared_not_go_release
+status: v0_recertification_verified_launcher_routing_not_go_release
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q
+  - python3 -m py_compile scripts/run_v0_release_blocker_recertification.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
+  - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
+  - rg -n -- "verified_external_cuda_training_launcher.sh|real_adapter_cuda_training_handoff.sh|primary_external_handoff|operator_next_actions|operator_next_step|real_trained_adapter_no_fake_endpoint|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|release_claimed_go" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py artifacts/review/v0_release_blocker_recertification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_verified_cuda_training_launcher.py -q
   - python3 -m py_compile scripts/build_verified_cuda_training_launcher.py
@@ -763,8 +805,9 @@ The generated CUDA training handoff now embeds package_readiness_checks and its
 shell fails fast if the dataset JSONL, repo Python, LLaMA-Factory CLI, strict
 model cache, backend_config.yaml, or downstream RC handoff shell is missing.
 The current recertification summary now sets primary_external_handoff to
-artifacts/review/real_adapter_cuda_training_handoff.sh and lists that script as
-the first operator_next_actions item for missing real-adapter/CUDA setup paths.
+artifacts/review/verified_external_cuda_training_launcher.sh and lists that
+launcher as the first operator_next_actions item for missing real-adapter/CUDA
+setup paths.
 The generated CUDA handoff now embeds bundle_archive_contract and
 local_closeout_after_bundle_transfer. After copying the metadata-bearing
 artifacts/review/real_adapter_evidence_bundle.tar.gz back into this repo, run
@@ -783,9 +826,10 @@ NOT_GO recertification summaries also include blocking_reasons and
 operator_next_actions so the next agent can distinguish missing adapter files,
 strict model cache, CUDA visibility, Docker image/base-image, bundle, endpoint,
 and handoff blockers without weakening release acceptance.
-The latest host-access recertification confirmed docker_daemon_available ok:true
-and mib-export:test missing as "No such image", so Docker permission denial is
-not the current release blocker.
+The latest current-state recertification records docker_daemon_available as a
+diagnostic blocker because this execution context cannot access the Docker API;
+this does not change the release blocker, which is still the missing real
+trained adapter no-fake endpoint evidence.
 
 Do not claim M6-RC GO or v0 GO from the current local artifacts. The current
 release blocker is real_trained_adapter_no_fake_endpoint. M6 review docs must

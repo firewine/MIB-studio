@@ -1,7 +1,7 @@
 # CUDA LoRA Training Handoff
 
 ```yaml
-date: 2026-06-22T15:15:15.868744+00:00
+date: 2026-06-22T22:40:42.905854+00:00
 gate: mib-studio-cuda-real-adapter-training-handoff
 status: PREPARED_NOT_RUN
 release_claimed_go: false
@@ -97,6 +97,12 @@ The generated shell refuses to run until these package prerequisites are present
 
 ```bash
 ./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --cuda-base-image-json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --cuda-base-image-env-output artifacts/review/real_adapter_cuda_base_image.env --json-output artifacts/review/real_adapter_docker_image_handoff.json --markdown-output artifacts/review/real_adapter_docker_image_handoff.md --shell-output artifacts/review/real_adapter_docker_image_handoff.sh --cuda-base-image-candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+```
+
+### run_docker_image_handoff
+
+```bash
+bash artifacts/review/real_adapter_docker_image_handoff.sh
 ```
 
 ### run_rc_handoff

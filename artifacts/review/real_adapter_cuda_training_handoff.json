@@ -148,6 +148,15 @@
     {
       "argv": [
         "bash",
+        "artifacts/review/real_adapter_docker_image_handoff.sh"
+      ],
+      "id": "run_docker_image_handoff",
+      "note": "Build and inspect mib-export:test with the real adapter before the RC handoff.",
+      "shell": "bash artifacts/review/real_adapter_docker_image_handoff.sh"
+    },
+    {
+      "argv": [
+        "bash",
         "artifacts/review/real_adapter_cuda_handoff.sh"
       ],
       "id": "run_rc_handoff",
@@ -155,7 +164,7 @@
       "shell": "bash artifacts/review/real_adapter_cuda_handoff.sh"
     }
   ],
-  "date": "2026-06-22T15:15:15.868744+00:00",
+  "date": "2026-06-22T22:40:42.905854+00:00",
   "gate": "mib-studio-cuda-real-adapter-training-handoff",
   "inputs": {
     "base_model": "microsoft/Phi-3.5-mini-instruct",

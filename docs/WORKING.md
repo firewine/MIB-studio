@@ -41,35 +41,79 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_5239F8D_RECERTIFICATION
+phase_id: EXTERNAL_CUDA_TRAINING_HANDOFF_DOCKER_IMAGE_BEFORE_RC
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-external-cuda-operator-packet-refresh-after-5239f8d-recertification
+gate_id: mib-studio-external-cuda-training-handoff-docker-build-before-rc
 mode: development
 product_code_changed: false
 frontend_code_changed: false
-verification_tooling_changed: false
-verification_artifacts_refreshed: true
-external_operator_packet_refreshed: true
-external_operator_packet_refresh_required_after_phase_commit: false
-external_cuda_handoff_readiness_refreshed: true
-operator_packet_ready: true
+verification_tooling_changed: true
+training_handoff_artifacts_refreshed: true
+external_operator_packet_refreshed: false
+external_operator_packet_refresh_required_after_phase_commit: true
+external_cuda_handoff_readiness_refreshed: false
+operator_packet_ready_for_current_source: false
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
 release_claimed_go: false
 
 current_decision:
-  external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
-  external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
-  external_cuda_handoff_readiness_status: WAITING_FOR_EXTERNAL_CUDA_HOST
-  current_phase_changes_make_packet_stale_until_follow_up_refresh: false
+  training_handoff_command_order_suffix:
+    - prepare_docker_image
+    - run_docker_image_handoff
+    - run_rc_handoff
+  existing_operator_packet_source_commit: 5239f8d
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
   v0_release_ready: false
   expected_local_decision: NOT_GO
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-training-handoff-docker-build-before-rc
+objective: run generated real-adapter Docker image handoff before RC handoff
+
+baseline_head: 6017721
+
+source_changes:
+  - scripts/prepare_cuda_lora_training_run.py inserts run_docker_image_handoff after prepare_docker_image
+  - scripts/verify_external_cuda_operator_packet.py requires run_docker_image_handoff in training_handoff command_order
+  - focused tests assert prepare_docker_image -> run_docker_image_handoff -> run_rc_handoff ordering
+
+training_handoff_artifacts:
+  status: PREPARED_NOT_RUN
+  dataset_id: review_router_20
+  training_preset: quick
+  command_order_suffix:
+    - prepare_docker_image
+    - run_docker_image_handoff
+    - run_rc_handoff
+  docker_handoff_shell: artifacts/review/real_adapter_docker_image_handoff.sh
+  rc_handoff_shell: artifacts/review/real_adapter_cuda_handoff.sh
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+
+verification:
+  focused_pytest: 14 passed
+  py_compile: passed
+  training_handoff_json: valid
+  training_handoff_shell_syntax: valid
+
+follow_up_required:
+  - refresh artifacts/review/external_cuda_operator_packet.json after this source commit exists
+  - rerun operator packet verifier and transfer manifest before external CUDA operator execution
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-operator-packet-refresh-after-5239f8d-recertification

@@ -1,19 +1,24 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Refresh the external CUDA operator packet after current-head v0 recertification commit 5239f8d, without claiming M6-RC or v0 release GO.",
+  "goal": "Make the external CUDA training handoff actually run the generated real-adapter Docker image handoff before the RC handoff, without claiming M6-RC or v0 release GO.",
   "phase": "done",
-  "gate": "mib-studio-external-cuda-operator-packet-refresh-after-5239f8d-recertification",
+  "gate": "mib-studio-external-cuda-training-handoff-docker-build-before-rc",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "5239f8d",
+  "head": "6017721",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet.md",
-    "artifacts/review/external_cuda_operator_packet_verification.json",
+    "scripts/prepare_cuda_lora_training_run.py",
+    "scripts/verify_external_cuda_operator_packet.py",
+    "tests/scripts/test_prepare_cuda_lora_training_run.py",
+    "tests/scripts/test_build_external_cuda_operator_packet.py",
+    "tests/scripts/test_verify_external_cuda_operator_packet.py",
+    "artifacts/review/real_adapter_cuda_training_handoff.json",
+    "artifacts/review/real_adapter_cuda_training_handoff.md",
+    "artifacts/review/real_adapter_cuda_training_handoff.sh",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
@@ -24,13 +29,14 @@
     "presets",
     "examples",
     "schemas",
-    "scripts",
-    "tests",
     "docs/foundation",
     "docs/specs",
     "docs/mockup",
     "docs/handoffs",
     "docs/reviews",
+    "artifacts/review/external_cuda_operator_packet.json",
+    "artifacts/review/external_cuda_operator_packet.md",
+    "artifacts/review/external_cuda_operator_packet_verification.json",
     "artifacts/review/verified_external_cuda_training_launcher.json",
     "artifacts/review/verified_external_cuda_training_launcher.md",
     "artifacts/review/verified_external_cuda_training_launcher.sh",
@@ -59,38 +65,35 @@
     ".venv"
   ],
   "blocked_scope": [
-    "Changing product/runtime API behavior, frontend behavior, DB schema, scripts, tests, release readiness acceptance criteria, operator packet criteria, launcher behavior, or no-fake endpoint checks",
+    "Changing product/runtime API behavior, frontend behavior, DB schema, release readiness acceptance criteria, verified launcher behavior, or no-fake endpoint checks",
+    "Refreshing the external CUDA operator packet in this phase before the training-handoff source commit exists",
     "Generating, inventing, copying, or promoting real adapter, endpoint, benchmark, package, export, release, or external evidence into the repository",
     "Building or tagging mib-export:test from fake or self-test adapter material",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO",
     "Committing model weights, strict model cache files, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, transfer manifests, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Refresh only the source-pinned operator packet artifacts after recertification source commit 5239f8d.",
+  "allowed_edit_paths_scope_note": "Modify only the CUDA training handoff generator, packet verifier required command coverage, focused tests, regenerated training handoff artifacts, and LLM handoff docs. Source-pinned operator packet refresh is a required follow-up after this source commit exists.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "artifacts/review/external_cuda_handoff_readiness_audit.json",
     "artifacts/review/verified_external_cuda_training_launcher.sh",
-    "artifacts/review/real_adapter_cuda_training_handoff.sh",
-    "scripts/run_v0_release_blocker_recertification.py",
+    "artifacts/review/real_adapter_docker_image_handoff.sh",
+    "artifacts/review/real_adapter_cuda_handoff.sh",
+    "scripts/prepare_real_adapter_docker_image.py",
     "scripts/build_external_cuda_operator_packet.py",
-    "scripts/verify_external_cuda_operator_packet.py",
-    "scripts/build_external_cuda_operator_transfer_manifest.py"
+    "scripts/verify_external_cuda_operator_packet.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 5239f8d --git-branch main",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --packet-json artifacts/review/external_cuda_operator_packet.json --packet-verification-json artifacts/review/external_cuda_operator_packet_verification.json --json-output /tmp/mib-5239f8d-external-cuda-transfer-readiness.json --markdown-output /tmp/mib-5239f8d-external-cuda-transfer-readiness.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "bash -n artifacts/review/real_adapter_cuda_handoff.sh",
-    "bash -n artifacts/review/verified_external_cuda_training_launcher.sh",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_prepare_cuda_lora_training_run.py tests/scripts/test_prepare_real_adapter_docker_image.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/prepare_cuda_lora_training_run.py scripts/verify_external_cuda_operator_packet.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --dataset-jsonl examples/fixtures/router_20.jsonl --dataset-id review_router_20 --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --training-preset quick --json-output artifacts/review/real_adapter_cuda_training_handoff.json --markdown-output artifacts/review/real_adapter_cuda_training_handoff.md --shell-output artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_handoff.json",
+    "bash -n artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "rg -n -- \"run_docker_image_handoff|real_adapter_docker_image_handoff.sh|run_rc_handoff|release_claimed_go\" scripts/prepare_cuda_lora_training_run.py scripts/verify_external_cuda_operator_packet.py tests/scripts/test_prepare_cuda_lora_training_run.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/real_adapter_cuda_training_handoff.json artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
@@ -99,24 +102,28 @@
     "baseline": {
       "workspace_root": "/home/firewine/MIB-studio",
       "branch": "main",
-      "head": "5239f8d",
-      "status": "ahead_origin_main_by_recertification_commit"
+      "head": "6017721",
+      "status": "clean_against_origin_main"
     },
-    "packet_refresh": {
-      "status": "COMPLETE_PENDING_COMMIT_PUSH",
-      "packet_source_commit": "5239f8d",
-      "packet_status": "PREPARED_NOT_RUN",
-      "packet_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
-      "operator_packet_ready": true,
-      "verification_ok": true,
-      "required_file_hashes": "verified 18 required file hashes",
-      "required_commit_blobs": "verified 18 required file blobs at 5239f8d",
-      "forbidden_tracked_artifacts": [],
-      "verification_warnings": [],
-      "transfer_manifest_status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
-      "transfer_manifest_json_output": "/tmp/mib-5239f8d-external-cuda-transfer-readiness.json",
+    "training_handoff": {
+      "status": "PREPARED_NOT_RUN",
+      "expected_command_order_suffix": [
+        "prepare_docker_image",
+        "run_docker_image_handoff",
+        "run_rc_handoff"
+      ],
       "release_claimed_go": false,
-      "m6_rc_claimed_go": false
+      "m6_rc_claimed_go": false,
+      "artifact_dataset_id": "review_router_20",
+      "artifact_training_preset": "quick",
+      "artifact_shell_runs": "bash artifacts/review/real_adapter_docker_image_handoff.sh"
+    },
+    "verification": {
+      "focused_pytest": "14 passed",
+      "py_compile": "passed",
+      "training_handoff_json": "valid",
+      "training_handoff_shell_syntax": "valid",
+      "marker_scan": "run_docker_image_handoff present before run_rc_handoff"
     },
     "release_state": {
       "release_claimed_go": false,
@@ -126,31 +133,32 @@
     }
   },
   "warnings": [
-    "This phase refreshes source-pinned handoff metadata only.",
+    "This phase improves external operator execution continuity only.",
+    "Changing the training handoff artifact will make the existing operator packet stale until the follow-up source-pinned packet refresh.",
     "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Regenerate the external CUDA operator packet from source commit 5239f8d after current-head recertification changed packet input artifacts.",
-    "audit": "Packet verifier cannot use dirty worktree hashes; recertification artifacts were committed first as source baseline 5239f8d.",
-    "build": "Regenerate packet JSON/Markdown, verify packet GO, validate transfer manifest readiness, and update LLM handoff docs.",
-    "check": "Run JSON validation, packet verifier GO, transfer manifest READY, shell syntax, diff checks, and no release GO claims.",
-    "done": "Packet refresh and verification passed; ready for commit/push. Release remains NOT_GO."
+    "plan": "Insert an explicit run_docker_image_handoff step after prepare_docker_image and before run_rc_handoff.",
+    "audit": "The generated training handoff currently creates a Docker image handoff script, then runs the RC handoff without first executing that script to build/inspect mib-export:test.",
+    "build": "Patch generator command sequence, packet verifier required command coverage, focused tests, regenerated training handoff JSON/Markdown/shell, and LLM handoff docs.",
+    "check": "Run focused tests, py_compile, regenerate artifacts, validate JSON/shell/evidence strings, and diff checks.",
+    "done": "Implementation and verification complete; commit and push pending. Follow-up operator packet refresh is required after this source commit exists. Release remains NOT_GO."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-external-cuda-operator-packet-refresh-after-5239f8d-recertification",
+    "gate": "mib-studio-external-cuda-training-handoff-docker-build-before-rc",
     "status": "COMPLETE_PENDING_COMMIT_PUSH",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Refresh external CUDA operator packet metadata from source commit 5239f8d without release GO claims.",
-    "blocked_scope": "No product/runtime/frontend/DB/schema/scripts/tests/M6 review/launcher/recertification changes; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, transfer manifest, or venv artifacts.",
-    "phase_completion_git_policy": "After verification passes, stage, commit, push over SSH, and refresh origin/main tracking.",
-    "plan": "Regenerate the external CUDA operator packet from source commit 5239f8d after current-head recertification changed packet input artifacts.",
-    "audit": "Packet verifier cannot use dirty worktree hashes; recertification artifacts were committed first as source baseline 5239f8d.",
-    "build": "Regenerate packet JSON/Markdown, verify packet GO, validate transfer manifest readiness, and update LLM handoff docs.",
-    "check": "Run JSON validation, packet verifier GO, transfer manifest READY, shell syntax, diff checks, and no release GO claims.",
-    "done": "Packet refresh and verification passed; ready for commit/push. Release remains NOT_GO."
+    "approved_scope": "Add run_docker_image_handoff to the CUDA training handoff command sequence before RC handoff and make packet verification require that command id.",
+    "blocked_scope": "No product/runtime/frontend/DB/schema/M6 review/packet artifact/launcher changes in this phase; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, transfer manifest, or venv artifacts.",
+    "phase_completion_git_policy": "After verification passes, stage, commit, push over SSH, then refresh the source-pinned operator packet in a follow-up phase.",
+    "plan": "Insert an explicit run_docker_image_handoff step after prepare_docker_image and before run_rc_handoff.",
+    "audit": "The generated training handoff currently creates a Docker image handoff script, then runs the RC handoff without first executing that script to build/inspect mib-export:test.",
+    "build": "Patch generator command sequence, packet verifier required command coverage, focused tests, regenerated training handoff JSON/Markdown/shell, and LLM handoff docs.",
+    "check": "Run focused tests, py_compile, regenerate artifacts, validate JSON/shell/evidence strings, and diff checks.",
+    "done": "Implementation and verification complete; commit and push pending. Follow-up operator packet refresh is required after this source commit exists. Release remains NOT_GO."
   }
 }

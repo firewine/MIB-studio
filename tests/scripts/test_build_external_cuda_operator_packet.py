@@ -50,6 +50,7 @@ def populate_root(root: Path, *, training_claims_go: bool = False) -> None:
                 {"id": "prepare_strict_model_cache"},
                 {"id": "preflight_cuda_training"},
                 {"id": "train_real_adapter"},
+                {"id": "run_docker_image_handoff"},
             ],
         },
     )
@@ -111,6 +112,7 @@ def test_packet_is_commit_pinned_and_names_primary_handoff(tmp_path: Path) -> No
         "prepare_strict_model_cache",
         "preflight_cuda_training",
         "train_real_adapter",
+        "run_docker_image_handoff",
     ]
     assert result["command_order"]["post_transfer_closeout"] == ["local_closeout_after_bundle_transfer"]
     assert any(row["path"] == "artifacts/review/verified_external_cuda_training_launcher.sh" for row in result["required_committed_files"])

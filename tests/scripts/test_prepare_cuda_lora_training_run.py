@@ -129,10 +129,18 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert "--cuda-base-image-json-output artifacts/review/real_adapter_cuda_base_image_resolution.json" in shell
     assert "--cuda-base-image-env-output artifacts/review/real_adapter_cuda_base_image.env" in shell
     assert "--cuda-base-image-candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime" in shell
+    assert [row["id"] for row in report["command_sequence"]][-3:] == [
+        "prepare_docker_image",
+        "run_docker_image_handoff",
+        "run_rc_handoff",
+    ]
     assert "artifacts/review/real_adapter_docker_image_handoff.sh" in shell
     assert "artifacts/review/real_adapter_cuda_handoff.sh" in shell
     assert shell.index("== preflight_cuda_training ==") < shell.index("== train_real_adapter ==")
     assert shell.index("== verify_adapter_intake ==") < shell.index("== prepare_docker_image ==")
+    assert shell.index("== prepare_docker_image ==") < shell.index("== run_docker_image_handoff ==")
+    assert shell.index("== run_docker_image_handoff ==") < shell.index("== run_rc_handoff ==")
+    assert "bash artifacts/review/real_adapter_docker_image_handoff.sh" in shell
     assert shell.index("== prepare_docker_image ==") < shell.index("== run_rc_handoff ==")
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256" in shell

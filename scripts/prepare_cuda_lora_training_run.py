@@ -228,6 +228,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
     ]
     for candidate in cuda_base_image_candidates(args):
         docker_handoff_command.extend(["--cuda-base-image-candidate", candidate])
+    run_docker_handoff_command = ["bash", args.docker_handoff_shell_output]
     handoff_command = ["bash", args.rc_handoff_shell]
     return {
         "schema_version": "mib_cuda_lora_training_handoff.v1",
@@ -282,6 +283,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
             command_row("finalize_manifest", finalize_command, note="Write manifest.json from the trained adapter directory."),
             command_row("verify_adapter_intake", intake_command, note="Require GO_REAL_ADAPTER_ARTIFACT_INTAKE before export/endpoint evidence."),
             command_row("prepare_docker_image", docker_handoff_command, note="Create the guarded digest-pinned Docker image handoff before RC endpoint capture."),
+            command_row("run_docker_image_handoff", run_docker_handoff_command, note="Build and inspect mib-export:test with the real adapter before the RC handoff."),
             command_row("run_rc_handoff", handoff_command, note="Run the existing guarded no-fake endpoint/M6/v0 handoff after the real adapter exists."),
         ],
         "operator_rules": [

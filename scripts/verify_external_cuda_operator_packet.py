@@ -36,6 +36,7 @@ REQUIRED_TRAINING_COMMANDS = [
     "finalize_manifest",
     "verify_adapter_intake",
     "prepare_docker_image",
+    "run_docker_image_handoff",
     "run_rc_handoff",
 ]
 REQUIRED_RC_COMMANDS = [

@@ -8,6 +8,24 @@
   "checks": [
     {
       "blocker": null,
+      "id": "m0_product_lock",
+      "missing_markers": [],
+      "ok": true,
+      "path": "docs/reviews/M0/SIGNOFF_MATRIX.md",
+      "present": true,
+      "release_required": true
+    },
+    {
+      "blocker": null,
+      "id": "m1_current_environment_smoke",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/m1_smoke_recertification_evidence.md",
+      "present": true,
+      "release_required": true
+    },
+    {
+      "blocker": null,
       "id": "fe_v6_applied",
       "missing_markers": [],
       "ok": true,
@@ -25,6 +43,15 @@
       "release_required": true
     },
     {
+      "blocker": null,
+      "id": "working_recorded_milestone_state",
+      "missing_markers": [],
+      "ok": true,
+      "path": "docs/WORKING.md",
+      "present": true,
+      "release_required": true
+    },
+    {
       "blockers": [
         "real_trained_adapter_no_fake_endpoint"
       ],
@@ -36,6 +63,19 @@
       "release_required": true,
       "unexpected_blockers": [],
       "verification_ok": true
+    },
+    {
+      "blocker": null,
+      "id": "m6_review_docs_current",
+      "ok": true,
+      "path": "docs/reviews/M6/",
+      "present": true,
+      "release_required": true,
+      "requirements": {
+        "cto_decision_not_go": true,
+        "cto_real_adapter_blocker": true,
+        "signoff_final_not_go": true
+      }
     },
     {
       "decision": "NOT_READY",
@@ -68,6 +108,7 @@
   "expected_decision": "NOT_GO",
   "notes": [
     "Release GO requires current M6-RC evidence verification decision GO.",
+    "M0-M6 milestone evidence markers are release-required and become unexpected blockers if missing.",
     "Current NOT_GO is acceptable only when real_trained_adapter_no_fake_endpoint is the sole blocker.",
     "Prereq audit is diagnostic; it explains what must be supplied before the live M6-RC gate can run."
   ],
@@ -76,8 +117,11 @@
   "summary": {
     "desktop_e2e_route_repair_verified": true,
     "fe_v6_applied": true,
+    "m0_product_lock_verified": true,
+    "m1_current_environment_smoke_verified": true,
     "m6_rc_decision": "NOT_GO",
     "m6_rc_verification_ok": true,
+    "m6_review_docs_current": true,
     "real_adapter_missing_prereq_ids": [
       "adapter_dir_present",
       "adapter_safetensors_present",
@@ -86,7 +130,8 @@
       "docker_image_available",
       "host_cuda_visible"
     ],
-    "real_adapter_prereq_status": "NOT_READY_PRECHECK_FAILED"
+    "real_adapter_prereq_status": "NOT_READY_PRECHECK_FAILED",
+    "working_recorded_milestone_state_verified": true
   },
   "unexpected_blockers": [],
   "verification_ok": true

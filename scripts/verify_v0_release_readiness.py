@@ -13,6 +13,28 @@ ACCEPTABLE_NOT_GO_BLOCKERS = ["real_trained_adapter_no_fake_endpoint"]
 
 TEXT_EVIDENCE_CHECKS = [
     {
+        "id": "m0_product_lock",
+        "path": "docs/reviews/M0/SIGNOFF_MATRIX.md",
+        "required": [
+            "| M0 | GO | GO | GO | GO | GO | GO | GO | GO | GO | GO |",
+            "Model catalog strict verification: PASS",
+            "Import boundary report: PASS",
+        ],
+        "blocker": "m0_product_lock_not_verified",
+        "release_required": True,
+    },
+    {
+        "id": "m1_current_environment_smoke",
+        "path": "artifacts/review/m1_smoke_recertification_evidence.md",
+        "required": [
+            "Decision: `GO_M1_SMOKE_CURRENT_ENVIRONMENT`",
+            "toolchain versions OK",
+            "tests/smoke/test_m1_smoke.py 1 passed",
+        ],
+        "blocker": "m1_current_environment_smoke_not_verified",
+        "release_required": True,
+    },
+    {
         "id": "fe_v6_applied",
         "path": "artifacts/review/fe_v6_evidence.md",
         "required": [
@@ -35,6 +57,19 @@ TEXT_EVIDENCE_CHECKS = [
         "blocker": "desktop_e2e_route_repair_not_verified",
         "release_required": True,
     },
+]
+
+WORKING_RECORDED_GO_MARKERS = [
+    "M1_Final_Smoke_Verified: true",
+    "M1_Smoke_Current_Environment: true",
+    "M2_000_to_M2_004_Verified: true",
+    "M3_000_to_M3_005_Verified: true",
+    "M4_001_to_M4_003_Verified: true",
+    "M5_001_to_M5_003_Verified: true",
+    "M6_001_Verified: true",
+    "M6_002_Verified: true",
+    "FE_V6_Mockup_Verified: true",
+    "V0_Release_Readiness_Audit: true",
 ]
 
 
@@ -144,6 +179,51 @@ def prereq_audit_check(root: Path) -> dict[str, Any]:
     }
 
 
+def working_state_check(root: Path) -> dict[str, Any]:
+    path = root / "docs/WORKING.md"
+    text = read_text(path)
+    missing = [marker for marker in WORKING_RECORDED_GO_MARKERS if marker not in text]
+    ok = bool(text) and not missing
+    return {
+        "id": "working_recorded_milestone_state",
+        "path": "docs/WORKING.md",
+        "present": bool(text),
+        "ok": ok,
+        "release_required": True,
+        "missing_markers": missing,
+        "blocker": None if ok else "recorded_milestone_state_incomplete",
+    }
+
+
+def m6_review_docs_check(root: Path, m6_decision: object) -> dict[str, Any]:
+    signoff_path = root / "docs/reviews/M6/SIGNOFF_MATRIX.md"
+    cto_path = root / "docs/reviews/M6/CTO_DECISION.md"
+    signoff = read_text(signoff_path)
+    cto = read_text(cto_path)
+    if m6_decision == "GO":
+        requirements = {
+            "signoff_final_go": "| M6 Export / v0 RC | GO | GO | GO | GO | GO | GO | GO | GO | GO | GO |" in signoff,
+            "cto_decision_go": "Decision: GO" in cto,
+        }
+    else:
+        requirements = {
+            "signoff_final_not_go": "| M6 Export / v0 RC | GO | GO | GO | NO_GO | GO | NO_GO | GO | NO_GO | NO_GO | NOT_GO |" in signoff,
+            "cto_decision_not_go": "Decision: NOT_GO" in cto,
+            "cto_real_adapter_blocker": "real trained CUDA `lora_adapter` endpoint" in cto
+            and "MIB_RUNTIME_ALLOW_FAKE_BACKEND" in cto,
+        }
+    ok = bool(signoff and cto) and all(requirements.values())
+    return {
+        "id": "m6_review_docs_current",
+        "path": "docs/reviews/M6/",
+        "present": bool(signoff and cto),
+        "ok": ok,
+        "release_required": True,
+        "requirements": requirements,
+        "blocker": None if ok else "m6_review_docs_not_current",
+    }
+
+
 def derive_blockers(checks: list[dict[str, Any]]) -> list[str]:
     blockers: list[str] = []
     for check in checks:
@@ -162,13 +242,15 @@ def derive_blockers(checks: list[dict[str, Any]]) -> list[str]:
 
 def evaluate(root: Path) -> dict[str, Any]:
     checks = [text_check(root, spec) for spec in TEXT_EVIDENCE_CHECKS]
-    checks.append(m6_rc_check(root))
+    checks.append(working_state_check(root))
+    m6_check = m6_rc_check(root)
+    checks.append(m6_check)
+    checks.append(m6_review_docs_check(root, m6_check.get("decision")))
     checks.append(prereq_audit_check(root))
 
     blockers = derive_blockers(checks)
     decision = "GO" if not blockers else "NOT_GO"
     unexpected_blockers = sorted(blocker for blocker in blockers if blocker not in ACCEPTABLE_NOT_GO_BLOCKERS)
-    m6_check = next(check for check in checks if check["id"] == "m6_rc_evidence_verification")
     prereq_check = next(check for check in checks if check["id"] == "m6_real_adapter_prereq_audit")
     if isinstance(m6_check.get("unexpected_blockers"), list):
         unexpected_blockers = sorted(set(unexpected_blockers + [str(item) for item in m6_check["unexpected_blockers"]]))
@@ -182,8 +264,12 @@ def evaluate(root: Path) -> dict[str, Any]:
         "unexpected_blockers": unexpected_blockers,
         "checks": checks,
         "summary": {
-            "fe_v6_applied": checks[0]["ok"] is True,
-            "desktop_e2e_route_repair_verified": checks[1]["ok"] is True,
+            "m0_product_lock_verified": next(check for check in checks if check["id"] == "m0_product_lock")["ok"] is True,
+            "m1_current_environment_smoke_verified": next(check for check in checks if check["id"] == "m1_current_environment_smoke")["ok"] is True,
+            "fe_v6_applied": next(check for check in checks if check["id"] == "fe_v6_applied")["ok"] is True,
+            "desktop_e2e_route_repair_verified": next(check for check in checks if check["id"] == "desktop_e2e_route_repair")["ok"] is True,
+            "working_recorded_milestone_state_verified": next(check for check in checks if check["id"] == "working_recorded_milestone_state")["ok"] is True,
+            "m6_review_docs_current": next(check for check in checks if check["id"] == "m6_review_docs_current")["ok"] is True,
             "m6_rc_decision": m6_check.get("decision"),
             "m6_rc_verification_ok": m6_check.get("verification_ok") is True,
             "real_adapter_prereq_status": prereq_check.get("status"),
@@ -191,6 +277,7 @@ def evaluate(root: Path) -> dict[str, Any]:
         },
         "notes": [
             "Release GO requires current M6-RC evidence verification decision GO.",
+            "M0-M6 milestone evidence markers are release-required and become unexpected blockers if missing.",
             "Current NOT_GO is acceptable only when real_trained_adapter_no_fake_endpoint is the sole blocker.",
             "Prereq audit is diagnostic; it explains what must be supplied before the live M6-RC gate can run.",
         ],

@@ -2,7 +2,7 @@
 
 ```yaml
 date: 2026-06-22
-gate: mib-studio-v0-release-readiness-audit
+gate: mib-studio-v0-milestone-evidence-matrix-audit
 decision: NOT_GO
 release_ready: false
 verifier: scripts/verify_v0_release_readiness.py
@@ -11,7 +11,13 @@ json_report: artifacts/review/v0_release_readiness_audit.json
 
 ## Result
 
-The v0 release readiness verifier confirms that FE v6 evidence and the desktop route repair evidence are present.
+The v0 release readiness verifier confirms that the current milestone evidence matrix is present:
+
+- M0 product lock sign-off.
+- M1 current-environment smoke recertification.
+- M2-M5 recorded milestone state in `docs/WORKING.md`.
+- FE v6 evidence and desktop route repair evidence.
+- M6 review/sign-off docs and current M6-RC evidence verification.
 
 The current release decision remains `NOT_GO`. The only release blocker reported by the verifier is:
 
@@ -24,8 +30,12 @@ No runtime, API, UI behavior, DB, schema, training, export, or model artifact be
 ## Current Verified State
 
 ```yaml
+m0_product_lock_verified: true
+m1_current_environment_smoke_verified: true
 fe_v6_applied: true
 desktop_e2e_route_repair_verified: true
+working_recorded_milestone_state_verified: true
+m6_review_docs_current: true
 m6_rc_decision: NOT_GO
 m6_rc_verification_ok: true
 unexpected_blockers: []
@@ -59,7 +69,7 @@ PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_v0_rel
 PASS
 
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_v0_release_readiness.py -q
-PASS - 4 passed
+PASS - 5 passed
 
 PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
 PASS - decision NOT_GO, verification_ok true, unexpected_blockers []

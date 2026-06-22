@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_RELEASE_READINESS_AUDIT
+phase_id: V0_MILESTONE_EVIDENCE_MATRIX_AUDIT
 milestone: M6_RC_Blocker_Remediation
-phase_status: v0_release_readiness_audit_verified_not_go
+phase_status: v0_milestone_evidence_matrix_audit_verified_not_go
 active_slice: none
-gate_id: mib-studio-v0-release-readiness-audit
+gate_id: mib-studio-v0-milestone-evidence-matrix-audit
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,11 +53,11 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-v0-release-readiness-audit
+  gate: mib-studio-v0-milestone-evidence-matrix-audit
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: add machine-readable v0 release readiness audit for final-program completion evidence and the remaining M6 real-adapter blocker
+  objective: extend v0 release readiness audit to verify the M0-M6 milestone evidence matrix and the remaining M6 real-adapter blocker
   evidence:
     v0_release_readiness_audit: artifacts/review/v0_release_readiness_audit_evidence.md
     v0_release_readiness_audit_json: artifacts/review/v0_release_readiness_audit.json
@@ -67,7 +67,7 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
-    - scripts/verify_v0_release_readiness.py now audits FE v6 evidence, desktop route repair evidence, M6-RC evidence verification, and real adapter prereq audit together
+    - scripts/verify_v0_release_readiness.py now audits M0 signoff, M1 smoke recertification, M2-M5 recorded milestone state, FE v6 evidence, desktop route repair evidence, M6 review docs, M6-RC evidence verification, and real adapter prereq audit together
     - current v0 release readiness decision is NOT_GO, release_ready false, verification_ok true
     - current unexpected_blockers is empty
     - the only current release blocker is real_trained_adapter_no_fake_endpoint
@@ -96,7 +96,7 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: v0_release_readiness_audit_verified_not_go
+status: v0_milestone_evidence_matrix_audit_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_v0_release_readiness.py
@@ -143,6 +143,7 @@ recorded_go:
   Real_Adapter_Prereq_Audit_Tooling: true
   Desktop_E2E_Route_Repair: true
   V0_Release_Readiness_Audit: true
+  V0_Milestone_Evidence_Matrix_Audit: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -150,7 +151,7 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-v0-release-readiness-audit
+  id: mib-studio-v0-milestone-evidence-matrix-audit
   review_bundle: artifacts/review/v0_release_readiness_audit_evidence.md
   decision: not_go_real_trained_adapter_no_fake_endpoint
 
@@ -191,13 +192,14 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-v0-release-readiness-audit. Use
+mib-studio-v0-milestone-evidence-matrix-audit. Use
 scripts/verify_v0_release_readiness.py --expected-decision NOT_GO to audit the
 current final-program completion state. The current JSON report is
-artifacts/review/v0_release_readiness_audit.json: FE v6 and desktop route repair
-evidence are present, M6-RC evidence verification is current, release_ready is
-false, unexpected_blockers is empty, and the only release blocker is
-real_trained_adapter_no_fake_endpoint.
+artifacts/review/v0_release_readiness_audit.json: M0 signoff, M1 smoke
+recertification, M2-M5 recorded milestone state, FE v6 evidence, desktop route
+repair evidence, M6 review docs, and M6-RC evidence verification are present.
+release_ready is false, unexpected_blockers is empty, and the only release
+blocker is real_trained_adapter_no_fake_endpoint.
 
 Do not claim M6-RC GO. M6-RC remains NOT_GO until real trained CUDA
 lora_adapter no-fake Docker endpoint evidence exists or release policy

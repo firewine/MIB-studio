@@ -1,12 +1,12 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Add a v0 release readiness verifier that audits the user's full objective against current SSOT-backed evidence: final program development readiness, FE v6 application, and the remaining M6 real trained adapter no-fake endpoint blocker. The verifier must not claim release GO unless current evidence proves every required gate, and current environment is expected to remain NOT_GO because real trained CUDA lora_adapter endpoint evidence is absent.",
+  "goal": "Extend the v0 release readiness verifier so the user's full objective is audited against the existing M0-M6 milestone evidence matrix, not only FE v6 and M6-RC evidence. The verifier must prove the already-recorded milestone evidence is present, keep the current release decision NOT_GO, and continue to treat real_trained_adapter_no_fake_endpoint as the only acceptable release blocker.",
   "phase": "done",
-  "gate": "mib-studio-v0-release-readiness-audit",
+  "gate": "mib-studio-v0-milestone-evidence-matrix-audit",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "cf2fdf5",
+  "head": "82a854d",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "scripts/verify_v0_release_readiness.py",
@@ -42,10 +42,10 @@
   "blocked_scope": [
     "Product runtime, API, UI, DB, schema, training, export implementation, or model behavior changes",
     "Creating or committing model weights or adapter artifacts",
-    "Claiming v0 release or M6-RC GO before live structured no-fake endpoint evidence exists",
-    "Weakening FE v6 or M6 release evidence acceptance"
+    "Changing M6-RC evidence policy or claiming release GO",
+    "Weakening existing milestone evidence requirements"
   ],
-  "allowed_edit_paths_scope_note": "This gate may add a release-readiness audit script, focused tests, generated review evidence, WORKING.md updates, and this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may extend release-readiness audit logic/tests/evidence and update WORKING.md plus this PABCD contract only.",
   "external_runtime_paths": [
     "/tmp"
   ],
@@ -53,12 +53,13 @@
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "artifacts/review/m6_rc_evidence_verification.json",
-    "artifacts/review/m6_real_adapter_prereq_audit.json",
-    "artifacts/review/desktop_e2e_route_repair_evidence.md",
+    "docs/reviews/M0/SIGNOFF_MATRIX.md",
+    "docs/reviews/M6/SIGNOFF_MATRIX.md",
+    "docs/reviews/M6/CTO_DECISION.md",
+    "artifacts/review/v0_release_readiness_audit.json",
+    "artifacts/review/m1_smoke_recertification_evidence.md",
     "artifacts/review/fe_v6_evidence.md",
-    "scripts/verify_m6_rc_evidence.py",
-    "scripts/run_m6_real_adapter_rc_gate.py"
+    "artifacts/review/m6_rc_evidence_verification.json"
   ],
   "run_required_commands": true,
   "required_commands": [
@@ -71,10 +72,11 @@
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Verifier confirms FE v6 evidence and desktop route repair evidence are present",
-    "Verifier consumes current M6-RC evidence verification and real adapter prereq audit",
-    "Verifier reports NOT_GO with only the real trained adapter no-fake endpoint blocker for current release readiness",
-    "No runtime/backend/schema/training/export behavior changed"
+    "Verifier checks M0 signoff evidence and M1 current-environment smoke evidence",
+    "Verifier checks M2-M5 recorded milestone state from WORKING.md",
+    "Verifier checks M6 signoff/review state and M6-RC verifier output",
+    "Verifier still reports NOT_GO with only real_trained_adapter_no_fake_endpoint as acceptable blocker",
+    "No runtime/backend/schema/training/export/UI behavior changed"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
@@ -88,31 +90,31 @@
   "failed_verification_commands": [],
   "warnings": [
     "M6-RC remains NOT_GO due missing real trained adapter endpoint evidence.",
-    "This gate adds audit tooling only and does not generate a trained adapter."
+    "This gate adds audit coverage only and does not generate a trained adapter."
   ],
   "phase_notes": {
-    "plan": "Open scoped v0 release readiness audit gate after SSOT review showed final completion is unproven without M6 real trained adapter no-fake endpoint evidence.",
-    "audit": "Read docs/CONTEXT.md, docs/WORKING.md, SSOT M3/M6/Milestone KPI sections, current M6 verifier output, and real adapter prereq audit. Confirmed FE v6 and desktop e2e route evidence exist, while final release remains unproven because M6-RC verifier reports real_trained_adapter_no_fake_endpoint and prereq audit is NOT_READY.",
-    "build": "Added scripts/verify_v0_release_readiness.py to audit FE v6 application, desktop route repair evidence, M6-RC evidence verification, and real adapter prereq diagnostics together. Added focused tests and generated artifacts/review/v0_release_readiness_audit.json plus markdown evidence. No runtime/backend/schema/training/export/UI behavior changed.",
+    "plan": "Open scoped milestone evidence matrix audit gate after identifying that v0 release readiness verification should include M0-M5 recorded evidence as well as FE v6 and M6-RC.",
+    "audit": "Read docs/WORKING.md, M0/M6 review docs, current v0 readiness JSON, M1 smoke evidence, and available review artifacts. Found the previous verifier covered FE v6 and M6-RC but did not directly require M0 signoff, M1 smoke, M2-M5 recorded milestone state, or M6 review docs.",
+    "build": "Extended scripts/verify_v0_release_readiness.py with release-required checks for M0 product lock, M1 current-environment smoke, docs/WORKING recorded milestone state, and M6 review docs. Added focused tests for missing milestone state and regenerated v0 readiness evidence. No runtime/backend/schema/training/export/UI behavior changed.",
     "check": "Passed json.tool, py_compile, focused pytest, v0 release readiness verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
-    "done": "v0 release readiness audit tooling is complete. Current release readiness is NOT_GO with only real_trained_adapter_no_fake_endpoint as the release blocker; unexpected_blockers is empty."
+    "done": "Milestone evidence matrix audit is complete. Current v0 release readiness remains NOT_GO with only real_trained_adapter_no_fake_endpoint as the release blocker; unexpected_blockers is empty."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-v0-release-readiness-audit",
-    "status": "MIB_STUDIO_V0_RELEASE_READINESS_AUDIT_COMPLETE_NOT_GO",
+    "gate": "mib-studio-v0-milestone-evidence-matrix-audit",
+    "status": "MIB_STUDIO_V0_MILESTONE_EVIDENCE_MATRIX_AUDIT_COMPLETE_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Release readiness audit script, focused tests, generated evidence, WORKING.md, and PABCD contract only.",
+    "approved_scope": "Release readiness audit script/tests/evidence, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped v0 release readiness audit gate after SSOT review showed final completion is unproven without M6 real trained adapter no-fake endpoint evidence.",
-    "audit": "Read docs/CONTEXT.md, docs/WORKING.md, SSOT M3/M6/Milestone KPI sections, current M6 verifier output, and real adapter prereq audit. Confirmed FE v6 and desktop e2e route evidence exist, while final release remains unproven because M6-RC verifier reports real_trained_adapter_no_fake_endpoint and prereq audit is NOT_READY.",
-    "build": "Added scripts/verify_v0_release_readiness.py to audit FE v6 application, desktop route repair evidence, M6-RC evidence verification, and real adapter prereq diagnostics together. Added focused tests and generated artifacts/review/v0_release_readiness_audit.json plus markdown evidence. No runtime/backend/schema/training/export/UI behavior changed.",
+    "plan": "Open scoped milestone evidence matrix audit gate after identifying that v0 release readiness verification should include M0-M5 recorded evidence as well as FE v6 and M6-RC.",
+    "audit": "Read docs/WORKING.md, M0/M6 review docs, current v0 readiness JSON, M1 smoke evidence, and available review artifacts. Found the previous verifier covered FE v6 and M6-RC but did not directly require M0 signoff, M1 smoke, M2-M5 recorded milestone state, or M6 review docs.",
+    "build": "Extended scripts/verify_v0_release_readiness.py with release-required checks for M0 product lock, M1 current-environment smoke, docs/WORKING recorded milestone state, and M6 review docs. Added focused tests for missing milestone state and regenerated v0 readiness evidence. No runtime/backend/schema/training/export/UI behavior changed.",
     "check": "Passed json.tool, py_compile, focused pytest, v0 release readiness verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
-    "done": "v0 release readiness audit tooling is complete. Current release readiness is NOT_GO with only real_trained_adapter_no_fake_endpoint as the release blocker; unexpected_blockers is empty."
+    "done": "Milestone evidence matrix audit is complete. Current v0 release readiness remains NOT_GO with only real_trained_adapter_no_fake_endpoint as the release blocker; unexpected_blockers is empty."
   }
 }

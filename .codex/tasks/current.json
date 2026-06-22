@@ -1,22 +1,19 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Add an external CUDA operator transfer/readiness manifest builder so operators can verify full-checkout handoff requirements before running the CUDA training launcher, without claiming release GO.",
+  "goal": "Refresh the external CUDA operator packet after adding the transfer manifest builder to the required committed file set, without claiming release GO.",
   "phase": "done",
-  "gate": "mib-studio-external-cuda-transfer-manifest-tooling",
+  "gate": "mib-studio-post-transfer-manifest-external-cuda-packet-refresh",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "a61cbd3",
+  "head": "5fc0a75",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/build_external_cuda_operator_transfer_manifest.py",
-    "scripts/build_external_cuda_operator_packet.py",
-    "scripts/verify_external_cuda_operator_packet.py",
-    "tests/scripts/test_build_external_cuda_operator_transfer_manifest.py",
-    "tests/scripts/test_build_external_cuda_operator_packet.py",
-    "tests/scripts/test_verify_external_cuda_operator_packet.py",
+    "artifacts/review/external_cuda_operator_packet.json",
+    "artifacts/review/external_cuda_operator_packet.md",
+    "artifacts/review/external_cuda_operator_packet_verification.json",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
@@ -28,14 +25,13 @@
     "presets",
     "examples",
     "schemas",
+    "scripts",
+    "tests",
     "docs/foundation",
     "docs/specs",
     "docs/mockup",
     "docs/handoffs",
     "docs/reviews",
-    "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet.md",
-    "artifacts/review/external_cuda_operator_packet_verification.json",
     "artifacts/review/real_adapter/",
     "artifacts/review/real_adapter_evidence_bundle",
     "artifacts/review/strict_model_cache_preparation.json",
@@ -56,14 +52,13 @@
     ".venv"
   ],
   "blocked_scope": [
-    "Changing product runtime code, API behavior, frontend behavior, DB schema, model catalog, examples, schemas, release readiness acceptance criteria, or no-fake endpoint checks",
+    "Changing product runtime code, API behavior, frontend behavior, DB schema, source tests, scripts, model catalog, examples, schemas, release readiness acceptance criteria, packet verifier criteria, or no-fake endpoint checks",
     "Generating, inventing, copying, or promoting real adapter, endpoint, benchmark, package, export, release, or external evidence into the repository",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO",
-    "Committing model weights, strict model cache files, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers",
-    "Regenerating external CUDA operator packet artifacts in this tooling phase"
+    "Committing model weights, strict model cache files, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Add transfer/readiness manifest tooling and tests only; leave packet artifacts stale until the follow-up packet refresh phase.",
+  "allowed_edit_paths_scope_note": "Refresh only the source-pinned external CUDA operator packet artifacts and LLM operational docs after commit 5fc0a75.",
   "reference_only_paths": [
     "/home/firewine/getbeta/docs/guides/VS_CODE_MULTI_AGENT_GATE_PROTOCOL_V4.md",
     "docs/CONTEXT.md",
@@ -71,60 +66,91 @@
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "scripts/build_external_cuda_operator_packet.py",
     "scripts/verify_external_cuda_operator_packet.py",
-    "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet_verification.json",
+    "scripts/build_external_cuda_operator_transfer_manifest.py",
     "tests/scripts/test_build_external_cuda_operator_packet.py",
-    "tests/scripts/test_verify_external_cuda_operator_packet.py"
+    "tests/scripts/test_verify_external_cuda_operator_packet.py",
+    "tests/scripts/test_build_external_cuda_operator_transfer_manifest.py",
+    "artifacts/review/external_cuda_operator_packet.json",
+    "artifacts/review/external_cuda_operator_packet_verification.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
+    "python3 -m json.tool /tmp/mib-external-cuda-packet-pre-transfer-refresh.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_transfer_manifest.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
     "python3 -m py_compile scripts/build_external_cuda_operator_transfer_manifest.py scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --json-output /tmp/mib-external-cuda-operator-transfer-manifest.json --markdown-output /tmp/mib-external-cuda-operator-transfer-manifest.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
-    "python3 -m json.tool /tmp/mib-external-cuda-operator-transfer-manifest.json",
-    "rg -n -- \"READY_EXTERNAL_CUDA_OPERATOR_TRANSFER|full repository checkout|packet_handoff_source_commit|release_claimed_go|m6_rc_claimed_go|build_external_cuda_operator_transfer_manifest.py|real_trained_adapter_no_fake_endpoint\" scripts/build_external_cuda_operator_transfer_manifest.py scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_transfer_manifest.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 5fc0a75 --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --json-output /tmp/mib-external-cuda-operator-transfer-manifest-post-refresh.json --markdown-output /tmp/mib-external-cuda-operator-transfer-manifest-post-refresh.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
+    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
+    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
+    "python3 -m json.tool /tmp/mib-external-cuda-operator-transfer-manifest-post-refresh.json",
+    "rg -n -- \"5fc0a75|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|READY_EXTERNAL_CUDA_OPERATOR_TRANSFER|verified 18 required file|build_external_cuda_operator_transfer_manifest.py|release_claimed_go|m6_rc_claimed_go|real_trained_adapter_no_fake_endpoint|forbidden_tracked_artifacts\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git status --short",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
     "PABCD contract is valid JSON and includes mode=development plus phase notes for plan, audit, build, check, and done.",
-    "New transfer manifest builder emits READY_EXTERNAL_CUDA_OPERATOR_TRANSFER only when packet verification is GO, warnings are empty, no release GO is claimed, and packet/verification source commits match.",
-    "Manifest instructs operators to use a full repository checkout, not a partial tar of selected files.",
-    "Packet builder and verifier recognize the transfer manifest builder as a required committed handoff support file.",
-    "Focused tests cover ready manifest generation, NOT_GO verification rejection, warning rejection, and no-GO claims.",
-    "No product runtime code, release criteria, M6 review docs, packet artifacts, model cache files, real adapter evidence, Docker artifacts, or evidence bundles are staged."
+    "Pre-refresh packet verification reports expected NOT_GO because the previous packet does not include scripts/build_external_cuda_operator_transfer_manifest.py in required_committed_files.",
+    "Regenerated operator packet pins git.head 5fc0a75 and still claims no M6-RC or v0 release GO.",
+    "Packet verification reports GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION with verification_ok true and warnings [].",
+    "Verifier validates 18 required committed file hashes and 18 required committed file blobs at 5fc0a75.",
+    "Post-refresh transfer manifest emits READY_EXTERNAL_CUDA_OPERATOR_TRANSFER.",
+    "No product code, source tests, scripts, release criteria, M6 review docs, real adapter evidence, model cache files, Docker artifacts, or evidence bundles are staged."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision NOT_GO --json-output /tmp/mib-external-cuda-packet-pre-transfer-refresh.json",
+    "python3 -m json.tool /tmp/mib-external-cuda-packet-pre-transfer-refresh.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_transfer_manifest.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
     "python3 -m py_compile scripts/build_external_cuda_operator_transfer_manifest.py scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --json-output /tmp/mib-external-cuda-operator-transfer-manifest.json --markdown-output /tmp/mib-external-cuda-operator-transfer-manifest.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
-    "python3 -m json.tool /tmp/mib-external-cuda-operator-transfer-manifest.json",
-    "rg -n -- \"READY_EXTERNAL_CUDA_OPERATOR_TRANSFER|full repository checkout|packet_handoff_source_commit|release_claimed_go|m6_rc_claimed_go|build_external_cuda_operator_transfer_manifest.py|real_trained_adapter_no_fake_endpoint\" scripts/build_external_cuda_operator_transfer_manifest.py scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_transfer_manifest.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 5fc0a75 --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --json-output /tmp/mib-external-cuda-operator-transfer-manifest-post-refresh.json --markdown-output /tmp/mib-external-cuda-operator-transfer-manifest-post-refresh.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
+    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
+    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
+    "python3 -m json.tool /tmp/mib-external-cuda-operator-transfer-manifest-post-refresh.json",
+    "rg -n -- \"5fc0a75|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|READY_EXTERNAL_CUDA_OPERATOR_TRANSFER|verified 18 required file|build_external_cuda_operator_transfer_manifest.py|release_claimed_go|m6_rc_claimed_go|real_trained_adapter_no_fake_endpoint|forbidden_tracked_artifacts\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git status --short",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "observed_evidence": {
-    "focused_tests": {
-      "result": "15 passed in 0.14s",
-      "covered": [
-        "ready transfer manifest generation",
-        "NOT_GO packet verification rejection",
-        "packet verification warning rejection",
-        "release GO claim rejection",
-        "packet builder includes transfer manifest builder as required committed file",
-        "packet verifier requires transfer manifest builder path"
-      ]
+    "pre_refresh_packet": {
+      "path": "/tmp/mib-external-cuda-packet-pre-transfer-refresh.json",
+      "decision": "NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+      "expected_decision": "NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+      "blocker": "required_committed_file_hashes",
+      "missing_marker": "scripts/build_external_cuda_operator_transfer_manifest.py:not_in_required_files",
+      "previous_packet_handoff_source_commit": "7e6c545"
     },
-    "transfer_manifest": {
-      "path": "/tmp/mib-external-cuda-operator-transfer-manifest.json",
+    "regenerated_packet": {
+      "path": "artifacts/review/external_cuda_operator_packet.json",
+      "status": "PREPARED_NOT_RUN",
+      "git_head": "5fc0a75",
+      "required_committed_files": 18,
+      "includes": "scripts/build_external_cuda_operator_transfer_manifest.py",
+      "release_claimed_go": false,
+      "m6_rc_claimed_go": false
+    },
+    "packet_verification": {
+      "path": "artifacts/review/external_cuda_operator_packet_verification.json",
+      "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+      "verification_ok": true,
+      "operator_packet_ready": true,
+      "packet_handoff_source_commit": "5fc0a75",
+      "required_file_hashes": "verified 18 required file hashes",
+      "required_commit_blobs": "verified 18 required file blobs at 5fc0a75",
+      "forbidden_tracked_artifacts": [],
+      "warnings": []
+    },
+    "transfer_manifest_post_refresh": {
+      "path": "/tmp/mib-external-cuda-operator-transfer-manifest-post-refresh.json",
       "status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
       "blockers": [],
-      "packet_handoff_source_commit": "7e6c545",
+      "packet_handoff_source_commit": "5fc0a75",
       "release_claimed_go": false,
       "m6_rc_claimed_go": false,
       "full_checkout_required": true,
@@ -132,46 +158,42 @@
     },
     "scope_check": {
       "product_code_changed": false,
+      "tests_changed": false,
+      "scripts_changed": false,
       "release_criteria_changed": false,
       "docs_reviews_M6_changed": false,
-      "packet_artifacts_regenerated": false,
       "model_cache_files_committed": false,
       "real_adapter_evidence_created": false,
       "docker_artifacts_created": false,
       "release_claimed_go": false
-    },
-    "follow_up": {
-      "external_cuda_operator_packet_refresh_required": true,
-      "reason": "packet builder/verifier required-file contract now includes scripts/build_external_cuda_operator_transfer_manifest.py"
     }
   },
   "warnings": [
-    "This phase intentionally makes the existing packet artifact stale because the packet required-file set changes.",
-    "A follow-up packet refresh phase must regenerate external_cuda_operator_packet at the commit created by this phase.",
+    "This phase refreshes packet integrity only.",
     "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Add transfer/readiness manifest tooling for the external CUDA operator path and include that tooling in the packet required-file set.",
-    "audit": "Current packet is GO at source commit 7e6c545, but it does not describe a full-checkout transfer manifest builder; final release remains blocked by real_trained_adapter_no_fake_endpoint.",
-    "build": "Implement the transfer manifest builder, update packet builder/verifier required-file metadata, add focused tests, and update LLM operational docs.",
-    "check": "Run focused tests, py_compile, live manifest generation to /tmp, JSON validation, evidence grep, status/scope checks, and diff checks.",
-    "done": "After verification passes, mark complete, stage only allowed files, commit, push, and leave release GO claims false."
+    "plan": "Refresh external CUDA operator packet artifacts so the new transfer manifest builder is included in required_committed_files.",
+    "audit": "After commit 5fc0a75, the previous 17-file packet is expected to be NOT_GO under the updated verifier because it lacks scripts/build_external_cuda_operator_transfer_manifest.py.",
+    "build": "Regenerate external_cuda_operator_packet JSON/Markdown at git head 5fc0a75, verify it, run the transfer manifest builder, and update LLM operational docs.",
+    "check": "Run pre-refresh NOT_GO verification, focused tests, py_compile, packet build, packet verification, transfer manifest generation, JSON validation, evidence search, git status scope check, and diff checks.",
+    "done": "After verification passes, mark complete, stage only allowed files, commit, push, and keep release GO claims false."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-external-cuda-transfer-manifest-tooling",
+    "gate": "mib-studio-post-transfer-manifest-external-cuda-packet-refresh",
     "status": "COMPLETE_PENDING_COMMIT_PUSH",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Add transfer/readiness manifest tooling and tests for the external CUDA operator path.",
-    "blocked_scope": "No product/runtime/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, packet artifact, or venv artifacts.",
+    "approved_scope": "Refresh external CUDA operator packet artifacts and LLM operational docs after adding the transfer manifest builder.",
+    "blocked_scope": "No product/runtime/test/script/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, or venv artifacts.",
     "phase_completion_git_policy": "After verification passes, stage, commit, and push this phase.",
-    "plan": "Add transfer/readiness manifest tooling for the external CUDA operator path and include that tooling in the packet required-file set.",
-    "audit": "Current packet is GO at source commit 7e6c545, but it does not describe a full-checkout transfer manifest builder; final release remains blocked by real_trained_adapter_no_fake_endpoint.",
-    "build": "Implement the transfer manifest builder, update packet builder/verifier required-file metadata, add focused tests, and update LLM operational docs.",
-    "check": "Run focused tests, py_compile, live manifest generation to /tmp, JSON validation, evidence grep, status/scope checks, and diff checks.",
-    "done": "After verification passes, mark complete, stage only allowed files, commit, push, and leave release GO claims false."
+    "plan": "Refresh external CUDA operator packet artifacts so the new transfer manifest builder is included in required_committed_files.",
+    "audit": "After commit 5fc0a75, the previous 17-file packet is expected to be NOT_GO under the updated verifier because it lacks scripts/build_external_cuda_operator_transfer_manifest.py.",
+    "build": "Regenerate external_cuda_operator_packet JSON/Markdown at git head 5fc0a75, verify it, run the transfer manifest builder, and update LLM operational docs.",
+    "check": "Run pre-refresh NOT_GO verification, focused tests, py_compile, packet build, packet verification, transfer manifest generation, JSON validation, evidence search, git status scope check, and diff checks.",
+    "done": "After verification passes, mark complete, stage only allowed files, commit, push, and keep release GO claims false."
   }
 }

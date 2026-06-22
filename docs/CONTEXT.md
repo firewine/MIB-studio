@@ -458,9 +458,8 @@ external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.js
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 external_cuda_operator_transfer_manifest_builder: scripts/build_external_cuda_operator_transfer_manifest.py
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
-external_cuda_operator_packet_source_commit: 7e6c545
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
-external_cuda_operator_packet_refresh_reason: current tooling adds the transfer manifest builder to the packet/verifier required-file contract; existing packet artifact still records the previous 17-file set until the follow-up packet refresh phase
+external_cuda_operator_packet_source_commit: 5fc0a75
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
 cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
@@ -643,16 +642,14 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: 7e6c545
+handoff_source_commit: 5fc0a75
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
-required_committed_files_count: 17
-required_committed_files_count_after_follow_up_refresh: 18
+required_committed_files_count: 18
 required_committed_files_include:
   - artifacts/review/verified_external_cuda_training_launcher.sh
   - scripts/prepare_strict_model_cache.py
-pending_required_committed_files_after_current_phase:
   - scripts/build_external_cuda_operator_transfer_manifest.py
 training_handoff_command_order_include:
   - prepare_strict_model_cache
@@ -678,8 +675,8 @@ release_claimed_go: false
 m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
-  - 17 required committed file sha256/size values
-  - 17 required committed file blobs at handoff source commit 7e6c545
+  - 18 required committed file sha256/size values
+  - 18 required committed file blobs at handoff source commit 5fc0a75
   - operator sequence keeps the packet file from the current checkout
   - primary handoff must be the verified launcher, not the lower-level training handoff
   - packet.git.head resolves even when current checkout is a later closeout commit
@@ -689,7 +686,7 @@ validated:
   - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
 warning: none
 meaning: packet integrity is GO; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
-current_phase_note: packet artifact is GO for the previous 17-file source set, but the current tooling phase adds a new required support file; refresh the packet in the follow-up phase before handing it to an operator
+current_phase_note: packet artifact has been refreshed after transfer manifest tooling; keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
 ```
 
 Current verified external CUDA training launcher:

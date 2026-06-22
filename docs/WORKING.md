@@ -41,16 +41,16 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_OPERATOR_TRANSFER_MANIFEST_TOOLING
+phase_id: POST_TRANSFER_MANIFEST_EXTERNAL_CUDA_PACKET_REFRESH
 milestone: Final_Program_Development_Closeout
-phase_status: tooling_verified_pending_commit_and_follow_up_packet_refresh
-gate_id: mib-studio-external-cuda-transfer-manifest-tooling
+phase_status: external_cuda_operator_packet_verification_restored_after_transfer_manifest_tooling
+gate_id: mib-studio-post-transfer-manifest-external-cuda-packet-refresh
 mode: development
 product_code_changed: false
-verification_tooling_changed: true
-verification_artifacts_refreshed: false
-external_operator_packet_refreshed: false
-external_operator_packet_refresh_required_after_phase_commit: true
+verification_tooling_changed: false
+verification_artifacts_refreshed: true
+external_operator_packet_refreshed: true
+external_operator_packet_refresh_required_after_phase_commit: false
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
@@ -63,6 +63,72 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-post-transfer-manifest-external-cuda-packet-refresh
+objective: refresh external CUDA operator packet verification after transfer manifest tooling changed the packet required-file contract
+
+source_head: 5fc0a75
+previous_packet_source_head: 7e6c545
+
+pre_audit:
+  old_packet_current_checkout_verification: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  blocker: required_committed_file_hashes
+  missing_marker: scripts/build_external_cuda_operator_transfer_manifest.py:not_in_required_files
+  old_required_committed_files_count: 17
+
+files:
+  regenerated_operator_packet:
+    - artifacts/review/external_cuda_operator_packet.json
+    - artifacts/review/external_cuda_operator_packet.md
+    - artifacts/review/external_cuda_operator_packet_verification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+packet:
+  schema_version: mib_external_cuda_operator_packet.v1
+  status: PREPARED_NOT_RUN
+  git_head: 5fc0a75
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  required_committed_files_count: 18
+  required_committed_files_include:
+    - artifacts/review/verified_external_cuda_training_launcher.sh
+    - scripts/prepare_strict_model_cache.py
+    - scripts/build_external_cuda_operator_transfer_manifest.py
+
+verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  verification_ok: true
+  operator_packet_ready: true
+  warnings: []
+  packet_handoff_source_commit: 5fc0a75
+  required_file_hashes: verified 18 required file hashes
+  required_commit_blobs: verified 18 required file blobs at 5fc0a75
+  forbidden_tracked_artifacts: []
+  transfer_manifest_post_refresh: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+
+scope:
+  product_code_changed: false
+  tests_changed: false
+  scripts_changed: false
+  release_criteria_changed: false
+  docs_reviews_M6_changed: false
+  real_adapter_evidence_created: false
+  model_cache_files_committed: false
+  docker_image_layers_committed: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-transfer-manifest-tooling
@@ -2785,7 +2851,7 @@ passes. This launcher is PREPARED_NOT_RUN and does not claim M6-RC or v0 release
 GO.
 The external CUDA operator packet is
 artifacts/review/external_cuda_operator_packet.json and .md. It pins the handoff
-source commit to 7e6c545, records required committed file sha256 values, names
+source commit to 5fc0a75, records required committed file sha256 values, names
 artifacts/review/verified_external_cuda_training_launcher.sh as the primary
 external handoff, records artifacts/review/real_adapter_cuda_training_handoff.sh
 as the downstream training handoff, and forbids committing model weights, LoRA
@@ -2793,11 +2859,9 @@ adapter files, Docker image layers/archives, raw endpoint transcripts, or copied
 external evidence bundles. Keep the packet file from the current checkout;
 packet.git.head is the required committed file source commit for verifier blob
 checks, not an instruction to checkout an older commit before using the packet.
-The packet has already been regenerated after the cuda-base-image
-recertification commit, but the current transfer-manifest tooling phase adds
-scripts/build_external_cuda_operator_transfer_manifest.py to the packet/verifier
-required-file contract. Refresh the packet in the follow-up phase before handing
-it to an external operator.
+The packet has already been regenerated after the transfer-manifest tooling
+commit, so it includes scripts/build_external_cuda_operator_transfer_manifest.py
+in required_committed_files.
 Before running that handoff, use
 scripts/build_external_cuda_operator_transfer_manifest.py from a full repository
 checkout and require READY_EXTERNAL_CUDA_OPERATOR_TRANSFER. Then run
@@ -2805,8 +2869,8 @@ scripts/verify_external_cuda_operator_packet.py with
 artifacts/review/external_cuda_operator_packet.json and require
 GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION. The current verification artifact
 is artifacts/review/external_cuda_operator_packet_verification.json; it verifies
-17 required committed file hashes including artifacts/review/verified_external_cuda_training_launcher.sh and scripts/prepare_strict_model_cache.py,
-17 required committed file blobs at handoff source commit 7e6c545,
+18 required committed file hashes including artifacts/review/verified_external_cuda_training_launcher.sh, scripts/prepare_strict_model_cache.py, and scripts/build_external_cuda_operator_transfer_manifest.py,
+18 required committed file blobs at handoff source commit 5fc0a75,
 6 package readiness checks, command order,
 forbidden artifact labels, and no forbidden tracked artifacts. The verifier
 allows the current checkout to be a later closeout commit than packet.git.head

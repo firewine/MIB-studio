@@ -24,7 +24,7 @@
       "run_rc_handoff"
     ]
   },
-  "date": "2026-06-22T20:31:21.958180+00:00",
+  "date": "2026-06-22T20:54:24.304386+00:00",
   "downstream_training_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
   "downstream_training_handoff_status": "PREPARED_NOT_RUN",
   "expected_return_artifacts": [
@@ -45,7 +45,7 @@
   "git": {
     "branch": "main",
     "clean_worktree_required": true,
-    "head": "7e6c545",
+    "head": "5fc0a75",
     "remote_origin": "https://github.com/firewine/MIB-studio.git"
   },
   "m6_rc_claimed_go": false,
@@ -54,7 +54,7 @@
     "Do not claim M6-RC or v0 release GO until real trained adapter evidence, accepted M6 review docs, bundle verification, and v0 readiness all return GO."
   ],
   "operator_sequence": [
-    "Keep this packet file from the current checkout; packet.git.head is the required committed file source commit 7e6c545 for verifier blob checks.",
+    "Keep this packet file from the current checkout; packet.git.head is the required committed file source commit 5fc0a75 for verifier blob checks.",
     "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Allow the verified launcher to invoke artifacts/review/real_adapter_cuda_training_handoff.sh only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.",
     "Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.",
@@ -170,6 +170,12 @@
       "role": "strict_model_cache_preparation",
       "sha256": "327352a72b263b1f06665d84e55d25bdd4f963fdc504b5c8c8854b1ff35d8452",
       "size_bytes": 8267
+    },
+    {
+      "path": "scripts/build_external_cuda_operator_transfer_manifest.py",
+      "role": "operator_transfer_manifest_builder",
+      "sha256": "b818829dbe047d4d6ad4990df40783353a3c24acdb1c50cecddd1ad605365230",
+      "size_bytes": 17894
     },
     {
       "path": "scripts/prepare_cuda_lora_training_run.py",

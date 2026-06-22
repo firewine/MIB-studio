@@ -37,14 +37,13 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CONTEXT_CURRENT_STATE_ALIGNMENT
+phase_id: V0_RELEASE_BLOCKER_RECERTIFICATION_RUNNER
 milestone: Final_Program_Development_Closeout
-phase_status: context_current_state_alignment_verified_not_go
-gate_id: mib-studio-context-current-state-alignment
+phase_status: v0_release_blocker_recertification_runner_verified_not_go
+gate_id: mib-studio-v0-release-blocker-recertification-runner
 mode: implement
 product_code_changed: false
 release_claimed_go: false
-latest_commit_policy: stage_commit_push_after_verified_phase_completion
 
 current_decision:
   v0_release_ready: false
@@ -52,42 +51,48 @@ current_decision:
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
-## 2. Latest Completed Work
+## 2. Latest Work
 
 ```yaml
-gate: mib-studio-v0-release-closeout-from-bundle
-objective: add local closeout runner for externally supplied real-adapter evidence bundle directory or tar.gz archive
+gate: mib-studio-v0-release-blocker-recertification-runner
+objective: refresh all current release-blocker evidence with one command
 
 files:
-  runner: scripts/run_v0_release_closeout_from_bundle.py
-  tests: tests/scripts/test_run_v0_release_closeout_from_bundle.py
-  refreshed_readiness_report: artifacts/review/v0_release_readiness_audit.json
+  runner: scripts/run_v0_release_blocker_recertification.py
+  tests: tests/scripts/test_run_v0_release_blocker_recertification.py
+  summary: artifacts/review/v0_release_blocker_recertification.json
+  refreshed:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_readiness_audit.json
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/real_adapter_cuda_handoff.sh
 
 runner_contract:
-  command: scripts/run_v0_release_closeout_from_bundle.py
-  accepts:
-    - --bundle-dir
-    - --bundle-archive
-  source_path_resolution: relative_bundle_paths_are_resolved_against_--root
-  promotion_dependency: scripts/promote_real_adapter_evidence_bundle.py
-  readiness_dependency: scripts/verify_v0_release_readiness.py
-  canonical_bundle_verification_written_before_readiness: true
-  output_summary_default: artifacts/review/v0_release_closeout_from_bundle.json
-  statuses:
-    - GO_V0_RELEASE_CLOSEOUT
-    - NOT_GO_BUNDLE_PROMOTION
-    - NOT_GO_V0_READINESS
-    - DRY_RUN_V0_RELEASE_CLOSEOUT
+  command: scripts/run_v0_release_blocker_recertification.py
+  delegates_to_existing_strict_checks:
+    - scripts/find_real_adapter_candidates.py
+    - scripts/check_cuda_lora_training_prereqs.py
+    - scripts/run_m6_real_adapter_rc_gate.py --preflight-only
+    - scripts/verify_real_adapter_evidence_bundle.py
+    - scripts/verify_v0_release_readiness.py
+    - scripts/build_real_adapter_handoff.py
+  current_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
 
 summary:
-  - docs/CONTEXT.md is being aligned with the current v0 closeout state so future LLMs do not restart from stale M1 startup instructions.
-  - current context alignment keeps FE v6 as verified via docs/mockup/mib_fe_mockup_v6_routes_contract.html and artifacts/review/fe_v6_evidence.md.
-  - run_v0_release_closeout_from_bundle promotes a verified external evidence bundle into artifacts/review using the existing strict promotion verifier.
-  - It writes artifacts/review/real_adapter_evidence_bundle_verification.json before running v0 readiness, so readiness evaluates the promoted bundle in the same command.
-  - It reports GO_V0_RELEASE_CLOSEOUT only when bundle promotion succeeds and v0 readiness verifies GO.
-  - It reports NOT_GO_BUNDLE_PROMOTION when the bundle cannot be promoted as GO.
-  - It reports NOT_GO_V0_READINESS when bundle promotion succeeds but v0 readiness remains blocked.
-  - Current local state remains NOT_GO because real trained adapter no-fake Docker endpoint evidence is still absent.
+  - one command now refreshes candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle verification, v0 readiness, and the CUDA handoff artifacts
+  - the current local state remains NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
+  - FE v6 remains verified through docs/mockup/mib_fe_mockup_v6_routes_contract.html and artifacts/review/fe_v6_evidence.md
+  - current scan found 2 fixture-like candidates and 0 GO candidates
+  - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING
+  - current M6 real-adapter preflight is NOT_READY_PRECHECK_FAILED
+  - current real-adapter bundle verification is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
+  - current handoff decision is WAITING_FOR_REAL_ADAPTER_INPUTS
 ```
 
 ## 3. Release State
@@ -106,6 +111,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  V0_Release_Blocker_Recertification: true
   V0_Release_Closeout_From_Bundle: true
   Real_Adapter_Evidence_Bundle_Archive: true
   Real_Adapter_Evidence_Bundle_Promotion: true
@@ -124,12 +130,15 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: context_current_state_alignment_verified_not_go
+status: v0_release_blocker_recertification_runner_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - rg -n -- "current_development_state|FE_V6_Mockup_Verified|mib_fe_mockup_v6_routes_contract|V0_RELEASE_CLOSEOUT_FROM_BUNDLE|real_trained_adapter_no_fake_endpoint|authorized_milestone|product_code_started" docs/CONTEXT.md docs/WORKING.md
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_v0_release_blocker_recertification.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
+  - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
+  - rg -n -- "run_v0_release_blocker_recertification|V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|NOT_READY_CUDA_LORA_TRAINING|NOT_READY_PRECHECK_FAILED|WAITING_FOR_REAL_ADAPTER_INPUTS" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py docs/WORKING.md artifacts/review/v0_release_blocker_recertification.json
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
   - git diff --check
   - git diff --cached --check
@@ -139,7 +148,6 @@ warnings:
   - v0 release remains NOT_GO.
   - Current host has no verified real trained CUDA lora_adapter no-fake endpoint evidence.
   - Do not claim GO from fixture adapter evidence or self-test evidence.
-  - bootstrap skip-install still skips cuda pip-audit after isolated pip upgrade failure per script policy.
 ```
 
 ## 5. Active Blockers
@@ -149,7 +157,8 @@ release_blocker:
   id: real_trained_adapter_no_fake_endpoint
   reason: real trained CUDA lora_adapter no-fake Docker endpoint evidence is missing
   required_before_go:
-    - real adapter directory with adapter.safetensors and adapter_config.json
+    - adapter.safetensors under /tmp/mib-real-adapter/adapter
+    - adapter_config.json under /tmp/mib-real-adapter/adapter
     - manifest.json for the real adapter artifact
     - digest-pinned CUDA/Python Docker base image available on the CUDA host
     - mib-export:test image built with the real adapter
@@ -159,16 +168,26 @@ release_blocker:
     - v0 readiness decision GO
 
 local_missing_inputs:
-  - /tmp/mib-real-adapter/adapter
+  - /tmp/mib-real-adapter/adapter/adapter.safetensors
+  - /tmp/mib-real-adapter/adapter/adapter_config.json
   - /tmp/mib-real-adapter/manifest.json
   - nvidia-smi_cuda_visibility
   - local_digest_pinned_cuda_python_base_image
-  - mib-export:test_real_adapter_image
+  - docker_daemon_access_or_mib-export:test_real_adapter_image
 ```
 
 ## 6. Next Work
 
 ```yaml
+recertify_current_state:
+  command: >
+    PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python
+    scripts/run_v0_release_blocker_recertification.py
+    --expected-readiness-decision NOT_GO
+    --expected-bundle-decision NOT_GO
+    --expected-training-status NOT_READY_CUDA_LORA_TRAINING
+    --expected-rc-status NOT_READY_PRECHECK_FAILED
+
 external_cuda_host_flow:
   - run artifacts/review/real_adapter_cuda_training_handoff.sh on a CUDA host
   - run artifacts/review/real_adapter_docker_image_handoff.sh after a real adapter exists
@@ -186,7 +205,6 @@ local_closeout_after_bundle_transfer:
     --expected-bundle-decision GO
     --expected-readiness-decision GO
   expected_success_status: GO_V0_RELEASE_CLOSEOUT
-  expected_failure_without_real_bundle: NOT_GO_BUNDLE_PROMOTION_or_NOT_GO_V0_READINESS
 ```
 
 ## 7. Resume Prompt For Next LLM
@@ -194,26 +212,19 @@ local_closeout_after_bundle_transfer:
 ```text
 Read docs/CONTEXT.md, docs/WORKING.md, and .codex/tasks/current.json before
 edits. Use .venv for Python and COREPACK_HOME=/tmp/corepack for frontend
-commands. The latest completed gate is
-mib-studio-v0-release-closeout-from-bundle.
+commands. The active closeout tool is
+scripts/run_v0_release_blocker_recertification.py. It refreshes the current
+candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle
+verification, v0 readiness, and CUDA handoff artifacts with one command.
 
 Do not claim M6-RC GO or v0 GO from the current local artifacts. The current
 release blocker is real_trained_adapter_no_fake_endpoint. M6 review docs must
 stay NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint
 evidence exists.
 
-For a transferred external CUDA evidence bundle, prefer:
-PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python
-scripts/run_v0_release_closeout_from_bundle.py
---bundle-archive <copied_real_adapter_evidence_bundle.tar.gz>
---expected-bundle-decision GO
---expected-readiness-decision GO
-
-The runner first delegates to scripts/promote_real_adapter_evidence_bundle.py,
-which verifies the bundle with scripts/verify_real_adapter_evidence_bundle.py and
-copies only fixed verifier-required evidence files into artifacts/review. Then it
-writes the canonical bundle verification report and runs
-scripts/verify_v0_release_readiness.py. GO_V0_RELEASE_CLOSEOUT is valid only when
-both bundle promotion and v0 readiness are GO. Current local readiness is still
-NOT_GO with no unexpected blockers.
+The current recertification status is NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION:
+0 GO adapter candidates, CUDA training preflight NOT_READY_CUDA_LORA_TRAINING,
+M6 real-adapter preflight NOT_READY_PRECHECK_FAILED, evidence bundle NOT_GO, v0
+readiness NOT_GO with no unexpected blockers, and handoff decision
+WAITING_FOR_REAL_ADAPTER_INPUTS.
 ```

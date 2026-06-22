@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T04:43:47.554070+00:00
+date: 2026-06-22T05:13:50.721789+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false
@@ -21,7 +21,7 @@ go_candidate_count: 0
 fixture_like_candidate_count: 2
 prereq_status: NOT_READY_PRECHECK_FAILED
 prereq_decision: NOT_READY
-missing_prereq_ids: ["adapter_dir_present", "adapter_safetensors_present", "adapter_config_present", "adapter_manifest_present", "docker_image_available", "host_cuda_visible"]
+missing_prereq_ids: ["adapter_safetensors_present", "adapter_config_present", "adapter_manifest_present", "docker_image_available", "host_cuda_visible"]
 v0_readiness_decision: NOT_GO
 v0_release_ready: false
 real_adapter_evidence_bundle_decision: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
@@ -34,7 +34,7 @@ v0_unexpected_blockers: []
 
 | Check | Status | Requirement |
 | --- | --- | --- |
-| `adapter_dir_present` | missing | Real adapter directory exists, normally /tmp/mib-real-adapter/adapter |
+| `adapter_dir_present` | available | Real adapter directory exists, normally /tmp/mib-real-adapter/adapter |
 | `adapter_safetensors_present` | missing | adapter.safetensors is present and is not fixture-sized |
 | `adapter_config_present` | missing | adapter_config.json declares PEFT LORA and the locked base model |
 | `adapter_manifest_present` | missing | manifest.json records adapter_sha256, files, and trainer_backend |

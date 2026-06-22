@@ -203,7 +203,6 @@
     "fixture_like_candidate_count": 2,
     "go_candidate_count": 0,
     "missing_prereq_ids": [
-      "adapter_dir_present",
       "adapter_safetensors_present",
       "adapter_config_present",
       "adapter_manifest_present",
@@ -221,7 +220,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T04:43:47.554070+00:00",
+  "date": "2026-06-22T05:13:50.721789+00:00",
   "decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
   "executable_artifact": "artifacts/review/real_adapter_cuda_handoff.sh",
   "gate": "mib-studio-real-adapter-cuda-handoff",
@@ -250,7 +249,7 @@
     {
       "id": "adapter_dir_present",
       "requirement": "Real adapter directory exists, normally /tmp/mib-real-adapter/adapter",
-      "status": "missing"
+      "status": "available"
     },
     {
       "id": "adapter_safetensors_present",

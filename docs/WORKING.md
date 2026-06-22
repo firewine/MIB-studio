@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_EVIDENCE_BUNDLE_ASSEMBLY
+phase_id: REAL_ADAPTER_EVIDENCE_BUNDLE_PROMOTION
 milestone: M6_RC_Blocker_Remediation
-phase_status: real_adapter_evidence_bundle_assembly_verified_not_go
+phase_status: real_adapter_evidence_bundle_promotion_verified_not_go
 active_slice: none
-gate_id: mib-studio-real-adapter-evidence-bundle-assembly
+gate_id: mib-studio-real-adapter-evidence-bundle-promotion
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,11 +53,11 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-real-adapter-evidence-bundle-assembly
+  gate: mib-studio-real-adapter-evidence-bundle-promotion
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: add a portable real-adapter evidence bundle assembly step before v0 readiness recheck
+  objective: add a verified real-adapter evidence bundle promotion step for externally produced CUDA evidence bundles
   evidence:
     real_adapter_cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
     real_adapter_cuda_training_prereq_preflight: artifacts/review/real_adapter_cuda_training_prereq_preflight.json
@@ -82,6 +82,10 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
+    - scripts/promote_real_adapter_evidence_bundle.py now verifies an externally produced real-adapter evidence bundle with the existing strict verifier before promotion
+    - promotion copies only the fixed files required by scripts/verify_real_adapter_evidence_bundle.py into the target review artifact directory, and only when GO_REAL_ADAPTER_EVIDENCE_BUNDLE is proven
+    - NOT_GO dry-run promotion against current artifacts/review writes verification and promotion manifest under /tmp without mutating the target directory
+    - focused tests cover GO promotion, NOT_GO dry-run no-copy behavior, expected-GO rejection of a NOT_GO bundle, and source/target safety
     - scripts/build_real_adapter_evidence_bundle.py now copies the fixed evidence files required by scripts/verify_real_adapter_evidence_bundle.py into a caller-selected bundle directory, runs the existing verifier, and writes manifest plus verification JSON
     - the bundle assembler removes stale fixed evidence files from the target bundle before copying current source files, preventing old GO-looking files from satisfying a new incomplete bundle
     - artifacts/review/real_adapter_cuda_handoff.* now run evidence_bundle_assembly after rc_gate_live and before v0_readiness_recheck
@@ -129,11 +133,11 @@ last_completed_work:
     - scripts/build_real_adapter_handoff.py now emits artifacts/review/real_adapter_cuda_handoff.sh in addition to JSON/Markdown
     - the generated shell artifact refuses to run when MIB_RUNTIME_ALLOW_FAKE_BACKEND is set
     - the generated shell artifact requires a real MIB_RUNTIME_BEARER_TOKEN of at least 32 characters
-    - the generated shell artifact preserves the safe sequence candidate_scan, adapter_intake, rc_gate_preflight, rc_gate_live, evidence_bundle_verification, v0_readiness_recheck
+    - the generated shell artifact preserves the safe sequence candidate_scan, adapter_intake, rc_gate_preflight, rc_gate_live, evidence_bundle_assembly, v0_readiness_recheck
     - artifacts/review/real_adapter_cuda_handoff.json records executable_artifact: artifacts/review/real_adapter_cuda_handoff.sh
-    - scripts/build_real_adapter_handoff.py now composes candidate scan, adapter intake, RC preflight, live no-fake RC gate, real-adapter evidence bundle verification, and v0 readiness recheck
-    - the handoff command sequence runs scripts/verify_real_adapter_evidence_bundle.py --expected-decision GO after rc_gate_live and before v0_readiness_recheck
-    - artifacts/review/real_adapter_cuda_handoff.md now lists the evidence_bundle_verification command and the GO_REAL_ADAPTER_EVIDENCE_BUNDLE release precondition
+    - scripts/build_real_adapter_handoff.py now composes candidate scan, adapter intake, RC preflight, live no-fake RC gate, real-adapter evidence bundle assembly, and v0 readiness recheck
+    - the handoff command sequence runs scripts/build_real_adapter_evidence_bundle.py --expected-decision GO after rc_gate_live and before v0_readiness_recheck
+    - artifacts/review/real_adapter_cuda_handoff.md now lists the evidence_bundle_assembly command and the GO_REAL_ADAPTER_EVIDENCE_BUNDLE release precondition
     - current handoff state exposes real_adapter_evidence_bundle_decision NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE and real_adapter_evidence_bundle_ready false
     - scripts/verify_real_adapter_evidence_bundle.py now validates endpoint/intake/RC-gate/M6 evidence only, avoiding a circular dependency on v0 readiness
     - scripts/verify_v0_release_readiness.py now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE for release GO
@@ -153,7 +157,8 @@ last_completed_work:
     - no backend, schema, training, export, runtime behavior, or M6 evidence policy files changed
 
 important_previous_commits:
-  real_adapter_evidence_bundle_assembly: this_commit
+  real_adapter_evidence_bundle_promotion: this_commit
+  real_adapter_evidence_bundle_assembly: f240bf1
   cuda_base_image_candidate_propagation: 9dea880
   cuda_base_image_resolver_runtime_alignment: b0f83e5
   cuda_base_image_runtime_preflight: bb296b4
@@ -191,18 +196,15 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: real_adapter_evidence_bundle_assembly_verified_not_go
+status: real_adapter_evidence_bundle_promotion_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/build_real_adapter_evidence_bundle.py scripts/build_real_adapter_handoff.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_evidence_bundle.py tests/scripts/test_build_real_adapter_handoff.py -q
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_evidence_bundle.py --source-dir artifacts/review --bundle-dir /tmp/mib-real-adapter-evidence-bundle --expected-decision NOT_GO --verification-output /tmp/mib-real-adapter-evidence-bundle-verification.json --manifest-output /tmp/mib-real-adapter-evidence-bundle-manifest.json
-  - python3 -m json.tool /tmp/mib-real-adapter-evidence-bundle-verification.json
-  - python3 -m json.tool /tmp/mib-real-adapter-evidence-bundle-manifest.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md --shell-output artifacts/review/real_adapter_cuda_handoff.sh
-  - python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json
-  - bash -n artifacts/review/real_adapter_cuda_handoff.sh
-  - rg -n -- "build_real_adapter_evidence_bundle.py|evidence_bundle_assembly|real_adapter_evidence_bundle" scripts/build_real_adapter_evidence_bundle.py scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_evidence_bundle.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/promote_real_adapter_evidence_bundle.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_promote_real_adapter_evidence_bundle.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/promote_real_adapter_evidence_bundle.py --bundle-dir artifacts/review --target-dir /tmp/mib-real-adapter-promoted-review --expected-decision NOT_GO --dry-run --verification-output /tmp/mib-real-adapter-promotion-verification.json --promotion-manifest-output /tmp/mib-real-adapter-promotion-manifest.json
+  - python3 -m json.tool /tmp/mib-real-adapter-promotion-verification.json
+  - python3 -m json.tool /tmp/mib-real-adapter-promotion-manifest.json
+  - rg -n -- "promote_real_adapter_evidence_bundle|promotion_manifest|dry_run|GO_REAL_ADAPTER_EVIDENCE_BUNDLE" scripts/promote_real_adapter_evidence_bundle.py tests/scripts/test_promote_real_adapter_evidence_bundle.py docs/WORKING.md
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
@@ -268,6 +270,7 @@ recorded_go:
   CUDA_Base_Image_Resolver_Runtime_Alignment: true
   CUDA_Base_Image_Candidate_Propagation: true
   Real_Adapter_Evidence_Bundle_Assembly: true
+  Real_Adapter_Evidence_Bundle_Promotion: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -275,9 +278,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-real-adapter-evidence-bundle-assembly
-  review_bundle: artifacts/review/real_adapter_cuda_handoff.json
-  decision: real_adapter_evidence_bundle_assembly_verified_not_go
+  id: mib-studio-real-adapter-evidence-bundle-promotion
+  review_bundle: scripts/promote_real_adapter_evidence_bundle.py
+  decision: real_adapter_evidence_bundle_promotion_verified_not_go
 
 active_release_blocker:
   id: m6-real-trained-adapter-no-fake-endpoint-evidence
@@ -313,6 +316,7 @@ immediate:
   - rerun scripts/run_m6_real_adapter_rc_gate.py --preflight-only with the real paths until status is READY_TO_RUN
   - run scripts/run_m6_real_adapter_rc_gate.py without --preflight-only/--plan-only against the real adapter, exported Docker image, and model cache
   - run scripts/build_real_adapter_evidence_bundle.py after live RC gate success to assemble artifacts/review/real_adapter_evidence_bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE
+  - if the GO bundle is produced on another CUDA host, copy that bundle locally and run scripts/promote_real_adapter_evidence_bundle.py --bundle-dir <copied_bundle> --target-dir artifacts/review --expected-decision GO before v0 readiness recheck
   - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
@@ -321,11 +325,13 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-real-adapter-evidence-bundle-assembly. Before accepting any external
-CUDA evidence bundle, run scripts/verify_real_adapter_evidence_bundle.py against
-the bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE; v0 readiness now also
-requires that bundle decision for release GO. The current local artifacts/review
-bundle is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE. Start with
+mib-studio-real-adapter-evidence-bundle-promotion. Before accepting any external
+CUDA evidence bundle, run scripts/promote_real_adapter_evidence_bundle.py against
+the copied bundle with --expected-decision GO. It first uses the existing strict
+bundle verifier and promotes only the fixed verifier-required files into
+artifacts/review when GO_REAL_ADAPTER_EVIDENCE_BUNDLE is proven. v0 readiness now
+also requires that bundle decision for release GO. The current local
+artifacts/review bundle is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE. Start with
 artifacts/review/real_adapter_cuda_training_handoff.sh on the CUDA host to
 produce the real trained adapter. That script refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND,
 requires nvidia-smi and ./.venv/bin/llamafactory-cli, resolves
@@ -349,6 +355,11 @@ fixed evidence files before copying, writes
 artifacts/review/real_adapter_evidence_bundle_manifest.json, writes
 artifacts/review/real_adapter_evidence_bundle_verification.json, and requires
 GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness can pass. Use
+scripts/promote_real_adapter_evidence_bundle.py when that GO bundle must be
+promoted from an external/copy location into canonical artifacts/review. It
+supports --dry-run for NOT_GO checks and refuses to copy NOT_GO bundles when GO
+is expected.
+Then use
 scripts/find_real_adapter_candidates.py to scan explicit roots for real adapter
 candidates; GO candidates emit scripts/run_m6_real_adapter_rc_gate.py commands.
 The current training preflight report is

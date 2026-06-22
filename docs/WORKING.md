@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: STRUCTURED_REAL_ENDPOINT_EVIDENCE
+phase_id: REAL_ADAPTER_RC_GATE_RUNNER
 milestone: M6_RC_Blocker_Remediation
-phase_status: structured_real_endpoint_evidence_tooling_verified
+phase_status: real_adapter_rc_gate_runner_tooling_verified
 active_slice: none
-gate_id: mib-studio-structured-real-endpoint-evidence
+gate_id: mib-studio-real-adapter-rc-gate-runner
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,13 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-structured-real-endpoint-evidence
+  gate: mib-studio-real-adapter-rc-gate-runner
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: harden real adapter endpoint evidence with a structured JSON sidecar verifier
+  objective: add a single-command runner for the remaining real adapter M6-RC evidence gate
   evidence:
+    real_adapter_rc_gate_runner: artifacts/review/real_adapter_rc_gate_runner_evidence.md
     structured_real_endpoint_evidence: artifacts/review/structured_real_endpoint_evidence.md
     real_adapter_artifact_intake: artifacts/review/real_adapter_artifact_intake_evidence.md
     real_adapter_endpoint_capture_tooling: artifacts/review/real_adapter_endpoint_capture_tooling_evidence.md
@@ -77,6 +78,9 @@ last_completed_work:
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
+    - scripts/run_m6_real_adapter_rc_gate.py chains adapter intake, live endpoint capture, and M6-RC GO verification for the real adapter closeout path
+    - runner plan-only output records the exact command sequence without executing live Docker evidence or claiming GO
+    - focused tests prove the runner stops before endpoint capture on intake failure, refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND, and redacts bearer tokens
     - scripts/capture_real_adapter_endpoint_evidence.py now writes markdown plus structured JSON sidecar evidence
     - structured endpoint JSON records source, self_test, adapter/intake hashes, endpoint status codes, output equivalence, fake-backend absence, and read-only model-cache mount state
     - live capture requires GO adapter artifact intake and lowercase SHA-256 adapter/artifact manifest hashes
@@ -126,13 +130,13 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: structured_real_endpoint_evidence_tooling_verified
+status: real_adapter_rc_gate_runner_tooling_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md --json-output /tmp/mib-real-adapter-endpoint-self-test.json
-  - python3 -m json.tool /tmp/mib-real-adapter-endpoint-self-test.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --plan-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output /tmp/mib-real-adapter-rc-gate-plan.json
+  - python3 -m json.tool /tmp/mib-real-adapter-rc-gate-plan.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json
   - python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json
   - git diff --check
@@ -174,6 +178,7 @@ recorded_go:
   Real_Adapter_Endpoint_Capture_Tooling: true
   Real_Adapter_Artifact_Intake_Tooling: true
   Structured_Real_Endpoint_Evidence_Tooling: true
+  Real_Adapter_RC_Gate_Runner_Tooling: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -181,9 +186,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 active_gate:
-  id: mib-studio-structured-real-endpoint-evidence
+  id: mib-studio-real-adapter-rc-gate-runner
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/structured_real_endpoint_evidence.md
+  review_bundle: artifacts/review/real_adapter_rc_gate_runner_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -215,8 +220,8 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - decide whether to run/provide a real CUDA training artifact or change release policy for v0 RC
-  - if real adapter evidence is still required, export a new Docker image with a real adapter and rerun no-fake-backend Docker endpoints
+  - provide or train a real CUDA lora_adapter and strict external model cache
+  - run scripts/run_m6_real_adapter_rc_gate.py without --plan-only against the real adapter, exported Docker image, and model cache
   - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
@@ -282,6 +287,14 @@ markdown-only evidence or self_test JSON. The sidecar must have
 source=live_docker_capture, self_test=false, GO adapter intake hashes, no fake
 backend, a read-only model-cache mount, 200 health/native/OpenAI statuses, and
 native/OpenAI output equivalence.
+Real adapter RC gate runner tooling is recorded in
+artifacts/review/real_adapter_rc_gate_runner_evidence.md. Use
+scripts/run_m6_real_adapter_rc_gate.py without --plan-only to chain real adapter
+intake, live endpoint capture, and M6-RC GO verification after a real trained
+CUDA lora_adapter, exported Docker image, strict model cache, and bearer token
+are available. The runner refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND and redacts
+bearer tokens in its JSON summary. Current plan-only verification does not run
+Docker evidence and does not claim GO.
 M6-RC remains NOT_GO until real trained adapter inference evidence exists or the
 release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
 for Python.

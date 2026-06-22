@@ -1,16 +1,15 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Harden real adapter endpoint evidence from marker-shaped markdown to structured JSON verification. capture_real_adapter_endpoint_evidence.py must write a JSON sidecar with live/self-test source, adapter intake hashes, endpoint statuses, output equivalence, fake-backend absence, and read-only model-cache mount state. verify_m6_rc_evidence.py must prefer and validate the JSON sidecar so markdown-only or self-test evidence cannot close M6-RC. This gate does not provide a real adapter and must preserve current M6-RC NOT_GO.",
+  "goal": "Add a single-command real adapter M6-RC gate runner that chains the existing verified tools: real adapter artifact intake, live no-fake endpoint evidence capture with structured JSON sidecar, and M6-RC evidence verification. This phase must not claim M6-RC GO without an actual live adapter run; it only provides the deterministic runner and plan-only verification in the current no-adapter environment.",
   "phase": "done",
-  "gate": "mib-studio-structured-real-endpoint-evidence",
+  "gate": "mib-studio-real-adapter-rc-gate-runner",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "c4d0227",
+  "head": "d3dfbc6",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/capture_real_adapter_endpoint_evidence.py",
-    "scripts/verify_m6_rc_evidence.py",
+    "scripts/run_m6_real_adapter_rc_gate.py",
     "tests/scripts/",
     "docs/WORKING.md",
     "artifacts/review/"
@@ -26,6 +25,8 @@
     "tests/dataset",
     "tests/eval",
     "tests/export",
+    "tests/hardware",
+    "tests/playground",
     "tests/security",
     "tests/smoke",
     "tests/training",
@@ -43,42 +44,45 @@
     "Claiming M6-RC GO before live structured endpoint evidence exists",
     "Weakening real adapter endpoint evidence acceptance"
   ],
-  "allowed_edit_paths_scope_note": "This gate may harden evidence tooling, focused tests, generated tooling evidence, and handoff docs only.",
+  "allowed_edit_paths_scope_note": "This gate may add the RC evidence runner, focused script tests, generated tooling evidence, WORKING.md handoff updates, and this PABCD contract only.",
   "external_runtime_paths": [
     "/tmp"
   ],
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
+    "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
+    "docs/specs/IMPLEMENTATION_GUIDE.md",
+    "scripts/verify_real_adapter_artifact.py",
     "scripts/capture_real_adapter_endpoint_evidence.py",
     "scripts/verify_m6_rc_evidence.py",
-    "artifacts/review/real_adapter_artifact_intake_evidence.md",
-    "artifacts/review/real_adapter_endpoint_capture_tooling_evidence.md"
+    "artifacts/review/structured_real_endpoint_evidence.md"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md --json-output /tmp/mib-real-adapter-endpoint-self-test.json",
-    "python3 -m json.tool /tmp/mib-real-adapter-endpoint-self-test.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --plan-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output /tmp/mib-real-adapter-rc-gate-plan.json",
+    "python3 -m json.tool /tmp/mib-real-adapter-rc-gate-plan.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
     "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Capture self-test writes structured JSON sidecar",
-    "verify_m6_rc_evidence.py rejects self-test JSON as RC GO evidence",
-    "verify_m6_rc_evidence.py requires structured live JSON fields before GO",
+    "Runner plans and executes adapter intake before endpoint capture",
+    "Runner refuses to proceed when MIB_RUNTIME_ALLOW_FAKE_BACKEND is set",
+    "Runner redacts bearer token values from summaries",
+    "Runner does not claim M6-RC GO in plan-only or current missing-adapter environment",
     "Current M6 verifier remains NOT_GO with real_trained_adapter_no_fake_endpoint blocker"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/capture_real_adapter_endpoint_evidence.py scripts/verify_m6_rc_evidence.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_capture_real_adapter_endpoint_evidence.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/capture_real_adapter_endpoint_evidence.py --self-test --output /tmp/mib-real-adapter-endpoint-self-test.md --json-output /tmp/mib-real-adapter-endpoint-self-test.json",
-    "python3 -m json.tool /tmp/mib-real-adapter-endpoint-self-test.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --plan-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output /tmp/mib-real-adapter-rc-gate-plan.json",
+    "python3 -m json.tool /tmp/mib-real-adapter-rc-gate-plan.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
     "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
     "git diff --check",
@@ -88,31 +92,31 @@
   "warnings": [
     "This gate does not provide a real trained adapter.",
     "This gate does not run live Docker endpoint transcripts.",
-    "M6-RC remains NOT_GO until live structured endpoint evidence exists."
+    "M6-RC remains NOT_GO until the runner is executed with a verified real adapter, strict model cache, and no-fake Docker endpoint evidence."
   ],
   "phase_notes": {
-    "plan": "Open scoped evidence-hardening contract for structured real endpoint evidence.",
-    "audit": "Read current WORKING.md, capture_real_adapter_endpoint_evidence.py, verify_m6_rc_evidence.py, and script tests. Found M6 verifier still relies on markdown markers for endpoint evidence.",
-    "build": "Added structured endpoint JSON sidecar generation, lowercase SHA-256 intake hash enforcement, verifier sidecar validation, and focused tests for self-test/markdown-only/readonly-mount rejection.",
-    "check": "Passed json.tool, py_compile, focused pytest, endpoint capture self-test with JSON sidecar, M6-RC verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
-    "done": "Structured endpoint evidence tooling is complete. M6-RC remains NOT_GO because live real trained adapter no-fake endpoint evidence is still absent."
+    "plan": "Open scoped runner gate that chains existing real adapter intake, endpoint capture, and M6-RC verification tools.",
+    "audit": "Read current WORKING.md, CONTEXT.md, SSOT Phase 3-6 excerpts, M6 CTO decision, real adapter inference evidence, artifact intake tooling, endpoint capture tooling, M6 verifier, and existing training/export runtime code. The remaining M6-RC blocker is live no-fake endpoint evidence from a verified real CUDA lora_adapter.",
+    "build": "Added scripts/run_m6_real_adapter_rc_gate.py to chain adapter intake, live endpoint capture, and M6-RC GO verification. Added focused tests for command ordering, intake failure stop, plan-only no-execute behavior, fake-backend refusal, and token redaction. Updated WORKING.md and runner evidence.",
+    "check": "Passed json.tool, py_compile, focused pytest, runner plan-only JSON, M6 verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "Runner tooling is complete. M6-RC remains NOT_GO because no real trained adapter live endpoint run was executed in this environment."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-structured-real-endpoint-evidence",
-    "status": "MIB_STUDIO_STRUCTURED_REAL_ENDPOINT_EVIDENCE_COMPLETE_M6_NOT_GO",
+    "gate": "mib-studio-real-adapter-rc-gate-runner",
+    "status": "MIB_STUDIO_REAL_ADAPTER_RC_GATE_RUNNER_COMPLETE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Structured endpoint evidence tooling, focused tests, generated evidence, WORKING.md, and PABCD contract only.",
+    "approved_scope": "RC evidence runner, focused tests, generated evidence, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no M6 GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped evidence-hardening contract for structured real endpoint evidence.",
-    "audit": "Read current WORKING.md, capture_real_adapter_endpoint_evidence.py, verify_m6_rc_evidence.py, and script tests. Found M6 verifier still relies on markdown markers for endpoint evidence.",
-    "build": "Added structured endpoint JSON sidecar generation, lowercase SHA-256 intake hash enforcement, verifier sidecar validation, and focused tests for self-test/markdown-only/readonly-mount rejection.",
-    "check": "Passed json.tool, py_compile, focused pytest, endpoint capture self-test with JSON sidecar, M6-RC verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
-    "done": "Structured endpoint evidence tooling is complete. M6-RC remains NOT_GO because live real trained adapter no-fake endpoint evidence is still absent."
+    "plan": "Open scoped runner gate that chains existing real adapter intake, endpoint capture, and M6-RC verification tools.",
+    "audit": "Read current WORKING.md, CONTEXT.md, SSOT Phase 3-6 excerpts, M6 CTO decision, real adapter inference evidence, artifact intake tooling, endpoint capture tooling, M6 verifier, and existing training/export runtime code. The remaining M6-RC blocker is live no-fake endpoint evidence from a verified real CUDA lora_adapter.",
+    "build": "Added scripts/run_m6_real_adapter_rc_gate.py to chain adapter intake, live endpoint capture, and M6-RC GO verification. Added focused tests for command ordering, intake failure stop, plan-only no-execute behavior, fake-backend refusal, and token redaction. Updated WORKING.md and runner evidence.",
+    "check": "Passed json.tool, py_compile, focused pytest, runner plan-only JSON, M6 verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "Runner tooling is complete. M6-RC remains NOT_GO because no real trained adapter live endpoint run was executed in this environment."
   }
 }

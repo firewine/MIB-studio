@@ -2,15 +2,15 @@
 
 ```yaml
 schema_version: mib_external_cuda_handoff_readiness_audit.v1
-date: "2026-06-22T22:18:06Z"
+date: "2026-06-22T23:20:07Z"
 gate: mib-studio-external-cuda-handoff-readiness-audit
 status: WAITING_FOR_EXTERNAL_CUDA_HOST
 release_claimed_go: false
 m6_rc_claimed_go: false
 v0_release_ready: false
 current_release_blocker: real_trained_adapter_no_fake_endpoint
-workspace_head: 2e3a70b
-packet_handoff_source_commit: cbd6074
+workspace_head: 50d67bf
+packet_handoff_source_commit: 3e9f3ea
 ```
 
 ## Ready
@@ -33,7 +33,7 @@ packet_handoff_source_commit: cbd6074
 
 ## Evidence
 
-- Packet verifier: `verified 18 required file hashes`; `verified 18 required file blobs at cbd6074`.
+- Packet verifier: `verified 18 required file hashes`; `verified 18 required file blobs at 3e9f3ea`.
 - Transfer manifest: `READY_EXTERNAL_CUDA_OPERATOR_TRANSFER` from full repository checkout inputs.
 - Strict model cache: `READY_STRICT_MODEL_CACHE`, no download, 5 required Phi-3.5 files present.
 - Docker daemon: available, server `29.6.0`.
@@ -42,7 +42,7 @@ packet_handoff_source_commit: cbd6074
 
 ## Next External CUDA Host Actions
 
-1. Run from a full repository checkout at or after `2e3a70b`; the packet source commit is `cbd6074`.
+1. Run from a full repository checkout at or after `50d67bf`; the packet source commit is `3e9f3ea`.
 2. Ensure `nvidia-smi` succeeds on the host.
 3. Set a real `MIB_RUNTIME_BEARER_TOKEN` with at least 32 characters before the RC handoff.
 4. Run `bash artifacts/review/verified_external_cuda_training_launcher.sh`.

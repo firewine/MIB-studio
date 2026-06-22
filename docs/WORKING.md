@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_3E9F3EA_RECERTIFICATION
+phase_id: EXTERNAL_CUDA_HANDOFF_READINESS_AUDIT_AFTER_50D67BF_PACKET
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-external-cuda-operator-packet-refresh-after-3e9f3ea-recertification
+gate_id: mib-studio-external-cuda-handoff-readiness-audit-after-50d67bf-packet
 mode: development
 product_code_changed: false
 frontend_code_changed: false
@@ -52,7 +52,7 @@ verification_tooling_changed: false
 training_handoff_artifacts_refreshed: false
 external_operator_packet_refreshed: true
 external_operator_packet_refresh_required_after_phase_commit: false
-external_cuda_handoff_readiness_refreshed: false
+external_cuda_handoff_readiness_refreshed: true
 operator_packet_ready: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
@@ -64,6 +64,8 @@ current_decision:
   current_head_v0_recertification: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  external_cuda_handoff_readiness: WAITING_FOR_EXTERNAL_CUDA_HOST
+  current_workspace_head: 50d67bf
   current_packet_source_commit: 3e9f3ea
   current_phase_changes_make_packet_stale_until_follow_up_refresh: false
   training_handoff_command_order_suffix:
@@ -76,6 +78,77 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-handoff-readiness-audit-after-50d67bf-packet
+objective: refresh current-head external CUDA handoff readiness after packet refresh commit 50d67bf
+
+checkout_head: 50d67bf
+packet_source_commit: 3e9f3ea
+
+readiness_audit:
+  status: WAITING_FOR_EXTERNAL_CUDA_HOST
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  current_release_blocker: real_trained_adapter_no_fake_endpoint
+
+packet_verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  operator_packet_ready: true
+  verification_ok: true
+  required_file_hashes: verified 18 required file hashes
+  required_commit_blobs: verified 18 required file blobs at 3e9f3ea
+  warnings: []
+
+transfer_manifest:
+  status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  packet_handoff_source_commit: 3e9f3ea
+  json_output: /tmp/mib-50d67bf-external-cuda-transfer-readiness.json
+  transfer_model: full_repository_checkout_required
+  committed_to_repo: false
+
+strict_model_cache:
+  status: READY_STRICT_MODEL_CACHE
+  download_allowed: false
+  required_file_count: 5
+  json_output: /tmp/mib-50d67bf-strict-model-cache-readiness.json
+
+ready_requirements:
+  - GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  - READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  - READY_STRICT_MODEL_CACHE
+  - backend_config_present
+  - docker_daemon_available
+  - docker_base_image_available
+
+blocking_requirements:
+  - nvidia_smi_available
+  - adapter_safetensors_present
+  - adapter_config_present
+  - adapter_manifest_present
+  - mib_export_test_image_available
+  - runtime_bearer_token_present
+
+local_host_checks:
+  nvidia_smi_available: false
+  docker_daemon_available: true
+  docker_server_version: 29.6.0
+  docker_base_image_available: true
+  mib_export_test_image_available: false
+  backend_config_present: true
+  adapter_root_present: true
+  adapter_dir_present: true
+  adapter_safetensors_present: false
+  adapter_config_present: false
+  adapter_manifest_present: false
+  runtime_bearer_token_present: false
+
+operator_next_step:
+  run: bash artifacts/review/verified_external_cuda_training_launcher.sh
+  host: external CUDA host with full repository checkout at or after 50d67bf, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, real runtime token, and real adapter output paths
+  note: do not build or tag mib-export:test from fake or self-test adapter material; readiness audit does not claim M6-RC GO or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-external-cuda-operator-packet-refresh-after-3e9f3ea-recertification

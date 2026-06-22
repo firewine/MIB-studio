@@ -1,6 +1,6 @@
 {
   "schema_version": "mib_external_cuda_handoff_readiness_audit.v1",
-  "date": "2026-06-22T21:56:41Z",
+  "date": "2026-06-22T22:18:06Z",
   "gate": "mib-studio-external-cuda-handoff-readiness-audit",
   "status": "WAITING_FOR_EXTERNAL_CUDA_HOST",
   "release_claimed_go": false,
@@ -10,34 +10,37 @@
   "workspace": {
     "root": "/home/firewine/MIB-studio",
     "branch": "main",
-    "head": "e5d761f",
-    "git_status": "clean_against_origin_main"
+    "head": "2e3a70b",
+    "git_status": "clean_against_origin_main_before_audit_refresh"
   },
   "packet_readiness": {
     "packet_json": "artifacts/review/external_cuda_operator_packet.json",
-    "verification_json": "/tmp/mib-e5d761f-external-cuda-packet-readiness.json",
+    "verification_json": "/tmp/mib-2e3a70b-external-cuda-packet-readiness.json",
     "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
     "verification_ok": true,
     "operator_packet_ready": true,
-    "packet_handoff_source_commit": "b3efba2",
+    "packet_handoff_source_commit": "cbd6074",
     "required_committed_files": 18,
-    "required_commit_blobs": "verified 18 required file blobs at b3efba2",
+    "required_file_hashes": "verified 18 required file hashes",
+    "required_commit_blobs": "verified 18 required file blobs at cbd6074",
     "warnings": []
   },
   "transfer_manifest_readiness": {
-    "json_output": "/tmp/mib-e5d761f-external-cuda-transfer-readiness.json",
+    "json_output": "/tmp/mib-2e3a70b-external-cuda-transfer-readiness.json",
     "status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
     "full_checkout_required": true,
     "partial_file_archive_allowed": false,
-    "packet_handoff_source_commit": "b3efba2"
+    "packet_handoff_source_commit": "cbd6074",
+    "packet_verification_json": "artifacts/review/external_cuda_operator_packet_verification.json"
   },
   "strict_model_cache_readiness": {
-    "json_output": "/tmp/mib-e5d761f-strict-model-cache-readiness.json",
+    "json_output": "/tmp/mib-2e3a70b-strict-model-cache-readiness.json",
     "status": "READY_STRICT_MODEL_CACHE",
     "download_allowed": false,
     "cache_ready": true,
     "required_file_count": 5,
-    "model_cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache"
+    "model_cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache",
+    "cache_subdir": "microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77"
   },
   "local_host_checks": {
     "nvidia_smi_available": false,
@@ -46,6 +49,7 @@
     "docker_base_image_available": true,
     "docker_base_image": "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126",
     "mib_export_test_image_available": false,
+    "mib_export_test_image_error": "No such image: mib-export:test",
     "backend_config_present": true,
     "adapter_root_present": true,
     "adapter_dir_present": true,
@@ -71,13 +75,13 @@
     "docker_base_image_available"
   ],
   "next_external_cuda_host_actions": [
-    "Run from a full repository checkout at or after e5d761f; the operator packet handoff source commit remains b3efba2.",
+    "Run from a full repository checkout at or after 2e3a70b; the operator packet handoff source commit is cbd6074.",
     "Ensure nvidia-smi succeeds on the host.",
     "Set a real MIB_RUNTIME_BEARER_TOKEN with at least 32 characters before the RC handoff.",
     "Run bash artifacts/review/verified_external_cuda_training_launcher.sh.",
     "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
     "After training, require /tmp/mib-real-adapter/adapter/adapter.safetensors, /tmp/mib-real-adapter/adapter/adapter_config.json, and /tmp/mib-real-adapter/manifest.json.",
-    "Build or provide mib-export:test with the same real adapter hash.",
+    "Build or provide mib-export:test with the same real adapter hash after real adapter intake is GO.",
     "Capture live no-fake Docker endpoint evidence, then update docs/reviews/M6 to GO only after evidence is accepted.",
     "Return only the metadata-bearing real_adapter_evidence_bundle archive and accepted review doc updates for local closeout."
   ],
@@ -85,6 +89,7 @@
     "Do not commit model weights or LoRA adapter files.",
     "Do not commit Docker image layers or archives.",
     "Do not commit raw endpoint transcripts or copied external evidence bundles.",
+    "Do not build or tag mib-export:test from fake or self-test adapter material.",
     "Do not claim M6-RC or v0 GO from this readiness audit."
   ]
 }

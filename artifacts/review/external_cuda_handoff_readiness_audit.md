@@ -2,15 +2,15 @@
 
 ```yaml
 schema_version: mib_external_cuda_handoff_readiness_audit.v1
-date: "2026-06-22T21:56:41Z"
+date: "2026-06-22T22:18:06Z"
 gate: mib-studio-external-cuda-handoff-readiness-audit
 status: WAITING_FOR_EXTERNAL_CUDA_HOST
 release_claimed_go: false
 m6_rc_claimed_go: false
 v0_release_ready: false
 current_release_blocker: real_trained_adapter_no_fake_endpoint
-workspace_head: e5d761f
-packet_handoff_source_commit: b3efba2
+workspace_head: 2e3a70b
+packet_handoff_source_commit: cbd6074
 ```
 
 ## Ready
@@ -31,15 +31,24 @@ packet_handoff_source_commit: b3efba2
 - `mib_export_test_image_available`: false
 - `runtime_bearer_token_present`: false
 
+## Evidence
+
+- Packet verifier: `verified 18 required file hashes`; `verified 18 required file blobs at cbd6074`.
+- Transfer manifest: `READY_EXTERNAL_CUDA_OPERATOR_TRANSFER` from full repository checkout inputs.
+- Strict model cache: `READY_STRICT_MODEL_CACHE`, no download, 5 required Phi-3.5 files present.
+- Docker daemon: available, server `29.6.0`.
+- Digest-pinned CUDA base image: `pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126`.
+- `mib-export:test`: unavailable; Docker reports `No such image: mib-export:test`.
+
 ## Next External CUDA Host Actions
 
-1. Run from a full repository checkout at or after `e5d761f`; the packet source commit is `b3efba2`.
+1. Run from a full repository checkout at or after `2e3a70b`; the packet source commit is `cbd6074`.
 2. Ensure `nvidia-smi` succeeds on the host.
-3. Set a real `MIB_RUNTIME_BEARER_TOKEN` with at least 32 characters.
+3. Set a real `MIB_RUNTIME_BEARER_TOKEN` with at least 32 characters before the RC handoff.
 4. Run `bash artifacts/review/verified_external_cuda_training_launcher.sh`.
 5. Keep `MIB_RUNTIME_ALLOW_FAKE_BACKEND` unset.
 6. After training, require `adapter.safetensors`, `adapter_config.json`, and `/tmp/mib-real-adapter/manifest.json`.
-7. Build or provide `mib-export:test` with the same real adapter hash.
+7. Build or provide `mib-export:test` with the same real adapter hash after real adapter intake is GO.
 8. Capture live no-fake Docker endpoint evidence before changing M6 review docs to GO.
 9. Return only the metadata-bearing evidence bundle archive and accepted review doc updates for local closeout.
 

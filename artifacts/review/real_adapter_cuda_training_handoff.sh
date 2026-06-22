@@ -14,8 +14,8 @@ if ! command -v nvidia-smi >/dev/null 2>&1; then
   exit 2
 fi
 
-if ! command -v llamafactory-cli >/dev/null 2>&1; then
-  echo "Refusing to run: llamafactory-cli is not available." >&2
+if [ ! -x ./.venv/bin/llamafactory-cli ]; then
+  echo "Refusing to run: LLaMA-Factory CLI is not executable: ./.venv/bin/llamafactory-cli" >&2
   exit 2
 fi
 
@@ -30,10 +30,10 @@ if [ ! -f /tmp/mib-real-adapter/backend_config.yaml ]; then
 fi
 
 printf '\n== preflight_cuda_training ==\n'
-./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --llamafactory-cli ./.venv/bin/llamafactory-cli --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json
 
 printf '\n== train_real_adapter ==\n'
-llamafactory-cli train /tmp/mib-real-adapter/backend_config.yaml
+./.venv/bin/llamafactory-cli train /tmp/mib-real-adapter/backend_config.yaml
 
 printf '\n== finalize_manifest ==\n'
 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --finalize-only --base-model microsoft/Phi-3.5-mini-instruct --output-root /tmp/mib-real-adapter --json-output artifacts/review/real_adapter_cuda_training_finalize.json

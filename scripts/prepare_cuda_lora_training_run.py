@@ -87,11 +87,13 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         str(config_path),
         "--image",
         args.image,
+        "--llamafactory-cli",
+        args.llamafactory_cli,
         "--verify-model-cache-hashes",
         "--json-output",
         args.preflight_json_output,
     ]
-    train_command = ["llamafactory-cli", "train", str(config_path)]
+    train_command = [args.llamafactory_cli, "train", str(config_path)]
     finalize_command = [
         args.python,
         "scripts/prepare_cuda_lora_training_run.py",
@@ -149,6 +151,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
             "dataset_sha256": trainer_input.dataset_sha256,
             "base_model": args.base_model,
             "model_cache_dir": args.model_cache_dir,
+            "llamafactory_cli": args.llamafactory_cli,
             "output_root": args.output_root,
             "training_preset": args.training_preset,
             "seed": args.seed,
@@ -267,6 +270,18 @@ def render_shell(report: dict[str, Any]) -> str:
     commands = "\n\n".join(f"printf '\\n== {row['id']} ==\\n'\n{row['shell']}" for row in report["command_sequence"])
     output_root = shlex.quote(report["inputs"]["output_root"])
     model_cache_dir = shlex.quote(report["inputs"]["model_cache_dir"])
+    llamafactory_cli_raw = report["inputs"]["llamafactory_cli"]
+    llamafactory_cli = shlex.quote(llamafactory_cli_raw)
+    if "/" in llamafactory_cli_raw:
+        llamafactory_check = f"""if [ ! -x {llamafactory_cli} ]; then
+  echo "Refusing to run: LLaMA-Factory CLI is not executable: {llamafactory_cli}" >&2
+  exit 2
+fi"""
+    else:
+        llamafactory_check = f"""if ! command -v {llamafactory_cli} >/dev/null 2>&1; then
+  echo "Refusing to run: LLaMA-Factory CLI is not available: {llamafactory_cli}" >&2
+  exit 2
+fi"""
     return f"""#!/usr/bin/env bash
 set -euo pipefail
 
@@ -283,10 +298,7 @@ if ! command -v nvidia-smi >/dev/null 2>&1; then
   exit 2
 fi
 
-if ! command -v llamafactory-cli >/dev/null 2>&1; then
-  echo "Refusing to run: llamafactory-cli is not available." >&2
-  exit 2
-fi
+{llamafactory_check}
 
 if [ ! -d {model_cache_dir} ]; then
   echo "Refusing to run: model cache directory is missing: {model_cache_dir}" >&2
@@ -318,6 +330,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-run-id", default="external_cuda_model_run")
     parser.add_argument("--hardware-profile-id", default="external_cuda_host")
     parser.add_argument("--python", default="./.venv/bin/python")
+    parser.add_argument("--llamafactory-cli", default="./.venv/bin/llamafactory-cli")
     parser.add_argument("--agent-id", default="finance.router.v1")
     parser.add_argument("--image", default="mib-export:test")
     parser.add_argument("--docker-context-output", default="/tmp/mib-real-adapter/docker_context")

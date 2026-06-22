@@ -2,7 +2,6 @@
   "blockers": [
     "docker_base_image_env_digest",
     "cuda_visible",
-    "llamafactory_cli_available",
     "docker_base_image_available"
   ],
   "checks": [
@@ -55,13 +54,13 @@
     },
     {
       "command": [
-        "llamafactory-cli",
-        "--version"
+        "./.venv/bin/llamafactory-cli",
+        "version"
       ],
-      "detail": "[Errno 2] No such file or directory: 'llamafactory-cli'",
+      "detail": "ok",
       "id": "llamafactory_cli_available",
-      "ok": false,
-      "returncode": null
+      "ok": true,
+      "returncode": 0
     },
     {
       "command": [
@@ -88,7 +87,7 @@
       "returncode": null
     }
   ],
-  "date": "2026-06-22T02:44:30.230943+00:00",
+  "date": "2026-06-22T02:53:37.345762+00:00",
   "env_requirements": {
     "docker_base_image_digest_present": false,
     "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",
@@ -100,6 +99,7 @@
     "base_model": "microsoft/Phi-3.5-mini-instruct",
     "dataset_jsonl": "examples/fixtures/router_20.jsonl",
     "image": "mib-export:test",
+    "llamafactory_cli": "./.venv/bin/llamafactory-cli",
     "model_cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache",
     "output_root": "/tmp/mib-real-adapter",
     "verify_model_cache_hashes": true

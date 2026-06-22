@@ -66,6 +66,18 @@ def command_check(check_id: str, command: list[str], *, timeout: int, runner: Ru
     return check_row(check_id, result.returncode == 0, detail, command=command, returncode=result.returncode)
 
 
+def llamafactory_cli_check(command_path: str, *, timeout: int, runner: Runner) -> dict[str, Any]:
+    command = [command_path, "version"]
+    try:
+        result = runner(command, timeout)
+    except Exception as exc:
+        return check_row("llamafactory_cli_available", False, str(exc), command=command, returncode=None)
+    output = (result.stdout or result.stderr or "").strip()
+    ok = result.returncode == 0 and "LLaMA Factory" in output
+    detail = "ok" if ok else clip(output)
+    return check_row("llamafactory_cli_available", ok, detail, command=command, returncode=result.returncode)
+
+
 def digest_reference(value: str | None) -> bool:
     return bool(value and DIGEST_REF_RE.fullmatch(value))
 
@@ -174,7 +186,7 @@ def build_report(args: argparse.Namespace, *, runner: Runner = run_subprocess, e
         backend_config_check(Path(args.backend_config), model_cache_dir=args.model_cache_dir, output_root=args.output_root),
         strict_model_cache_check(base_model=args.base_model, model_cache_dir=Path(args.model_cache_dir), verify_hashes=args.verify_model_cache_hashes),
         command_check("cuda_visible", ["nvidia-smi"], timeout=30, runner=runner),
-        command_check("llamafactory_cli_available", ["llamafactory-cli", "--version"], timeout=30, runner=runner),
+        llamafactory_cli_check(args.llamafactory_cli, timeout=30, runner=runner),
         command_check("docker_daemon_available", ["docker", "version", "--format", "{{.Server.Version}}"], timeout=30, runner=runner),
     ]
     if base_image:
@@ -204,6 +216,7 @@ def build_report(args: argparse.Namespace, *, runner: Runner = run_subprocess, e
             "output_root": args.output_root,
             "backend_config": args.backend_config,
             "image": args.image,
+            "llamafactory_cli": args.llamafactory_cli,
             "verify_model_cache_hashes": args.verify_model_cache_hashes,
         },
         "env_requirements": {
@@ -231,6 +244,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-root", required=True)
     parser.add_argument("--backend-config", required=True)
     parser.add_argument("--image", default="mib-export:test")
+    parser.add_argument("--llamafactory-cli", default="./.venv/bin/llamafactory-cli")
     parser.add_argument("--verify-model-cache-hashes", action="store_true")
     parser.add_argument("--json-output", default="artifacts/review/real_adapter_cuda_training_prereq_preflight.json")
     parser.add_argument("--expected-status", choices=[READY_STATUS, NOT_READY_STATUS])

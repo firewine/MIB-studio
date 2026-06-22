@@ -24,23 +24,25 @@
         "/tmp/mib-real-adapter/backend_config.yaml",
         "--image",
         "mib-export:test",
+        "--llamafactory-cli",
+        "./.venv/bin/llamafactory-cli",
         "--verify-model-cache-hashes",
         "--json-output",
         "artifacts/review/real_adapter_cuda_training_prereq_preflight.json"
       ],
       "id": "preflight_cuda_training",
       "note": "Fail fast unless CUDA, LLaMA-Factory, Docker base image, backend config, dataset, and strict model cache prerequisites are ready.",
-      "shell": "./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json"
+      "shell": "./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --llamafactory-cli ./.venv/bin/llamafactory-cli --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json"
     },
     {
       "argv": [
-        "llamafactory-cli",
+        "./.venv/bin/llamafactory-cli",
         "train",
         "/tmp/mib-real-adapter/backend_config.yaml"
       ],
       "id": "train_real_adapter",
       "note": "Run actual CUDA QLoRA training with LLaMA-Factory on the CUDA host.",
-      "shell": "llamafactory-cli train /tmp/mib-real-adapter/backend_config.yaml"
+      "shell": "./.venv/bin/llamafactory-cli train /tmp/mib-real-adapter/backend_config.yaml"
     },
     {
       "argv": [
@@ -110,13 +112,14 @@
       "shell": "bash artifacts/review/real_adapter_cuda_handoff.sh"
     }
   ],
-  "date": "2026-06-22T02:44:08.731642+00:00",
+  "date": "2026-06-22T02:53:23.375898+00:00",
   "gate": "mib-studio-cuda-real-adapter-training-handoff",
   "inputs": {
     "base_model": "microsoft/Phi-3.5-mini-instruct",
     "dataset_id": "review_router_20",
     "dataset_jsonl": "examples/fixtures/router_20.jsonl",
     "dataset_sha256": "3be5cdfe2f6b655eed0e9c11c8ec23b5778bf61798b4c8fb152be67a9953bd90",
+    "llamafactory_cli": "./.venv/bin/llamafactory-cli",
     "max_seq_length": 1024,
     "model_cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache",
     "output_root": "/tmp/mib-real-adapter",

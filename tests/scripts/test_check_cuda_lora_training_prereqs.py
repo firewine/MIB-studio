@@ -48,6 +48,7 @@ def args_for(tmp_path: Path) -> SimpleNamespace:
         output_root=str(tmp_path / "run"),
         backend_config=str(backend_config),
         image="mib-export:test",
+        llamafactory_cli="./.venv/bin/llamafactory-cli",
         verify_model_cache_hashes=True,
         json_output=str(tmp_path / "preflight.json"),
         expected_status=None,
@@ -56,11 +57,13 @@ def args_for(tmp_path: Path) -> SimpleNamespace:
 
 def test_preflight_reports_not_ready_without_cuda_docker_digest_or_cache(tmp_path: Path) -> None:
     args = args_for(tmp_path)
+    commands: list[list[str]] = []
 
     def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
         if command[0] == "nvidia-smi":
             return completed(command, 127, stderr="nvidia-smi: not found")
-        if command[0] == "llamafactory-cli":
+        if command[0] == args.llamafactory_cli:
             return completed(command, 127, stderr="llamafactory-cli: not found")
         if command[:2] == ["docker", "version"]:
             return completed(command, 1, stderr="docker daemon unavailable")
@@ -82,7 +85,9 @@ def test_preflight_reports_not_ready_without_cuda_docker_digest_or_cache(tmp_pat
     assert "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST" in json.dumps(report)
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND" in json.dumps(report)
     assert "nvidia-smi" in json.dumps(report)
-    assert "llamafactory-cli" in json.dumps(report)
+    assert args.llamafactory_cli in json.dumps(report)
+    assert [args.llamafactory_cli, "version"] in commands
+    assert [args.llamafactory_cli, "--version"] not in commands
 
 
 def test_preflight_ready_with_digest_env_strict_cache_and_commands(tmp_path: Path, monkeypatch) -> None:
@@ -102,8 +107,10 @@ def test_preflight_ready_with_digest_env_strict_cache_and_commands(tmp_path: Pat
     )
 
     def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
-        if command[0] in {"nvidia-smi", "llamafactory-cli"}:
+        if command[0] == "nvidia-smi":
             return completed(command)
+        if command == [args.llamafactory_cli, "version"]:
+            return completed(command, stdout="Welcome to LLaMA Factory, version 0.9.5")
         if command[:2] == ["docker", "version"]:
             return completed(command, stdout="24.0")
         if command[:3] == ["docker", "image", "inspect"]:

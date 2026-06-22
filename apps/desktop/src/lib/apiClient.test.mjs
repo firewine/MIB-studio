@@ -108,6 +108,29 @@ test("createApiClient maps Package and Playground workflow routes", async () => 
   assert.equal(seen[3].url, "http://local.test/agent-packages/pkg%201/playground-runs");
 });
 
+test("createApiClient maps Export workflow routes", async () => {
+  const seen = [];
+  const api = createApiClient({ baseUrl: "http://local.test", token: "secret" }, async (url, init) => {
+    seen.push({ url, init });
+    return response(200, { job_id: "job_export_1", status: "QUEUED" });
+  });
+
+  await api.request("createExport", {
+    params: { id: "proj 1" },
+    body: { agent_package_id: "pkg 1", export_type: "zip" },
+    idempotencyKey: "export-1",
+  });
+  await api.request("getExport", { params: { job_id: "job export 1" } });
+  await api.request("revealExportArtifact", { params: { job_id: "job export 1" } });
+
+  assert.equal(seen[0].url, "http://local.test/projects/proj%201/export");
+  assert.equal(seen[0].init.method, "POST");
+  assert.equal(seen[0].init.headers["Idempotency-Key"], "export-1");
+  assert.equal(JSON.parse(seen[0].init.body).export_type, "zip");
+  assert.equal(seen[1].url, "http://local.test/exports/job%20export%201");
+  assert.equal(seen[2].url, "http://local.test/exports/job%20export%201/reveal");
+});
+
 test("createApiClient raises typed API errors", async () => {
   const api = createApiClient({ baseUrl: "http://local.test", token: "secret" }, async () =>
     response(409, { error_code: "MILESTONE_LOCKED", message: "locked", details: {}, trace_id: "t1" }),

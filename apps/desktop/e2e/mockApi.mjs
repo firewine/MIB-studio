@@ -9,6 +9,7 @@ export function startMockApi({ port = 8910 } = {}) {
     benchmarks: [],
     benchmarkReports: new Map(),
     agentPackages: [],
+    exports: new Map(),
     hardware: null,
     job: null,
     credentials: [],
@@ -82,6 +83,13 @@ async function route(request, response, url, state) {
     state.agentPackages = [agentPackage];
     return json(response, 201, agentPackage);
   }
+  const exportMatch = url.pathname.match(/^\/projects\/([^/]+)\/export$/);
+  if (exportMatch && request.method === "POST") {
+    const body = await readJson(request);
+    state.job = exportJobAccepted(exportMatch[1], body);
+    state.exports.set(state.job.job_id, exportRead(state.job, body));
+    return json(response, 202, state.job);
+  }
   const projectJobsMatch = url.pathname.match(/^\/projects\/([^/]+)\/jobs$/);
   if (projectJobsMatch && request.method === "POST") {
     const body = await readJson(request);
@@ -118,6 +126,16 @@ async function route(request, response, url, state) {
   if (agentPackageMatch && request.method === "GET") {
     const agentPackage = state.agentPackages.find((item) => item.id === agentPackageMatch[1]);
     return agentPackage ? json(response, 200, agentPackage) : json(response, 404, { error_code: "AGENT_PACKAGE_NOT_FOUND", message: "No package", details: {}, trace_id: "mock" });
+  }
+  const exportReadMatch = url.pathname.match(/^\/exports\/([^/]+)$/);
+  if (exportReadMatch && request.method === "GET") {
+    const item = state.exports.get(exportReadMatch[1]);
+    return item ? json(response, 200, item) : json(response, 404, { error_code: "EXPORT_NOT_FOUND", message: "No export", details: {}, trace_id: "mock" });
+  }
+  const revealMatch = url.pathname.match(/^\/exports\/([^/]+)\/reveal$/);
+  if (revealMatch && request.method === "POST") {
+    const item = state.exports.get(revealMatch[1]);
+    return item ? json(response, 200, { artifact_path: `/mock/exports/${item.id}.zip`, revealed: true }) : json(response, 404, { error_code: "EXPORT_NOT_FOUND", message: "No export", details: {}, trace_id: "mock" });
   }
   const datasetMatch = url.pathname.match(/^\/datasets\/([^/]+)$/);
   if (datasetMatch && request.method === "GET") return json(response, 200, state.datasetWithExamples);
@@ -346,6 +364,39 @@ function playgroundRunRead(agentPackage) {
     fallback_required: false,
     fallback_used: false,
     audit_event_id: "audit_playground_1",
+  };
+}
+
+function exportJobAccepted(projectId, body) {
+  return {
+    job_id: "job_export_1",
+    project_id: projectId,
+    status: "QUEUED",
+    type: "export",
+    events_url: "/jobs/job_export_1/events",
+    created_resource_type: "export",
+    created_resource_id: "export_artifact_1",
+    idempotency_replayed: false,
+    params_json: body,
+  };
+}
+
+function exportRead(job, body) {
+  return {
+    id: "export_artifact_1",
+    job_id: job.job_id,
+    agent_package_id: body.agent_package_id,
+    export_type: body.export_type,
+    status: "SUCCEEDED",
+    manifest_path: "/mock/exports/export_artifact_1/manifest.json",
+    manifest_sha256: "6".repeat(64),
+    artifact_path: "/mock/exports/export_artifact_1.zip",
+    artifact_sha256: "5".repeat(64),
+    artifact_url: `/exports/${job.job_id}/artifact`,
+    reveal_url: `/exports/${job.job_id}/reveal`,
+    error_message: null,
+    created_at: now(),
+    completed_at: now(),
   };
 }
 

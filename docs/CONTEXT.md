@@ -58,6 +58,7 @@ FE_V6_Route_Contract_Persistence_Verified: true
 FE_V6_Train_Workflow_Unlocked: true
 FE_V6_Benchmark_Workflow_Unlocked: true
 FE_V6_Package_Playground_Workflow_Unlocked: true
+FE_V6_Export_Workflow_Unlocked: true
 M6_RC_Signoff: NOT_GO
 V0_Release_Readiness: NOT_GO
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
@@ -239,6 +240,23 @@ ui:
       - edit agent contract YAML locally
       - call exported /agents/{agent_id}/run route inside the local daemon
       - treat package/playground smoke as export or release evidence
+  export_workflow_v6:
+    route: /projects/{id}/export
+    uses_apis:
+      - GET /projects/{id}/agent-packages
+      - POST /projects/{id}/export
+      - GET /exports/{job_id}
+      - POST /exports/{job_id}/reveal
+    required_runtime_gates:
+      - existing AgentPackage for the project
+    ui_must:
+      - submit zip export through the daemon export endpoint
+      - display daemon-provided ExportRead status, manifest_sha256, artifact_sha256, artifact_url, and reveal_url
+      - keep Docker/runtime/release evidence boundaries explicit
+    ui_must_not:
+      - create or edit export artifacts locally
+      - recompute or manually enter export hashes
+      - treat browser mock export output as M6-RC or v0 release evidence
 
 daemon:
   must:
@@ -470,6 +488,7 @@ FE_V6_Mockup_Verified: true
 FE_V6_Train_Workflow_Unlocked: true
 FE_V6_Benchmark_Workflow_Unlocked: true
 FE_V6_Package_Playground_Workflow_Unlocked: true
+FE_V6_Export_Workflow_Unlocked: true
 canonical_mockup: docs/mockup/mib_fe_mockup_v6_routes_contract.html
 evidence: artifacts/review/fe_v6_evidence.md
 verifier_check: fe_v6_applied
@@ -482,6 +501,9 @@ package_playground_workflow_evidence:
   - tests/agent_package/test_contract_builder.py::test_agent_package_builder_creates_schema_valid_immutable_contract covers backend package creation contract validity
   - tests/playground/test_playground_local_inference.py::test_playground_run_returns_verified_json_output_and_audit_event covers local Playground verifier/audit response
   - apps/desktop/e2e/m1_happy_path.test.mjs covers Package navigation, package build, Playground run, verifier output, and audit id in browser smoke
+export_workflow_evidence:
+  - tests/export/test_export_api.py covers backend export job creation, ExportRead, hash-verified artifact serving, reveal response, and Docker unavailable behavior
+  - apps/desktop/e2e/m1_happy_path.test.mjs covers Export navigation, zip export submit, daemon-provided manifest/artifact hash display, and reveal action in browser smoke
 release_impact: no_release_go_claim
 ```
 

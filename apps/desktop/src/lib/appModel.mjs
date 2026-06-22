@@ -62,6 +62,8 @@ export function parseAppRoute(pathname) {
   if (projectBenchmark) return { name: "projectBenchmark", projectId: projectBenchmark[1] };
   const projectPackage = pathname.match(/^\/projects\/([^/]+)\/packages$/);
   if (projectPackage) return { name: "projectPackage", projectId: projectPackage[1] };
+  const projectExport = pathname.match(/^\/projects\/([^/]+)\/export$/);
+  if (projectExport) return { name: "projectExport", projectId: projectExport[1] };
   const projectDashboard = pathname.match(/^\/projects\/([^/]+)$/);
   if (projectDashboard) return { name: "projectDashboard", projectId: projectDashboard[1] };
   const datasetDetail = pathname.match(/^\/datasets\/([^/]+)$/);
@@ -164,12 +166,13 @@ export function createSeedExamples(routes, count = 20) {
   });
 }
 
-export function workflowSteps(project, currentPath, datasetReady, hardwareReady, modelRunReady = false, benchmarkReady = false, packageReady = false) {
+export function workflowSteps(project, currentPath, datasetReady, hardwareReady, modelRunReady = false, benchmarkReady = false, packageReady = false, exportReady = false) {
   const projectPath = project ? `/projects/${project.id}` : "/projects";
   const projectId = project?.id || "";
   const trainState = project ? (datasetReady && hardwareReady ? (modelRunReady ? "done" : "ready") : "locked") : "locked";
   const benchmarkState = project ? (modelRunReady ? (benchmarkReady ? "done" : "ready") : "locked") : "locked";
   const packageState = project ? (benchmarkReady ? (packageReady ? "done" : "ready") : "locked") : "locked";
+  const exportState = project ? (packageReady ? (exportReady ? "done" : "ready") : "locked") : "locked";
   return [
     step("project", "Project", projectPath, project ? "done" : "current"),
     step("define", "Define", project ? `/projects/${projectId}/define` : "/projects/new", project ? "ready" : "locked", "Create a project first."),
@@ -178,7 +181,7 @@ export function workflowSteps(project, currentPath, datasetReady, hardwareReady,
     step("train", "Train", project ? `/projects/${projectId}/training` : "/projects/new", trainState, "Approve a dataset and run Hardware Doctor first."),
     step("benchmark", "Benchmark", project ? `/projects/${projectId}/benchmarks/new` : "/projects/new", benchmarkState, "Complete a model run before benchmarking."),
     step("package", "Package", project ? `/projects/${projectId}/packages` : "/projects/new", packageState, "Complete a valid benchmark report before packaging."),
-    step("export", "Export", project ? `/projects/${projectId}/export` : "/projects/new", "locked", "Export unlocks in M6."),
+    step("export", "Export", project ? `/projects/${projectId}/export` : "/projects/new", exportState, "Build an Agent Package before export."),
   ].map((item) => (item.path === currentPath && item.state !== "locked" ? { ...item, state: "current" } : item));
 }
 

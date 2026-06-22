@@ -9,7 +9,7 @@ import { startMockApi } from "./mockApi.mjs";
 
 const chromePath = process.env.CHROME_BIN || "/usr/bin/google-chrome";
 
-test("M1 desktop shell happy path reaches project, dataset, hardware, train, benchmark, package, playground, and job monitor", async () => {
+test("M1 desktop shell happy path reaches project, dataset, hardware, train, benchmark, package, playground, export, and job monitor", async () => {
   const staticPort = 5173;
   const apiPort = 8910;
   const cdpPort = 9223;
@@ -74,6 +74,12 @@ test("M1 desktop shell happy path reaches project, dataset, hardware, train, ben
     await waitFor(client, 'document.body.innerText.includes("Package built: support_router.v1") && document.body.innerText.includes("agent_id: support_router.v1")');
     await click(client, '[data-action="run-playground"]');
     await waitFor(client, 'document.body.innerText.includes("Playground result: PASS") && document.body.innerText.includes("technical_support") && document.body.innerText.includes("audit")');
+    await navigate(client, `http://127.0.0.1:${staticPort}/projects/proj_1/export`);
+    await waitFor(client, 'document.body.innerText.includes("Export workflow") && document.body.innerText.includes("Start zip export")');
+    await click(client, '[data-action="start-export"]');
+    await waitFor(client, 'document.body.innerText.includes("Export job accepted: QUEUED") && document.body.innerText.includes("manifest_sha256") && document.body.innerText.includes("artifact_sha256")');
+    await click(client, '[data-action="reveal-export"]');
+    await waitFor(client, 'document.body.innerText.includes("Export artifact revealed") && document.body.innerText.includes("/mock/exports/export_artifact_1.zip")');
   } finally {
     client?.close();
     if (chrome.exitCode === null && !chrome.signalCode) chrome.kill("SIGTERM");

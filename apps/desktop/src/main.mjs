@@ -31,6 +31,7 @@ const state = {
   benchmarkReport: null,
   agentPackages: [],
   playgroundResult: null,
+  exportResult: null,
   hardware: null,
   lastJob: null,
   credentials: [],
@@ -96,10 +97,10 @@ async function loadRouteData() {
   state.selectedProject = "projectId" in route ? state.projects.find((project) => project.id === route.projectId) || null : state.projects[0] || null;
   if (state.selectedProject) {
     state.datasets = (await state.api.request("listDatasets", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
-    if (["projectDashboard", "projectTraining", "projectBenchmark", "projectPackage"].includes(route.name)) {
+    if (["projectDashboard", "projectTraining", "projectBenchmark", "projectPackage", "projectExport"].includes(route.name)) {
       state.modelRuns = (await state.api.request("listModelRuns", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
     }
-    if (["projectDashboard", "projectBenchmark", "projectPackage"].includes(route.name)) {
+    if (["projectDashboard", "projectBenchmark", "projectPackage", "projectExport"].includes(route.name)) {
       state.benchmarks = (await state.api.request("listBenchmarks", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
     }
     if (route.name === "projectBenchmark") {
@@ -109,11 +110,14 @@ async function loadRouteData() {
     } else {
       state.benchmarkReport = null;
     }
-    if (["projectDashboard", "projectPackage"].includes(route.name)) {
+    if (["projectDashboard", "projectPackage", "projectExport"].includes(route.name)) {
       state.agentPackages = (await state.api.request("listAgentPackages", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
     }
     if (route.name !== "projectPackage") {
       state.playgroundResult = null;
+    }
+    if (route.name !== "projectExport") {
+      state.exportResult = null;
     }
   }
   if (route.name === "projectDefine" && state.selectedProject) state.routes = routesFromProject(state.selectedProject);
@@ -167,6 +171,8 @@ async function onClick(event) {
     if (action === "run-benchmark") await runBenchmark();
     if (action === "build-package") await buildPackage();
     if (action === "run-playground") await runPlayground();
+    if (action === "start-export") await startExport();
+    if (action === "reveal-export") await revealExport();
     if (action === "poll-job") await pollJob();
     if (action === "select-palette") selectPalette(target.dataset.palette);
     if (action === "insert-block") insertBlock(target.dataset.blockLabel);
@@ -361,6 +367,28 @@ async function runPlayground() {
   state.notice = `Playground result: ${state.playgroundResult.verifier_status}.`;
 }
 
+async function startExport() {
+  if (!state.selectedProject) return;
+  const agentPackage = latestAgentPackage();
+  if (!agentPackage) {
+    state.notice = "Export requires an agent package.";
+    return;
+  }
+  state.lastJob = await state.api.request("createExport", {
+    params: { id: state.selectedProject.id },
+    body: { agent_package_id: agentPackage.id, export_type: "zip" },
+    idempotencyKey: idempotencyKey(`export-${agentPackage.id}-zip`),
+  });
+  state.exportResult = await state.api.request("getExport", { params: { job_id: state.lastJob.job_id } }).catch(() => null);
+  state.notice = `Export job accepted: ${state.lastJob.status}.`;
+}
+
+async function revealExport() {
+  if (!state.exportResult?.reveal_url) return;
+  const result = await state.api.request("revealExportArtifact", { params: { job_id: state.exportResult.job_id } });
+  state.notice = `Export artifact revealed: ${result.artifact_path}.`;
+}
+
 function approvedDataset() {
   return state.datasets.find((dataset) => dataset.status === "APPROVED" || dataset.frozen_at) || null;
 }
@@ -383,6 +411,10 @@ function validBenchmark() {
 
 function latestAgentPackage() {
   return state.agentPackages[0] || null;
+}
+
+function latestExport() {
+  return state.exportResult || null;
 }
 
 function teacherCredential() {
@@ -595,7 +627,7 @@ function render() {
 
 function sidebar() {
   const project = state.selectedProject;
-  const steps = workflowSteps(project, state.path, Boolean(approvedDataset()), Boolean(state.hardware?.training_enabled), Boolean(completedModelRun()), Boolean(validBenchmark()), Boolean(latestAgentPackage()));
+  const steps = workflowSteps(project, state.path, Boolean(approvedDataset()), Boolean(state.hardware?.training_enabled), Boolean(completedModelRun()), Boolean(validBenchmark()), Boolean(latestAgentPackage()), latestExport()?.status === "SUCCEEDED");
   return `<aside class="sidebar">
     <div class="brand"><div class="brand-mark">MIB</div><div><strong>MIB Studio</strong><span>MicroAgent Inventor Blocks</span></div></div>
     <section class="project-switcher"><small>Project</small><strong>${escapeHtml(project?.name || "No project")}</strong><span>${project ? `${project.routes.length} routes - router` : `${state.projects.length} saved`}</span><div class="switcher-actions"><button class="icon-button" title="Refresh" data-action="refresh">R</button><button class="icon-button" title="Create" data-nav="/projects/new">+</button></div></section>
@@ -621,6 +653,7 @@ function page(route) {
   if (route.name === "projectTraining") return trainingPage();
   if (route.name === "projectBenchmark") return benchmarkPage();
   if (route.name === "projectPackage") return packagePage();
+  if (route.name === "projectExport") return exportPage();
   if (route.name === "hardware") return hardwarePage();
   if (route.name === "job") return jobPage(route.jobId);
   if (route.name === "settings") return settingsPage();
@@ -645,7 +678,7 @@ function createProjectPage() {
 
 function dashboardPage() {
   const project = state.selectedProject;
-  return pageShell("Workbench", project?.name || "Project dashboard", "Restart-safe summary for the route contract, examples, hardware preflight, and later locked workflow steps.", `<button class="button" data-action="refresh">Refresh</button>`, `<div class="metric-grid">${metric("route contract", `${project?.routes.length || 0} routes`, "ok")}${metric("datasets", `${state.datasets.length} saved`, state.datasets.length ? "ok" : "warn")}${metric("train runs", `${state.modelRuns.length} queued`, state.modelRuns.length ? "ok" : "blue")}${metric("benchmarks", `${state.benchmarks.length} saved`, state.benchmarks.length ? "ok" : "blue")}${metric("packages", `${state.agentPackages.length} built`, state.agentPackages.length ? "ok" : "blue")}</div><div class="action-grid"><button class="action-tile" data-nav="/projects/${project?.id}/define"><strong>Define routes</strong><span>Open the v6 route contract builder.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/datasets/new"><strong>Build examples</strong><span>Create the first approved-ready dataset.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/training"><strong>Train</strong><span>Submit a LoRA job after dataset approval and Hardware Doctor.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/benchmarks/new"><strong>AgentBench</strong><span>Compare the completed small agent against baselines.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/packages"><strong>Package</strong><span>Build an Agent Package and verify it in Playground.</span></button></div>`);
+  return pageShell("Workbench", project?.name || "Project dashboard", "Restart-safe summary for the route contract, examples, hardware preflight, and later locked workflow steps.", `<button class="button" data-action="refresh">Refresh</button>`, `<div class="metric-grid">${metric("route contract", `${project?.routes.length || 0} routes`, "ok")}${metric("datasets", `${state.datasets.length} saved`, state.datasets.length ? "ok" : "warn")}${metric("train runs", `${state.modelRuns.length} queued`, state.modelRuns.length ? "ok" : "blue")}${metric("benchmarks", `${state.benchmarks.length} saved`, state.benchmarks.length ? "ok" : "blue")}${metric("packages", `${state.agentPackages.length} built`, state.agentPackages.length ? "ok" : "blue")}${metric("export", latestExport()?.status || "not started", latestExport()?.status === "SUCCEEDED" ? "ok" : "blue")}</div><div class="action-grid"><button class="action-tile" data-nav="/projects/${project?.id}/define"><strong>Define routes</strong><span>Open the v6 route contract builder.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/datasets/new"><strong>Build examples</strong><span>Create the first approved-ready dataset.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/training"><strong>Train</strong><span>Submit a LoRA job after dataset approval and Hardware Doctor.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/benchmarks/new"><strong>AgentBench</strong><span>Compare the completed small agent against baselines.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/packages"><strong>Package</strong><span>Build an Agent Package and verify it in Playground.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/export"><strong>Export</strong><span>Create a zip export job from the Agent Package.</span></button></div>`);
 }
 
 function definePage() {
@@ -784,6 +817,27 @@ function agentPackagesHtml() {
     .join("")}</tbody></table></div>`;
 }
 
+function exportPage() {
+  const agentPackage = latestAgentPackage();
+  const exportRead = latestExport();
+  const canSubmit = Boolean(agentPackage);
+  const canReveal = exportRead?.status === "SUCCEEDED" && exportRead.reveal_url;
+  const actions = `<button class="button primary" data-action="start-export" ${canSubmit ? "" : "disabled"}>Start zip export</button><button class="button" data-action="reveal-export" ${canReveal ? "" : "disabled"}>Reveal artifact</button>`;
+  const gatePanel = `<div class="metric-grid">${metric("agent package", agentPackage?.agent_id || "package required", agentPackage ? "ok" : "warn")}${metric("export type", "zip", "blue")}${metric("status", exportRead?.status || "not started", exportRead?.status === "SUCCEEDED" ? "ok" : "blue")}${metric("artifact", exportRead?.artifact_sha256 ? exportRead.artifact_sha256.slice(0, 10) : "pending", exportRead?.artifact_sha256 ? "ok" : "blue")}</div>`;
+  return pageShell(
+    "Export",
+    "Export workflow",
+    "Submit a zip export job through the local daemon and review only daemon-provided manifest and artifact hashes.",
+    actions,
+    `${notice()}${gatePanel}<div class="two-column"><section class="surface"><h2>Export request</h2><pre class="codebox">${escapeHtml(JSON.stringify({ agent_package_id: agentPackage?.id || null, export_type: "zip" }, null, 2))}</pre></section><section class="surface"><h2>Export result</h2>${exportResultHtml(exportRead)}</section></div>${statePanel("locked", "Release evidence boundary", "This UI smoke is not M6-RC or v0 release evidence. Runtime smoke, Docker evidence, endpoint transcripts, and real adapter evidence remain external release gates.")}`,
+  );
+}
+
+function exportResultHtml(exportRead) {
+  if (!exportRead) return statePanel("empty", "No export yet", "Start zip export after an Agent Package exists.");
+  return `<div class="metric-grid">${metric("job", exportRead.job_id.slice(0, 12), "blue")}${metric("manifest_sha256", exportRead.manifest_sha256 ? exportRead.manifest_sha256.slice(0, 10) : "pending", exportRead.manifest_sha256 ? "ok" : "blue")}${metric("artifact_sha256", exportRead.artifact_sha256 ? exportRead.artifact_sha256.slice(0, 10) : "pending", exportRead.artifact_sha256 ? "ok" : "blue")}${metric("download", exportRead.artifact_url || "not ready", exportRead.artifact_url ? "ok" : "blue")}</div><pre class="codebox">${escapeHtml(JSON.stringify(exportRead, null, 2))}</pre>`;
+}
+
 function jobPage(jobId) {
   const snapshot = state.lastJob?.job_id === jobId ? state.lastJob : null;
   return pageShell("Jobs", "Job monitor", "Poll job state and keep an event-gap banner visible when the stream is incomplete or locked.", `<button class="button" data-action="poll-job">Poll</button>`, `${notice()}<div class="metric-grid">${metric("job", jobId.slice(0, 8), "blue")}${metric("status", snapshot?.status || "unknown", snapshot?.status === "SUCCEEDED" ? "ok" : "warn")}${metric("type", snapshot?.type || "locked", "blue")}</div><section class="surface"><h2>Latest events</h2><pre class="codebox">${escapeHtml(JSON.stringify({ job_id: jobId, status: snapshot?.status || "EVENT_GAP", poll_fallback: true }, null, 2))}</pre></section>`);
@@ -847,6 +901,7 @@ function breadcrumb(route) {
   if (route.name === "projectTraining") return "projects / training";
   if (route.name === "projectBenchmark") return "projects / benchmarks / AgentBench";
   if (route.name === "projectPackage") return "projects / package / Playground";
+  if (route.name === "projectExport") return "projects / export";
   if (route.name === "hardware") return "hardware / doctor";
   if (route.name === "job") return "jobs / monitor";
   return "settings";

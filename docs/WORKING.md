@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: FE_V6_PACKAGE_PLAYGROUND_WORKFLOW_UNLOCK
+phase_id: FE_V6_EXPORT_WORKFLOW_UNLOCK
 milestone: Final_Program_Development_Closeout
-phase_status: fe_v6_package_playground_workflow_unlocked_not_go_release
-gate_id: mib-studio-fe-v6-package-playground-workflow-unlock
+phase_status: fe_v6_export_workflow_unlocked_not_go_release
+gate_id: mib-studio-fe-v6-export-workflow-unlock
 mode: implement
 product_code_changed: true
 verification_tooling_changed: false
@@ -57,6 +57,56 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-fe-v6-export-workflow-unlock
+objective: unlock the desktop FE v6 Export workflow using existing export APIs
+
+files:
+  frontend_model:
+    - apps/desktop/src/lib/appModel.mjs
+    - apps/desktop/src/lib/appModel.test.mjs
+  frontend_api_client:
+    - apps/desktop/src/lib/apiClient.mjs
+    - apps/desktop/src/lib/apiClient.test.mjs
+  desktop_shell:
+    - apps/desktop/src/main.mjs
+  browser_mock_and_e2e:
+    - apps/desktop/e2e/mockApi.mjs
+    - apps/desktop/e2e/m1_happy_path.test.mjs
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+export_workflow_contract:
+  route: /projects/{id}/export
+  required_frontend_gates:
+    - existing AgentPackage
+  backend_apis_used:
+    - listAgentPackages: GET /projects/{id}/agent-packages
+    - createExport: POST /projects/{id}/export
+    - getExport: GET /exports/{job_id}
+    - revealExportArtifact: POST /exports/{job_id}/reveal
+  export_request:
+    export_type: zip
+  release_boundary:
+    browser_mock_export_is_release_evidence: false
+    m6_rc_go_claimed: false
+    v0_release_go_claimed: false
+
+verification:
+  desktop_model_and_api_client: passed
+  desktop_e2e_m1_happy_path_with_export: passed
+  backend_export_api: passed
+  release_claimed_go: false
+
+summary:
+  - desktop route parsing and workflow stepper expose /projects/{id}/export after an AgentPackage exists
+  - Export page submits zip export through existing daemon APIs and displays daemon-provided ExportRead hashes and URLs
+  - reveal action calls existing daemon reveal endpoint and never creates or edits export artifacts locally
+  - browser mock path reaches Export after Package and Playground while preserving no-release-evidence labeling
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-fe-v6-package-playground-workflow-unlock

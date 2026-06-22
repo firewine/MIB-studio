@@ -1,19 +1,18 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Unlock the FE v6 Package and Playground workflow by wiring the desktop app to existing agent-package and playground APIs after a valid benchmark report.",
+  "goal": "Unlock the FE v6 Export workflow by wiring the desktop app to existing export APIs after an AgentPackage exists.",
   "phase": "done",
-  "gate": "mib-studio-fe-v6-package-playground-workflow-unlock",
+  "gate": "mib-studio-fe-v6-export-workflow-unlock",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "d9da6f1",
+  "head": "9c21fda",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "apps/desktop/src/lib/appModel.mjs",
     "apps/desktop/src/lib/appModel.test.mjs",
     "apps/desktop/src/lib/apiClient.mjs",
     "apps/desktop/src/lib/apiClient.test.mjs",
-    "apps/desktop/src/lib/generated.ts",
     "apps/desktop/src/main.mjs",
     "apps/desktop/e2e/mockApi.mjs",
     "apps/desktop/e2e/m1_happy_path.test.mjs",
@@ -37,80 +36,82 @@
   ],
   "blocked_scope": [
     "Backend API/schema/DB/worker/runtime changes",
-    "Changing agent contract, verifier, fallback, playground, benchmark, export, release-readiness, M6 review, model catalog, or evidence policy",
-    "Inventing package, verifier, playground, or benchmark evidence",
+    "Changing export manifest, exported runtime, adapter loading, Docker image behavior, benchmark/package/playground contracts, M6 review, release-readiness, model catalog, or evidence policy",
+    "Inventing export artifacts, hashes, runtime smoke evidence, benchmark results, or package evidence",
     "Downloading or committing model weights, adapters, Docker images, endpoint transcripts, copied evidence bundles, or GO release evidence",
-    "Implementing export workflow screens in this phase"
+    "Claiming M6-RC or v0 release GO"
   ],
-  "allowed_edit_paths_scope_note": "This gate may only add frontend API-client routes and desktop UI/model/mock/e2e coverage for the v6 Package/Playground screen using existing backend agent-package/playground APIs, plus LLM handoff docs, completion log, and PABCD contract.",
+  "allowed_edit_paths_scope_note": "This gate may only add frontend API-client routes and desktop UI/model/mock/e2e coverage for the v6 ExportPanel using existing backend export APIs, plus LLM handoff docs, completion log, and PABCD contract.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/specs/UX_SPEC.md",
+    "docs/specs/IMPLEMENTATION_GUIDE.md",
     "docs/specs/AGENT_CONTRACT_SPEC.md",
     "docs/mockup/mib_fe_mockup_v6_routes_contract.html",
     "apps/desktop/src/lib/generated.ts",
-    "services/api/app/routes/agent_packages.py",
-    "services/api/app/routes/playground.py",
-    "services/api/app/services/agent_package_service.py",
-    "services/api/app/services/playground_service.py"
+    "services/api/app/routes/exports.py",
+    "services/api/app/schemas/export.py",
+    "services/api/app/services/export_service.py",
+    "tests/export/test_export_api.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack node --test apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.test.mjs",
     "COREPACK_HOME=/tmp/corepack node --experimental-websocket --test apps/desktop/e2e/m1_happy_path.test.mjs",
-    "PYTHONPATH=. ./.venv/bin/python -m pytest tests/agent_package/test_contract_builder.py::test_agent_package_builder_creates_schema_valid_immutable_contract tests/playground/test_playground_local_inference.py::test_playground_run_returns_verified_json_output_and_audit_event -q",
-    "rg -n -- \"projectPackage|listAgentPackages|createAgentPackage|runPlayground|Build package|Package built|Playground result|Agent package|Package workflow\" apps/desktop/src/lib/appModel.mjs apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.mjs apps/desktop/src/lib/apiClient.test.mjs apps/desktop/src/main.mjs apps/desktop/e2e/mockApi.mjs apps/desktop/e2e/m1_happy_path.test.mjs docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_api.py -q",
+    "rg -n -- \"projectExport|createExport|getExport|revealExportArtifact|Export workflow|Start zip export|Export job accepted|manifest_sha256|artifact_sha256|zip export\" apps/desktop/src/lib/appModel.mjs apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.mjs apps/desktop/src/lib/apiClient.test.mjs apps/desktop/src/main.mjs apps/desktop/e2e/mockApi.mjs apps/desktop/e2e/m1_happy_path.test.mjs docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Desktop route parsing and workflow stepper expose /projects/{id}/packages as the Package workflow route after a valid completed benchmark/report.",
-    "Package page uses existing createAgentPackage, listAgentPackages, getAgentPackage, and runPlayground APIs and never edits contract/verifier/playground output locally.",
-    "Browser happy path can reach Package after Benchmark, build an agent package through the mock API, run Playground, and see verifier/audit output state.",
-    "Existing backend package/playground focused tests still pass.",
-    "Docs continue to state that v0/M6 release remains NOT_GO until real trained adapter no-fake endpoint evidence exists."
+    "Desktop route parsing and workflow stepper expose /projects/{id}/export as the Export workflow route after an AgentPackage exists.",
+    "Export page uses existing createExport, getExport, and revealExportArtifact APIs and never creates or edits export artifacts locally.",
+    "Browser happy path can reach Export after Package, submit a zip export through the mock API, and see queued/completed export manifest and artifact hash state.",
+    "Existing backend export API focused tests still pass.",
+    "Docs continue to state that M6-RC and v0 release remain NOT_GO until real trained adapter no-fake endpoint evidence exists."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack node --test apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.test.mjs",
     "COREPACK_HOME=/tmp/corepack node --experimental-websocket --test apps/desktop/e2e/m1_happy_path.test.mjs",
-    "PYTHONPATH=. ./.venv/bin/python -m pytest tests/agent_package/test_contract_builder.py::test_agent_package_builder_creates_schema_valid_immutable_contract tests/playground/test_playground_local_inference.py::test_playground_run_returns_verified_json_output_and_audit_event -q",
-    "rg -n -- \"projectPackage|listAgentPackages|createAgentPackage|runPlayground|Build package|Package built|Playground result|Agent package|Package workflow\" apps/desktop/src/lib/appModel.mjs apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.mjs apps/desktop/src/lib/apiClient.test.mjs apps/desktop/src/main.mjs apps/desktop/e2e/mockApi.mjs apps/desktop/e2e/m1_happy_path.test.mjs docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONPATH=. ./.venv/bin/python -m pytest tests/export/test_export_api.py -q",
+    "rg -n -- \"projectExport|createExport|getExport|revealExportArtifact|Export workflow|Start zip export|Export job accepted|manifest_sha256|artifact_sha256|zip export\" apps/desktop/src/lib/appModel.mjs apps/desktop/src/lib/appModel.test.mjs apps/desktop/src/lib/apiClient.mjs apps/desktop/src/lib/apiClient.test.mjs apps/desktop/src/main.mjs apps/desktop/e2e/mockApi.mjs apps/desktop/e2e/m1_happy_path.test.mjs docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
-    "This gate builds an agent package and playground run through existing APIs in mock/browser tests only; it does not produce export evidence or release evidence.",
+    "This gate submits export through existing APIs in mock/browser tests only; it does not produce release export evidence, runtime smoke evidence, Docker evidence, or endpoint transcripts.",
+    "apps/desktop/src/main.mjs is 921 lines after this phase, which is a 900+ God File soft warning but below the 1000-line blocker.",
     "M6-RC and v0 release remain NOT_GO."
   ],
   "phase_notes": {
-    "plan": "Use the canonical FE v6 Package screen as the target and connect desktop Package/Playground to existing agent-package/playground APIs after completed benchmark report readiness.",
-    "audit": "The current desktop shell keeps Package locked even though backend agent-package and playground APIs exist, so the v6 workflow cannot progress from valid benchmark report to package creation and local playground verification.",
-    "build": "Extend desktop route parsing/workflow readiness/API client, add Package page rendering/build/playground actions, update mock API and e2e happy path.",
-    "check": "Run desktop model/API-client tests, browser happy path, existing backend package/playground focused tests, evidence search, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this Package/Playground workflow unlock phase."
+    "plan": "Use the canonical FE v6 ExportPanel as the target and connect desktop Export to existing export APIs after package readiness.",
+    "audit": "The backend export APIs and tests exist, but the desktop shell still keeps Export locked, so the v6 workflow cannot progress from AgentPackage to export job submission and export status review.",
+    "build": "Extend desktop route parsing/workflow readiness/API client, add Export page rendering/zip submit/export status/reveal action, update mock API and e2e happy path.",
+    "check": "Run desktop model/API-client tests, browser happy path, existing backend export focused tests, evidence search, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this Export workflow unlock phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-fe-v6-package-playground-workflow-unlock",
+    "gate": "mib-studio-fe-v6-export-workflow-unlock",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Unlock the FE v6 Package/Playground workflow route in the desktop app using existing agent-package/playground APIs; update focused tests/mock/docs/PABCD only.",
-    "blocked_scope": "No backend/API/schema/DB/worker/runtime changes, no release GO claim, no M6 review GO edits, no model/catalog/training/benchmark/export evidence policy changes, no downloaded weights/adapters/images/evidence bundles, no export UI implementation in this phase.",
+    "approved_scope": "Unlock the FE v6 Export workflow route in the desktop app using existing export APIs; update focused tests/mock/docs/PABCD only.",
+    "blocked_scope": "No backend/API/schema/DB/worker/runtime changes, no release GO claim, no M6 review GO edits, no model/catalog/training/benchmark/package/playground/export evidence policy changes, no downloaded weights/adapters/images/evidence bundles, no exported runtime implementation changes in this phase.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Use the canonical FE v6 Package screen as the target and connect desktop Package/Playground to existing agent-package/playground APIs after completed benchmark report readiness.",
-    "audit": "The current desktop shell keeps Package locked even though backend agent-package and playground APIs exist, so the v6 workflow cannot progress from valid benchmark report to package creation and local playground verification.",
-    "build": "Extend desktop route parsing/workflow readiness/API client, add Package page rendering/build/playground actions, update mock API and e2e happy path.",
-    "check": "Run desktop model/API-client tests, browser happy path, existing backend package/playground focused tests, evidence search, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this Package/Playground workflow unlock phase."
+    "plan": "Use the canonical FE v6 ExportPanel as the target and connect desktop Export to existing export APIs after package readiness.",
+    "audit": "The backend export APIs and tests exist, but the desktop shell still keeps Export locked, so the v6 workflow cannot progress from AgentPackage to export job submission and export status review.",
+    "build": "Extend desktop route parsing/workflow readiness/API client, add Export page rendering/zip submit/export status/reveal action, update mock API and e2e happy path.",
+    "check": "Run desktop model/API-client tests, browser happy path, existing backend export focused tests, evidence search, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this Export workflow unlock phase."
   }
 }

@@ -41,18 +41,18 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: VERIFIED_EXTERNAL_CUDA_LAUNCHER_TRANSFER_MANIFEST_GUARD
+phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_CBD6074_LAUNCHER_GUARD
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-verified-external-cuda-launcher-transfer-manifest-guard
+gate_id: mib-studio-external-cuda-operator-packet-refresh-after-cbd6074-launcher-guard
 mode: development
 product_code_changed: false
 frontend_code_changed: false
-verification_tooling_changed: true
+verification_tooling_changed: false
 verification_artifacts_refreshed: true
 external_operator_packet_refreshed: true
-external_operator_packet_refresh_required_after_phase_commit: true
-external_cuda_handoff_readiness_refreshed: true
+external_operator_packet_refresh_required_after_phase_commit: false
+external_cuda_handoff_readiness_refreshed: false
 operator_packet_ready: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
@@ -61,14 +61,64 @@ release_claimed_go: false
 
 current_decision:
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
   external_cuda_handoff_readiness_status: WAITING_FOR_EXTERNAL_CUDA_HOST
-  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: false
   v0_release_ready: false
   expected_local_decision: NOT_GO
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-operator-packet-refresh-after-cbd6074-launcher-guard
+objective: refresh source-pinned external CUDA operator packet after verified launcher transfer-manifest guard
+
+baseline_head: cbd6074
+
+packet:
+  status: PREPARED_NOT_RUN
+  source_commit: cbd6074
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  required_committed_files: 18
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+
+packet_verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  operator_packet_ready: true
+  verification_ok: true
+  required_file_hashes: verified 18 required file hashes
+  required_commit_blobs: verified 18 required file blobs at cbd6074
+  forbidden_tracked_artifacts: []
+  warnings: []
+
+transfer_manifest:
+  status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  packet_handoff_source_commit: cbd6074
+  json_output: /tmp/mib-cbd6074-external-cuda-operator-transfer-manifest.json
+  transfer_model: full_repository_checkout_required
+  committed_to_repo: false
+
+strict_bootstrap:
+  command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+  result: PASS
+  toolchain_mismatch: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+operator_next_step:
+  run: bash artifacts/review/verified_external_cuda_training_launcher.sh
+  host: external CUDA host with full repository checkout at or after cbd6074, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, and real adapter output paths
+  note: packet verification GO and transfer READY are operator handoff readiness results, not M6-RC GO or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-verified-external-cuda-launcher-transfer-manifest-guard

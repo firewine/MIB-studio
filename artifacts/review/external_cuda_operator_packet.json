@@ -24,7 +24,7 @@
       "run_rc_handoff"
     ]
   },
-  "date": "2026-06-22T21:50:05.694165+00:00",
+  "date": "2026-06-22T22:09:15.969420+00:00",
   "downstream_training_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
   "downstream_training_handoff_status": "PREPARED_NOT_RUN",
   "expected_return_artifacts": [
@@ -45,7 +45,7 @@
   "git": {
     "branch": "main",
     "clean_worktree_required": true,
-    "head": "b3efba2",
+    "head": "cbd6074",
     "remote_origin": "https://github.com/firewine/MIB-studio.git"
   },
   "m6_rc_claimed_go": false,
@@ -54,7 +54,7 @@
     "Do not claim M6-RC or v0 release GO until real trained adapter evidence, accepted M6 review docs, bundle verification, and v0 readiness all return GO."
   ],
   "operator_sequence": [
-    "Keep this packet file from the current checkout; packet.git.head is the required committed file source commit b3efba2 for verifier blob checks.",
+    "Keep this packet file from the current checkout; packet.git.head is the required committed file source commit cbd6074 for verifier blob checks.",
     "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Allow the verified launcher to invoke artifacts/review/real_adapter_cuda_training_handoff.sh only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.",
     "Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.",
@@ -114,8 +114,8 @@
     {
       "path": "artifacts/review/verified_external_cuda_training_launcher.sh",
       "role": "verified_training_launcher",
-      "sha256": "932becbad436b7552a04fd8ad81af7dcd778a546798e9211fd3294aae0c33a35",
-      "size_bytes": 1496
+      "sha256": "01a0c441724b5252c35bb9ff3033e44919c0535f4ee7439aaf6053726dc5fa48",
+      "size_bytes": 2234
     },
     {
       "path": "artifacts/review/real_adapter_cuda_training_handoff.json",

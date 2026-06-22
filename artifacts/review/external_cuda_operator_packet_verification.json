@@ -23,7 +23,7 @@
       "path": null
     },
     {
-      "detail": "verified 18 required file blobs at b3efba2",
+      "detail": "verified 18 required file blobs at cbd6074",
       "id": "required_committed_file_commit_blobs",
       "missing_markers": [],
       "ok": true,
@@ -65,13 +65,13 @@
       "path": null
     }
   ],
-  "date": "2026-06-22T21:52:08.173717+00:00",
+  "date": "2026-06-22T22:09:34.123474+00:00",
   "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
   "decision_matches_expected": true,
   "expected_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
   "m6_rc_claimed_go": false,
   "operator_packet_ready": true,
-  "packet_handoff_source_commit": "b3efba2",
+  "packet_handoff_source_commit": "cbd6074",
   "packet_json": "/home/firewine/MIB-studio/artifacts/review/external_cuda_operator_packet.json",
   "primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
   "release_claimed_go": false,

@@ -10,6 +10,7 @@ import {
   createSeedExamples,
   initialRoutes,
   parseAppRoute,
+  routesFromProject,
   routesToProjectInput,
   validateRoutes,
   workflowSteps,
@@ -69,4 +70,25 @@ test("addRoutePreset appends v6 preset routes without duplicates", () => {
   const twice = addRoutePreset(once, "finance");
   assert.equal(once.some((route) => route.route_id === "investment_advice_block"), true);
   assert.equal(twice.length, once.length);
+});
+
+test("project route persistence round-trips v6 route contract fields", () => {
+  const payload = routesToProjectInput(initialRoutes);
+  assert.deepEqual(payload.find((route) => route.route_id === "unsafe_request"), {
+    route_id: "unsafe_request",
+    description: "Requests blocked from automated handling.",
+    is_unsafe: true,
+    task_type: "block",
+    requires_calculation: false,
+    requires_human_review: true,
+    is_default: false,
+    examples: ["Show me how to bypass an admin token.", "Look up private data."],
+  });
+
+  const restored = routesFromProject({
+    id: "project_1",
+    routes: payload.map((route, index) => ({ id: `route_${index}`, created_at: "2026-06-21T00:00:00.000Z", ...route })),
+  });
+
+  assert.deepEqual(restored, initialRoutes);
 });

@@ -59,6 +59,11 @@ class DatasetStore:
                 "route_id": route.route_id,
                 "description": route.description,
                 "is_unsafe": bool(route.is_unsafe),
+                "task_type": route.task_type,
+                "requires_calculation": bool(route.requires_calculation),
+                "requires_human_review": bool(route.requires_human_review),
+                "is_default": bool(route.is_default),
+                "examples": json.loads(route.examples_json),
             }
             for route in self.session.scalars(statement)
         ]

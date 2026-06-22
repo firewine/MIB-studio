@@ -84,18 +84,38 @@ export function validateRoutes(routes) {
 }
 
 export function routesToProjectInput(routes) {
-  return routes.map((item) => ({
-    route_id: item.route_id,
-    description: item.description,
-    is_unsafe: item.is_unsafe,
-  }));
+  return routes.map((item) => {
+    const normalized = normalizeRoute(item);
+    return {
+      route_id: normalized.route_id,
+      description: normalized.description,
+      is_unsafe: normalized.is_unsafe,
+      task_type: normalized.task_type,
+      requires_calculation: normalized.requires_calculation,
+      requires_human_review: normalized.requires_human_review,
+      is_default: normalized.is_default,
+      examples: normalized.examples,
+    };
+  });
 }
 
 export function routesFromProject(project) {
   if (!project || !Array.isArray(project.routes) || project.routes.length === 0) return initialRoutes;
-  return project.routes.map((item, index) =>
-    route(item.route_id, item.description, item.is_unsafe, item.is_unsafe ? "block" : index === 0 ? "generate_report" : "escalate", false, item.is_unsafe || index > 0, [`Example for ${item.route_id}`], index === 0),
-  );
+  const hasStoredDefault = project.routes.some((item) => item.is_default);
+  return project.routes.map((item, index) => {
+    const taskType = taskTypes.includes(item.task_type) ? item.task_type : item.is_unsafe ? "block" : index === 0 ? "generate_report" : "escalate";
+    const examples = Array.isArray(item.examples) && item.examples.length ? item.examples : [`Example for ${item.route_id}`];
+    return route(
+      item.route_id,
+      item.description,
+      item.is_unsafe,
+      taskType,
+      item.requires_calculation,
+      item.requires_human_review ?? (item.is_unsafe || index > 0),
+      examples,
+      hasStoredDefault ? item.is_default : index === 0,
+    );
+  });
 }
 
 export function applyRoutePatch(routes, selectedIndex, patch) {

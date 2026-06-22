@@ -54,6 +54,7 @@ document_state: Implementation-Ready v0.3
 M0_Product_Lock: GO
 M1_to_M5_Local_Evidence: verified
 FE_V6_Mockup_Verified: true
+FE_V6_Route_Contract_Persistence_Verified: true
 M6_RC_Signoff: NOT_GO
 V0_Release_Readiness: NOT_GO
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
@@ -171,6 +172,16 @@ ui:
     - own training logic
     - own security authorization
     - invent benchmark numbers
+  route_contract_v6_persistence:
+    project_route_fields:
+      - task_type
+      - requires_calculation
+      - requires_human_review
+      - is_default
+      - examples
+    required_behavior:
+      - project API and desktop save/reload preserve the edited v6 route contract fields
+      - dataset route_snapshot_json preserves the same fields for downstream traceability
 
 daemon:
   must:

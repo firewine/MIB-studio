@@ -12,6 +12,7 @@ from alembic.config import Config
 
 from services.api.app.core.config import Settings
 from services.api.app.main import create_app
+from services.shared.db.models import Dataset
 from services.shared.db.seed import seed_router_preset
 from services.shared.db.session import create_sqlite_engine, session_factory
 
@@ -75,7 +76,16 @@ def project_payload() -> dict[str, Any]:
         "name": "Dataset Project",
         "preset_id": "router.basic.v1",
         "routes": [
-            {"route_id": route_id, "description": f"{route_id} route", "is_unsafe": route_id.startswith("blocked")}
+            {
+                "route_id": route_id,
+                "description": f"{route_id} route",
+                "is_unsafe": route_id.startswith("blocked") or route_id == "investment_advice_block",
+                "task_type": "block" if route_id.startswith("blocked") or route_id == "investment_advice_block" else "generate_report",
+                "requires_calculation": route_id == "finance_income",
+                "requires_human_review": route_id.startswith("blocked") or route_id in {"human_review", "investment_advice_block"},
+                "is_default": route_id == "human_review",
+                "examples": [f"{route_id} example"],
+            }
             for route_id in ROUTES
         ],
     }
@@ -119,6 +129,16 @@ async def run_build_dataset_writes_jsonl_and_example_rows(tmp_path: Path) -> Non
     assert dataset["schema_version"] == "router.v1"
     assert dataset_path == mib_home / "projects" / project_id / "datasets" / "1" / "dataset.jsonl"
     assert dataset_path.exists()
+
+    engine = create_sqlite_engine(database_url)
+    factory = session_factory(engine)
+    with factory() as session:
+        route_snapshot = json.loads(session.get(Dataset, dataset["id"]).route_snapshot_json)
+    engine.dispose()
+    assert route_snapshot[0]["task_type"] == "generate_report"
+    assert route_snapshot[0]["requires_calculation"] is True
+    assert route_snapshot[0]["examples"] == ["finance_income example"]
+    assert route_snapshot[3]["is_default"] is True
 
     text = dataset_path.read_text(encoding="utf-8")
     assert hashlib.sha256(text.encode("utf-8")).hexdigest() == dataset["sha256"]

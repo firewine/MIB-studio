@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -124,6 +125,11 @@ class ProjectService:
                     route_id=route.route_id,
                     description=route.description,
                     is_unsafe=1 if route.is_unsafe else 0,
+                    task_type=route.task_type,
+                    requires_calculation=1 if route.requires_calculation else 0,
+                    requires_human_review=1 if route.requires_human_review else 0,
+                    is_default=1 if route.is_default else 0,
+                    examples_json=json.dumps(route.examples, ensure_ascii=False, separators=(",", ":")),
                     created_at=format_timestamp(start + timedelta(milliseconds=index)),
                 )
             )
@@ -143,6 +149,11 @@ class ProjectService:
                 route_id=route.route_id,
                 description=route.description,
                 is_unsafe=bool(route.is_unsafe),
+                task_type=route.task_type,
+                requires_calculation=bool(route.requires_calculation),
+                requires_human_review=bool(route.requires_human_review),
+                is_default=bool(route.is_default),
+                examples=json.loads(route.examples_json),
                 created_at=route.created_at,
             )
             for route in self._routes_for_project(project.id)

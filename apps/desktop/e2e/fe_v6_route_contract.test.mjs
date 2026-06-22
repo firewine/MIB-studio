@@ -40,6 +40,20 @@ test("FE v6 route contract builder renders, edits, and passes keyboard/a11y smok
     await waitFor(client, 'document.body.innerText.includes("route among labels")');
     await click(client, '[data-action="add-preset"][data-preset="finance"]');
     await waitFor(client, 'document.body.innerText.includes("investment_advice_block")');
+    await evaluate(client, `(() => {
+      const field = document.querySelector('[data-field="examples"]');
+      field.value = "Persisted v6 route example";
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    })()`);
+    await click(client, '[data-action="apply-route"]');
+    await click(client, '[data-action="save-routes"]');
+    await waitFor(client, 'document.body.innerText.includes("Contract saved.")');
+    await click(client, '[data-action="refresh"]');
+    await navigate(client, `http://127.0.0.1:${staticPort}/projects/proj_1/define`);
+    await waitFor(client, 'document.body.innerText.includes("investment_advice_block")');
+    await click(client, '[data-route-index="4"]');
+    await waitFor(client, 'document.querySelector(`[data-field="route-id"]`)?.value === "investment_advice_block"');
+    await waitFor(client, 'document.querySelector(`[data-field="examples"]`)?.value.includes("Persisted v6 route example")');
     await click(client, '[data-action="select-inspector-tab"][data-tab="contract"]');
     await waitFor(client, 'document.body.innerText.includes("support_router.v1")');
     await click(client, '[data-action="select-contract-tab"][data-contract-tab="output"]');
@@ -70,11 +84,18 @@ test("FE v6 route contract builder renders, edits, and passes keyboard/a11y smok
     });
   } finally {
     client?.close();
-    chrome.kill("SIGTERM");
-    await waitForProcessExit(chrome);
+    if (chrome.exitCode === null && !chrome.signalCode) chrome.kill("SIGTERM");
+    if (!(await waitForProcessExit(chrome, 3000)) && chrome.exitCode === null && !chrome.signalCode) {
+      chrome.kill("SIGKILL");
+      await waitForProcessExit(chrome, 3000);
+    }
     staticServer.close();
     mockApi.server.close();
-    rmSync(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    try {
+      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 200 });
+    } catch (error) {
+      if (!["EBUSY", "ENOTEMPTY"].includes(error.code)) throw error;
+    }
   }
 });
 
@@ -153,13 +174,13 @@ async function waitForHttp(url, timeoutMs = 5000) {
   throw new Error(`Timed out waiting for ${url}`);
 }
 
-function waitForProcessExit(child) {
-  if (child.exitCode !== null || child.signalCode) return Promise.resolve();
+function waitForProcessExit(child, timeoutMs = 1000) {
+  if (child.exitCode !== null || child.signalCode) return Promise.resolve(true);
   return new Promise((resolve) => {
-    const timer = setTimeout(resolve, 1000);
+    const timer = setTimeout(() => resolve(false), timeoutMs);
     child.once("exit", () => {
       clearTimeout(timer);
-      resolve();
+      resolve(true);
     });
   });
 }

@@ -16,3 +16,4 @@
 - 외부 CUDA operator packet verifier가 후속 closeout commit 때문에 current HEAD가 packet.git.head보다 앞서도 commit blob 검증이 통과하면 warning을 내지 않도록 안정화했다.
 - 외부 CUDA operator packet의 primary handoff를 verified launcher로 바꿔 운영자가 packet verifier를 우회해 training handoff를 직접 실행하지 않도록 했다.
 - 외부 CUDA operator packet의 첫 실행 지침을 수정해 `packet.git.head`를 checkout 대상이 아니라 required file blob 검증용 source commit으로 명확히 했다.
+- FE v6 route contract의 `task_type`, `requires_calculation`, `requires_human_review`, `is_default`, `examples`가 project 저장/재로딩과 dataset route snapshot에 보존되도록 했다.

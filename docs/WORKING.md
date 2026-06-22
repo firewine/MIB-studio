@@ -41,13 +41,13 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_EXTERNAL_CUDA_PACKET_CHECKOUT_GUIDANCE
+phase_id: FE_V6_ROUTE_CONTRACT_PERSISTENCE
 milestone: Final_Program_Development_Closeout
-phase_status: v0_external_cuda_packet_checkout_guidance_not_go_release
-gate_id: mib-studio-external-cuda-packet-checkout-guidance
+phase_status: fe_v6_route_contract_persistence_verified_not_go_release
+gate_id: mib-studio-fe-v6-route-contract-persistence
 mode: implement
-product_code_changed: false
-verification_tooling_changed: true
+product_code_changed: true
+verification_tooling_changed: false
 release_claimed_go: false
 
 current_decision:
@@ -57,6 +57,47 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-fe-v6-route-contract-persistence
+objective: preserve canonical FE v6 route contract fields through project save/reload and dataset route snapshots
+
+files:
+  backend_project_contract:
+    - services/api/app/schemas/project.py
+    - services/api/app/services/project_service.py
+    - services/shared/db/models/project.py
+    - services/shared/db/repositories/dataset_store.py
+  frontend_v6_contract:
+    - apps/desktop/src/lib/appModel.mjs
+    - apps/desktop/e2e/fe_v6_route_contract.test.mjs
+  generated_contracts:
+    - schemas/openapi.json
+    - apps/desktop/src/lib/generated.ts
+  tests:
+    - tests/api/test_projects.py
+    - tests/dataset/test_dataset_builder.py
+    - apps/desktop/src/lib/appModel.test.mjs
+
+v6_route_contract_fields_persisted:
+  - task_type
+  - requires_calculation
+  - requires_human_review
+  - is_default
+  - examples
+
+verification:
+  api_dataset: 9 passed
+  desktop_model: passed
+  desktop_e2e_v6_route_contract: passed
+  openapi_drift: ok
+
+summary:
+  - project API/DB now stores and returns v6 route contract fields instead of only route_id/description/is_unsafe
+  - desktop routesToProjectInput/routesFromProject round-trip the v6 fields, including examples, through save/reload
+  - dataset route_snapshot_json now includes the v6 route contract fields for downstream traceability
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-packet-checkout-guidance

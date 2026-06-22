@@ -25,6 +25,11 @@ export interface RouteInput {
   route_id: string;
   description: string;
   is_unsafe: boolean;
+  task_type?: "generate_report" | "provide_advice" | "escalate" | "block";
+  requires_calculation?: boolean;
+  requires_human_review?: boolean;
+  is_default?: boolean;
+  examples?: string[];
 }
 
 export interface ProjectCreate {
@@ -48,6 +53,11 @@ export interface RouteRead {
   route_id: string;
   description: string;
   is_unsafe: boolean;
+  task_type: "generate_report" | "provide_advice" | "escalate" | "block";
+  requires_calculation: boolean;
+  requires_human_review: boolean;
+  is_default: boolean;
+  examples: string[];
   created_at: IsoDatetime;
 }
 

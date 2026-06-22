@@ -45,8 +45,26 @@ def project_payload(name: str = "Router Project") -> dict[str, object]:
         "name": name,
         "preset_id": "router.basic.v1",
         "routes": [
-            {"route_id": "finance_income", "description": "Finance income route", "is_unsafe": False},
-            {"route_id": "human_review", "description": "Needs human review", "is_unsafe": True},
+            {
+                "route_id": "finance_income",
+                "description": "Finance income route",
+                "is_unsafe": False,
+                "task_type": "generate_report",
+                "requires_calculation": True,
+                "requires_human_review": False,
+                "is_default": False,
+                "examples": ["calculate monthly finance income"],
+            },
+            {
+                "route_id": "human_review",
+                "description": "Needs human review",
+                "is_unsafe": True,
+                "task_type": "block",
+                "requires_calculation": False,
+                "requires_human_review": True,
+                "is_default": True,
+                "examples": ["manual escalation required"],
+            },
         ],
     }
 
@@ -69,6 +87,11 @@ async def test_create_list_read_project(tmp_path: Path) -> None:
         assert body["name"] == "Router Project"
         assert body["preset_id"] == "router.basic.v1"
         assert [route["route_id"] for route in body["routes"]] == ["finance_income", "human_review"]
+        assert body["routes"][0]["task_type"] == "generate_report"
+        assert body["routes"][0]["requires_calculation"] is True
+        assert body["routes"][0]["examples"] == ["calculate monthly finance income"]
+        assert body["routes"][1]["requires_human_review"] is True
+        assert body["routes"][1]["is_default"] is True
 
         listed = await client.get("/projects", headers=auth_headers())
         assert listed.status_code == 200
@@ -123,8 +146,22 @@ async def test_patch_and_archive_project_guards_mutations(tmp_path: Path) -> Non
             json={
                 "name": "Renamed",
                 "routes": [
-                    {"route_id": "risk_summary", "description": "Risk route"},
-                    {"route_id": "blocked", "description": "Blocked route", "is_unsafe": True},
+                    {
+                        "route_id": "risk_summary",
+                        "description": "Risk route",
+                        "task_type": "generate_report",
+                        "requires_calculation": True,
+                        "examples": ["summarize operating risk"],
+                    },
+                    {
+                        "route_id": "blocked",
+                        "description": "Blocked route",
+                        "is_unsafe": True,
+                        "task_type": "block",
+                        "requires_human_review": True,
+                        "is_default": True,
+                        "examples": ["blocked route example"],
+                    },
                 ],
             },
             headers=auth_headers(),
@@ -132,6 +169,8 @@ async def test_patch_and_archive_project_guards_mutations(tmp_path: Path) -> Non
         assert patched.status_code == 200
         assert patched.json()["name"] == "Renamed"
         assert [route["route_id"] for route in patched.json()["routes"]] == ["risk_summary", "blocked"]
+        assert patched.json()["routes"][0]["requires_calculation"] is True
+        assert patched.json()["routes"][1]["examples"] == ["blocked route example"]
 
         archived = await client.delete(f"/projects/{project_id}", headers=auth_headers())
         assert archived.status_code == 204

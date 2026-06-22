@@ -13,6 +13,11 @@ class RouteInput(StrictModel):
     route_id: str = Field(pattern=r"^[a-z0-9_]+$", min_length=1, max_length=64)
     description: str = Field(min_length=1, max_length=2000)
     is_unsafe: bool = False
+    task_type: Literal["generate_report", "provide_advice", "escalate", "block"] = "generate_report"
+    requires_calculation: bool = False
+    requires_human_review: bool = False
+    is_default: bool = False
+    examples: list[str] = Field(default_factory=list, max_length=20)
 
 
 def ensure_unique_routes(routes: list[RouteInput] | None) -> list[RouteInput] | None:
@@ -50,6 +55,11 @@ class RouteRead(StrictModel):
     route_id: str
     description: str
     is_unsafe: bool
+    task_type: Literal["generate_report", "provide_advice", "escalate", "block"]
+    requires_calculation: bool
+    requires_human_review: bool
+    is_default: bool
+    examples: list[str]
     created_at: str
 
 

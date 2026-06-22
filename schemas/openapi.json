@@ -242,6 +242,35 @@
           },
           "is_unsafe": {
             "type": "boolean"
+          },
+          "task_type": {
+            "enum": [
+              "generate_report",
+              "provide_advice",
+              "escalate",
+              "block"
+            ],
+            "default": "generate_report"
+          },
+          "requires_calculation": {
+            "type": "boolean",
+            "default": false
+          },
+          "requires_human_review": {
+            "type": "boolean",
+            "default": false
+          },
+          "is_default": {
+            "type": "boolean",
+            "default": false
+          },
+          "examples": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string"
+            },
+            "default": []
           }
         },
         "additionalProperties": false
@@ -2662,6 +2691,11 @@
           "route_id",
           "description",
           "is_unsafe",
+          "task_type",
+          "requires_calculation",
+          "requires_human_review",
+          "is_default",
+          "examples",
           "created_at"
         ],
         "properties": {
@@ -2680,6 +2714,29 @@
           },
           "is_unsafe": {
             "type": "boolean"
+          },
+          "task_type": {
+            "enum": [
+              "generate_report",
+              "provide_advice",
+              "escalate",
+              "block"
+            ]
+          },
+          "requires_calculation": {
+            "type": "boolean"
+          },
+          "requires_human_review": {
+            "type": "boolean"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "created_at": {
             "$ref": "#/components/schemas/IsoDatetime"

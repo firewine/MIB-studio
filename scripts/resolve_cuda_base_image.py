@@ -199,6 +199,21 @@ def inspect_candidate(candidate: str, *, runner: Runner, timeout: int) -> dict[s
             "cuda_markers": cuda,
             "python_runtime_markers": python_markers,
         }
+    if not python_markers:
+        return {
+            "candidate": candidate,
+            "command": command,
+            "ok": False,
+            "status": "python_runtime_markers_missing",
+            "detail": "image has a digest and CUDA markers but does not look like a Python runtime base image",
+            "returncode": result.returncode,
+            "repo_digests": repo_digests,
+            "repo_tags": repo_tags,
+            "digest_reference": digest_reference,
+            "image_id": image.get("Id"),
+            "cuda_markers": cuda,
+            "python_runtime_markers": python_markers,
+        }
     return {
         "candidate": candidate,
         "command": command,
@@ -212,7 +227,7 @@ def inspect_candidate(candidate: str, *, runner: Runner, timeout: int) -> dict[s
         "image_id": image.get("Id"),
         "cuda_markers": cuda,
         "python_runtime_markers": python_markers,
-        "python_runtime_likely": bool(python_markers),
+        "python_runtime_likely": True,
     }
 
 
@@ -237,8 +252,8 @@ def build_report(args: argparse.Namespace, *, runner: Runner = run_subprocess) -
         "candidates": rows,
         "blockers": [] if selected else ["cuda_base_image_not_resolved"],
         "operator_rules": [
-            f"Use the emitted {BASE_IMAGE_ENV} only for Docker build handoffs that require a digest-pinned CUDA base image.",
-            "Do not use application images or fixture images as CUDA base images.",
+            f"Use the emitted {BASE_IMAGE_ENV} only for Docker build handoffs that require a digest-pinned CUDA/Python base image.",
+            "Do not use application images, CUDA-only images without Python, or fixture images as CUDA/Python base images.",
             "Do not claim M6-RC or v0 GO from base-image resolution alone.",
             "If no candidate resolves, pull or provide a CUDA/PyTorch runtime image on the CUDA host and rerun this resolver.",
         ],

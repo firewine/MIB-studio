@@ -17,7 +17,7 @@
       "status": "inspect_failed"
     }
   ],
-  "date": "2026-06-22T03:08:12.842188+00:00",
+  "date": "2026-06-22T03:22:16.293884+00:00",
   "env": {},
   "gate": "mib-studio-cuda-base-image-resolution",
   "inputs": {
@@ -28,8 +28,8 @@
   },
   "m6_rc_claimed_go": false,
   "operator_rules": [
-    "Use the emitted MIB_DOCKER_BASE_IMAGE_WITH_DIGEST only for Docker build handoffs that require a digest-pinned CUDA base image.",
-    "Do not use application images or fixture images as CUDA base images.",
+    "Use the emitted MIB_DOCKER_BASE_IMAGE_WITH_DIGEST only for Docker build handoffs that require a digest-pinned CUDA/Python base image.",
+    "Do not use application images, CUDA-only images without Python, or fixture images as CUDA/Python base images.",
     "Do not claim M6-RC or v0 GO from base-image resolution alone.",
     "If no candidate resolves, pull or provide a CUDA/PyTorch runtime image on the CUDA host and rerun this resolver."
   ],

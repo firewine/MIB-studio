@@ -83,6 +83,22 @@ def test_rejects_non_cuda_image_even_with_repo_digest() -> None:
     assert report["candidates"][0]["digest_reference"] == digest
 
 
+def test_rejects_cuda_image_without_python_runtime_markers() -> None:
+    digest = "nvidia/cuda@sha256:" + "c" * 64
+
+    def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        return completed(command, stdout=inspect_stdout(repo_digests=[digest], env=["CUDA_VERSION=12.1.1", "NVIDIA_VISIBLE_DEVICES=all"]))
+
+    report = resolver.build_report(args_for("nvidia/cuda:12.1.1-runtime-ubuntu22.04"), runner=runner)
+
+    candidate = report["candidates"][0]
+    assert report["status"] == resolver.NOT_READY_STATUS
+    assert report["env"] == {}
+    assert candidate["status"] == "python_runtime_markers_missing"
+    assert candidate["cuda_markers"] != []
+    assert candidate["python_runtime_markers"] == []
+
+
 def test_rejects_cuda_tag_without_repo_digest() -> None:
     def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
         return completed(command, stdout=inspect_stdout(repo_digests=[], env=["CUDA_VERSION=12.1.1"]))

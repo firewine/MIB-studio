@@ -17,26 +17,50 @@
     },
     {
       "argv": [
+        "./.venv/bin/python",
+        "scripts/build_external_cuda_operator_transfer_manifest.py",
+        "--packet-json",
+        "artifacts/review/external_cuda_operator_packet.json",
+        "--packet-verification-json",
+        "artifacts/review/external_cuda_operator_packet_verification.json",
+        "--json-output",
+        "artifacts/review/external_cuda_operator_transfer_manifest.json",
+        "--markdown-output",
+        "artifacts/review/external_cuda_operator_transfer_manifest.md",
+        "--expected-status",
+        "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER"
+      ],
+      "id": "build_external_cuda_operator_transfer_manifest",
+      "note": "Require full-checkout transfer/readiness manifest before invoking CUDA training.",
+      "shell": "./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --packet-json artifacts/review/external_cuda_operator_packet.json --packet-verification-json artifacts/review/external_cuda_operator_packet_verification.json --json-output artifacts/review/external_cuda_operator_transfer_manifest.json --markdown-output artifacts/review/external_cuda_operator_transfer_manifest.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER"
+    },
+    {
+      "argv": [
         "bash",
         "artifacts/review/real_adapter_cuda_training_handoff.sh"
       ],
       "id": "run_real_adapter_cuda_training_handoff",
-      "note": "Invoke the existing guarded CUDA training handoff only after packet verification passes.",
+      "note": "Invoke the existing guarded CUDA training handoff only after packet and transfer-manifest readiness pass.",
       "shell": "bash artifacts/review/real_adapter_cuda_training_handoff.sh"
     }
   ],
-  "date": "2026-06-22T14:49:59.197925+00:00",
+  "date": "2026-06-22T22:03:40.444200+00:00",
   "gate": "mib-studio-verified-external-cuda-training-launcher",
   "guardrails": [
     "Refuse to run when MIB_RUNTIME_ALLOW_FAKE_BACKEND is set.",
-    "Refuse to run when repo Python, verifier script, operator packet, or CUDA training handoff shell is missing.",
+    "Refuse to run when repo Python, verifier script, transfer manifest script, operator packet, or CUDA training handoff shell is missing.",
+    "Require READY_EXTERNAL_CUDA_OPERATOR_TRANSFER before invoking the CUDA training handoff.",
     "Do not claim M6-RC or v0 release GO from launcher execution alone."
   ],
   "inputs": {
+    "expected_transfer_manifest_status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
     "expected_verifier_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
     "packet_json": "artifacts/review/external_cuda_operator_packet.json",
     "python": "./.venv/bin/python",
     "training_handoff_shell": "artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "transfer_manifest_json_output": "artifacts/review/external_cuda_operator_transfer_manifest.json",
+    "transfer_manifest_markdown_output": "artifacts/review/external_cuda_operator_transfer_manifest.md",
+    "transfer_manifest_script": "scripts/build_external_cuda_operator_transfer_manifest.py",
     "verification_output": "artifacts/review/external_cuda_operator_packet_verification.json",
     "verifier_script": "scripts/verify_external_cuda_operator_packet.py"
   },

@@ -22,8 +22,11 @@ def args_for(tmp_path: Path) -> SimpleNamespace:
     return SimpleNamespace(
         python="./.venv/bin/python",
         verifier_script="scripts/verify_external_cuda_operator_packet.py",
+        transfer_manifest_script="scripts/build_external_cuda_operator_transfer_manifest.py",
         packet_json="artifacts/review/external_cuda_operator_packet.json",
         verification_output="artifacts/review/external_cuda_operator_packet_verification.json",
+        transfer_manifest_json_output="artifacts/review/external_cuda_operator_transfer_manifest.json",
+        transfer_manifest_markdown_output="artifacts/review/external_cuda_operator_transfer_manifest.md",
         training_handoff_shell="artifacts/review/real_adapter_cuda_training_handoff.sh",
         json_output=str(tmp_path / "launcher.json"),
         markdown_output=str(tmp_path / "launcher.md"),
@@ -42,18 +45,26 @@ def test_launcher_runs_packet_verifier_before_training_handoff(tmp_path: Path) -
     assert result["m6_rc_claimed_go"] is False
     assert [row["id"] for row in result["command_sequence"]] == [
         "verify_external_cuda_operator_packet",
+        "build_external_cuda_operator_transfer_manifest",
         "run_real_adapter_cuda_training_handoff",
     ]
     assert result["inputs"]["expected_verifier_decision"] == launcher.VERIFIER_DECISION
+    assert result["inputs"]["expected_transfer_manifest_status"] == launcher.TRANSFER_READY_STATUS
     assert "scripts/verify_external_cuda_operator_packet.py" in shell
+    assert "scripts/build_external_cuda_operator_transfer_manifest.py" in shell
+    assert "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER" in shell
     assert "GO" in shell
     assert "artifacts/review/real_adapter_cuda_training_handoff.sh" in shell
     assert shell.index("== verify_external_cuda_operator_packet ==") < shell.index("== run_real_adapter_cuda_training_handoff ==")
+    assert shell.index("== build_external_cuda_operator_transfer_manifest ==") < shell.index("== run_real_adapter_cuda_training_handoff ==")
+    assert shell.index("== verify_external_cuda_operator_packet ==") < shell.index("== build_external_cuda_operator_transfer_manifest ==")
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "operator packet verifier is missing" in shell
+    assert "operator transfer manifest builder is missing" in shell
     assert "operator packet JSON is missing" in shell
     assert "CUDA training handoff shell is missing" in shell
     assert "release_claimed_go: false" in markdown
+    assert "expected_transfer_manifest_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER" in markdown
     assert "copied evidence bundles" in markdown
 
 
@@ -78,3 +89,4 @@ def test_main_writes_launcher_artifacts(tmp_path: Path, monkeypatch) -> None:
     assert Path(args.markdown_output).is_file()
     assert Path(args.shell_output).is_file()
     assert "verify_external_cuda_operator_packet" in Path(args.shell_output).read_text(encoding="utf-8")
+    assert "build_external_cuda_operator_transfer_manifest" in Path(args.shell_output).read_text(encoding="utf-8")

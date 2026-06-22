@@ -41,17 +41,17 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CURRENT_HEAD_EXTERNAL_CUDA_HANDOFF_READINESS_AUDIT_AFTER_E5D761F
+phase_id: VERIFIED_EXTERNAL_CUDA_LAUNCHER_TRANSFER_MANIFEST_GUARD
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-current-head-external-cuda-handoff-readiness-audit-after-e5d761f
+gate_id: mib-studio-verified-external-cuda-launcher-transfer-manifest-guard
 mode: development
 product_code_changed: false
 frontend_code_changed: false
-verification_tooling_changed: false
+verification_tooling_changed: true
 verification_artifacts_refreshed: true
 external_operator_packet_refreshed: true
-external_operator_packet_refresh_required_after_phase_commit: false
+external_operator_packet_refresh_required_after_phase_commit: true
 external_cuda_handoff_readiness_refreshed: true
 operator_packet_ready: true
 strict_model_cache_ready: true
@@ -62,12 +62,51 @@ release_claimed_go: false
 current_decision:
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   external_cuda_handoff_readiness_status: WAITING_FOR_EXTERNAL_CUDA_HOST
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
   v0_release_ready: false
   expected_local_decision: NOT_GO
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-verified-external-cuda-launcher-transfer-manifest-guard
+objective: require transfer-manifest readiness inside the verified external CUDA launcher before training
+
+baseline_head: c79f7d0
+
+launcher_command_order:
+  - verify_external_cuda_operator_packet
+  - build_external_cuda_operator_transfer_manifest
+  - run_real_adapter_cuda_training_handoff
+
+new_guard:
+  command: ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --packet-json artifacts/review/external_cuda_operator_packet.json --packet-verification-json artifacts/review/external_cuda_operator_packet_verification.json --json-output artifacts/review/external_cuda_operator_transfer_manifest.json --markdown-output artifacts/review/external_cuda_operator_transfer_manifest.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  enforced_before: artifacts/review/real_adapter_cuda_training_handoff.sh
+  expected_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+
+guardrails_preserved:
+  - MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset
+  - release_claimed_go remains false
+  - m6_rc_claimed_go remains false
+
+generated_artifacts_refreshed:
+  - artifacts/review/verified_external_cuda_training_launcher.json
+  - artifacts/review/verified_external_cuda_training_launcher.md
+  - artifacts/review/verified_external_cuda_training_launcher.sh
+
+follow_up_required:
+  external_cuda_operator_packet_refresh_required: true
+  reason: launcher generator and committed launcher artifact changed, so packet required_committed_files hashes must be refreshed from the launcher guard commit
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-current-head-external-cuda-handoff-readiness-audit-after-e5d761f

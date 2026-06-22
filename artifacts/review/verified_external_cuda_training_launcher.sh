@@ -19,6 +19,11 @@ if [ ! -f scripts/verify_external_cuda_operator_packet.py ]; then
   exit 2
 fi
 
+if [ ! -f scripts/build_external_cuda_operator_transfer_manifest.py ]; then
+  echo "Refusing to run: operator transfer manifest builder is missing: scripts/build_external_cuda_operator_transfer_manifest.py" >&2
+  exit 2
+fi
+
 if [ ! -f artifacts/review/external_cuda_operator_packet.json ]; then
   echo "Refusing to run: operator packet JSON is missing: artifacts/review/external_cuda_operator_packet.json" >&2
   exit 2
@@ -31,6 +36,9 @@ fi
 
 printf '\n== verify_external_cuda_operator_packet ==\n'
 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json
+
+printf '\n== build_external_cuda_operator_transfer_manifest ==\n'
+./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --packet-json artifacts/review/external_cuda_operator_packet.json --packet-verification-json artifacts/review/external_cuda_operator_packet_verification.json --json-output artifacts/review/external_cuda_operator_transfer_manifest.json --markdown-output artifacts/review/external_cuda_operator_transfer_manifest.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
 
 printf '\n== run_real_adapter_cuda_training_handoff ==\n'
 bash artifacts/review/real_adapter_cuda_training_handoff.sh

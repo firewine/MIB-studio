@@ -1,25 +1,18 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Wire the hardened CUDA training handoff into v0 release blocker recertification next actions so the remaining real_trained_adapter_no_fake_endpoint path points to the correct first external command.",
+  "goal": "Create a commit-pinned external CUDA operator packet for the real-adapter training and no-fake endpoint evidence path without committing model, adapter, Docker, or endpoint evidence artifacts.",
   "phase": "done",
-  "gate": "mib-studio-recertification-training-handoff-action",
+  "gate": "mib-studio-external-cuda-operator-packet",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "0f51f06",
+  "head": "d6ecc02",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/run_v0_release_blocker_recertification.py",
-    "tests/scripts/test_run_v0_release_blocker_recertification.py",
-    "artifacts/review/real_adapter_candidate_scan.json",
-    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "artifacts/review/m6_real_adapter_prereq_audit.json",
-    "artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "artifacts/review/v0_release_readiness_audit.json",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/real_adapter_cuda_handoff.md",
-    "artifacts/review/real_adapter_cuda_handoff.sh",
-    "artifacts/review/v0_release_blocker_recertification.json",
+    "scripts/build_external_cuda_operator_packet.py",
+    "tests/scripts/test_build_external_cuda_operator_packet.py",
+    "artifacts/review/external_cuda_operator_packet.json",
+    "artifacts/review/external_cuda_operator_packet.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
@@ -44,72 +37,74 @@
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may update v0 release blocker recertification next-action wording so missing real adapter inputs point first to artifacts/review/real_adapter_cuda_training_handoff.sh, focused tests, refreshed current NOT_GO artifacts, LLM context/working state, completion log, and PABCD only.",
+  "allowed_edit_paths_scope_note": "This gate may add a commit-pinned external CUDA operator packet generator, focused tests, generated packet JSON/Markdown, LLM context/working state, completion log, and PABCD only.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "artifacts/review/real_adapter_cuda_training_handoff.json",
     "artifacts/review/real_adapter_cuda_training_handoff.md",
     "artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "artifacts/review/real_adapter_cuda_handoff.json",
+    "artifacts/review/real_adapter_cuda_handoff.md",
+    "artifacts/review/real_adapter_cuda_handoff.sh",
+    "artifacts/review/v0_release_blocker_recertification.json",
     "scripts/prepare_cuda_lora_training_run.py",
-    "scripts/check_cuda_lora_training_prereqs.py",
-    "scripts/run_m6_real_adapter_rc_gate.py",
     "scripts/build_real_adapter_handoff.py",
-    "scripts/verify_v0_release_readiness.py"
+    "scripts/run_v0_release_blocker_recertification.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
-    "python3 -m py_compile scripts/run_v0_release_blocker_recertification.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"real_adapter_cuda_training_handoff.sh|package_readiness_checks|operator_next_actions|no_go_adapter_candidates|real_trained_adapter_no_fake_endpoint|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION\" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py artifacts/review/v0_release_blocker_recertification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md",
+    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
+    "rg -n -- \"external_cuda_operator_packet|primary_external_handoff|real_adapter_cuda_training_handoff.sh|d6ecc02|release_claimed_go|forbidden_committed_artifacts\" scripts/build_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Recertification operator_next_actions now names artifacts/review/real_adapter_cuda_training_handoff.sh for missing real adapter/CUDA setup paths.",
-    "Focused recertification tests verify the training handoff action ordering.",
-    "Host-access recertification refresh remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker.",
-    "No M6-RC GO or v0 release GO is claimed from current local artifacts."
+    "External CUDA operator packet is pinned to the current git commit and primary handoff script.",
+    "Packet lists required committed handoff files with sha256 and explicitly forbids committed model/adapters/Docker images/endpoint transcripts/evidence bundles.",
+    "Focused tests verify packet structure, required files, no GO claim, and forbidden artifact policy.",
+    "Generated packet does not claim M6-RC or v0 release GO."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
-    "python3 -m py_compile scripts/run_v0_release_blocker_recertification.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"real_adapter_cuda_training_handoff.sh|package_readiness_checks|operator_next_actions|no_go_adapter_candidates|real_trained_adapter_no_fake_endpoint|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION\" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py artifacts/review/v0_release_blocker_recertification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md",
+    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
+    "rg -n -- \"external_cuda_operator_packet|primary_external_handoff|real_adapter_cuda_training_handoff.sh|d6ecc02|release_claimed_go|forbidden_committed_artifacts\" scripts/build_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
     "The current host still lacks real trained adapter no-fake Docker endpoint evidence.",
-    "This gate improves next-action routing only; it does not accept evidence or relax readiness."
+    "This gate creates an operator packet only; it does not run CUDA training, accept evidence, or relax readiness."
   ],
   "phase_notes": {
-    "plan": "Route missing real-adapter/CUDA setup next actions to the hardened CUDA training handoff script before downstream RC handoff.",
-    "audit": "Recertification currently lists missing adapter/cache/CUDA reasons but does not directly name the training handoff script as the first external command.",
-    "build": "Patch recertification action mapping, focused tests, docs/CONTEXT.md, docs/WORKING.md, completion log, and refresh current NOT_GO artifacts.",
-    "check": "Run focused recertification tests, py_compile, host-access current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this recertification routing phase."
+    "plan": "Add a commit-pinned external CUDA operator packet that points to the hardened training handoff and downstream no-fake endpoint/evidence return path.",
+    "audit": "Current docs identify the primary handoff, but there is no generated packet anchoring commit, file hashes, command order, expected return artifacts, and forbidden committed artifacts.",
+    "build": "Create packet generator, focused tests, generated JSON/Markdown packet, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD.",
+    "check": "Run focused tests, py_compile, packet generation, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this operator packet phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-recertification-training-handoff-action",
+    "gate": "mib-studio-external-cuda-operator-packet",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Recertification next-action routing to hardened CUDA training handoff, focused tests, refreshed current NOT_GO artifacts, LLM context/working state, completion log, and PABCD only.",
+    "approved_scope": "External CUDA operator packet generator, focused tests, generated packet JSON/Markdown, LLM context/working state, completion log, and PABCD only.",
     "blocked_scope": "No product behavior changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Route missing real-adapter/CUDA setup next actions to the hardened CUDA training handoff script before downstream RC handoff.",
-    "audit": "Recertification currently lists missing adapter/cache/CUDA reasons but does not directly name the training handoff script as the first external command.",
-    "build": "Patch recertification action mapping, focused tests, docs/CONTEXT.md, docs/WORKING.md, completion log, and refresh current NOT_GO artifacts.",
-    "check": "Run focused recertification tests, py_compile, host-access current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this recertification routing phase."
+    "plan": "Add a commit-pinned external CUDA operator packet that points to the hardened training handoff and downstream no-fake endpoint/evidence return path.",
+    "audit": "Current docs identify the primary handoff, but there is no generated packet anchoring commit, file hashes, command order, expected return artifacts, and forbidden committed artifacts.",
+    "build": "Create packet generator, focused tests, generated JSON/Markdown packet, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD.",
+    "check": "Run focused tests, py_compile, packet generation, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this operator packet phase."
   }
 }

@@ -368,6 +368,7 @@ latest_operational_state: docs/WORKING.md
 release_readiness_report: artifacts/review/v0_release_readiness_audit.json
 release_blocker_recertification: artifacts/review/v0_release_blocker_recertification.json
 cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.json
+external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.json
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 current_local_unexpected_blockers: []
@@ -464,6 +465,24 @@ shell_guarded_prereqs:
   - backend_config_present
   - rc_handoff_shell_present
 purpose: fail fast on CUDA host package/setup mistakes before real adapter training and endpoint evidence capture
+```
+
+Current external CUDA operator packet:
+
+```yaml
+packet_json: artifacts/review/external_cuda_operator_packet.json
+packet_markdown: artifacts/review/external_cuda_operator_packet.md
+schema_version: mib_external_cuda_operator_packet.v1
+status: PREPARED_NOT_RUN
+release_claimed_go: false
+handoff_source_commit: d6ecc02
+primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+forbidden_committed_artifacts:
+  - model weights
+  - LoRA adapter files
+  - Docker image layers or archives
+  - raw live endpoint transcripts
+  - copied external real-adapter evidence bundles
 ```
 
 Recommended external CUDA host sequence:

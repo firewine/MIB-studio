@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_RECERTIFICATION_TRAINING_HANDOFF_ACTION
+phase_id: V0_EXTERNAL_CUDA_OPERATOR_PACKET
 milestone: Final_Program_Development_Closeout
-phase_status: v0_recertification_training_handoff_action_verified_not_go
-gate_id: mib-studio-recertification-training-handoff-action
+phase_status: v0_external_cuda_operator_packet_prepared_not_go
+gate_id: mib-studio-external-cuda-operator-packet
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,41 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-operator-packet
+objective: create a commit-pinned external CUDA operator packet for the real-adapter evidence path
+
+files:
+  packet_generator: scripts/build_external_cuda_operator_packet.py
+  packet_tests: tests/scripts/test_build_external_cuda_operator_packet.py
+  generated_packet:
+    - artifacts/review/external_cuda_operator_packet.json
+    - artifacts/review/external_cuda_operator_packet.md
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+operator_packet_contract:
+  schema_version: mib_external_cuda_operator_packet.v1
+  status: PREPARED_NOT_RUN
+  release_claimed_go: false
+  handoff_source_commit: d6ecc02
+  primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  contains_model_or_adapter_artifacts: false
+  forbidden_committed_artifacts:
+    - model weights
+    - LoRA adapter files or /tmp/mib-real-adapter contents
+    - Docker image layers or archives
+    - raw live endpoint transcripts
+    - copied external real-adapter evidence bundles
+
+summary:
+  - external CUDA operator packet now anchors the handoff source commit, required committed file sha256 values, package readiness checks, command order, expected return artifacts, and forbidden committed artifacts
+  - focused tests verify packet structure, primary handoff, no-GO claims, and GO-claiming artifact rejection
+  - generated packet remains PREPARED_NOT_RUN and does not claim M6-RC GO or v0 GO
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-recertification-training-handoff-action
@@ -409,6 +444,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  External_CUDA_Operator_Packet: true
   V0_Release_Blocker_Recertification_Training_Handoff_Action: true
   Real_Adapter_CUDA_Training_Handoff_Preflight_Guards: true
   V0_Release_Blocker_Recertification: true
@@ -435,8 +471,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_recertification_training_handoff_action_verified_not_go
+status: v0_external_cuda_operator_packet_prepared_not_go
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py -q
+  - python3 -m py_compile scripts/build_external_cuda_operator_packet.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md
+  - python3 -m json.tool artifacts/review/external_cuda_operator_packet.json
+  - rg -n -- "external_cuda_operator_packet|primary_external_handoff|real_adapter_cuda_training_handoff.sh|d6ecc02|release_claimed_go|forbidden_committed_artifacts" scripts/build_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q
   - python3 -m py_compile scripts/run_v0_release_blocker_recertification.py
@@ -608,6 +650,12 @@ commands. The active closeout tool is
 scripts/run_v0_release_blocker_recertification.py. It refreshes the current
 candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle
 verification, v0 readiness, and CUDA handoff artifacts with one command.
+The external CUDA operator packet is
+artifacts/review/external_cuda_operator_packet.json and .md. It pins the handoff
+source commit to d6ecc02, records required committed file sha256 values, names
+artifacts/review/real_adapter_cuda_training_handoff.sh as the primary external
+handoff, and forbids committing model weights, LoRA adapter files, Docker image
+layers/archives, raw endpoint transcripts, or copied external evidence bundles.
 The generated CUDA training handoff now embeds package_readiness_checks and its
 shell fails fast if the dataset JSONL, repo Python, LLaMA-Factory CLI, strict
 model cache, backend_config.yaml, or downstream RC handoff shell is missing.

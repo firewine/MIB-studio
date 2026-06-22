@@ -41,17 +41,17 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CURRENT_HEAD_EXTERNAL_CUDA_HANDOFF_READINESS_AUDIT_AFTER_2E3A70B
+phase_id: CURRENT_HEAD_V0_RECERTIFICATION_AFTER_DDA74A5_READINESS_AUDIT
 milestone: Final_Program_Development_Closeout
-phase_status: complete_pending_commit_push
-gate_id: mib-studio-current-head-external-cuda-handoff-readiness-audit-after-2e3a70b
+phase_status: recertification_complete_pending_source_commit_and_packet_refresh
+gate_id: mib-studio-current-head-v0-recertification-after-dda74a5-readiness-audit
 mode: development
 product_code_changed: false
 frontend_code_changed: false
 verification_tooling_changed: false
 verification_artifacts_refreshed: true
 external_operator_packet_refreshed: true
-external_operator_packet_refresh_required_after_phase_commit: false
+external_operator_packet_refresh_required_after_phase_commit: true
 external_cuda_handoff_readiness_refreshed: true
 operator_packet_ready: true
 strict_model_cache_ready: true
@@ -63,13 +63,71 @@ current_decision:
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
   external_cuda_handoff_readiness_status: WAITING_FOR_EXTERNAL_CUDA_HOST
-  current_phase_changes_make_packet_stale_until_follow_up_refresh: false
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
   v0_release_ready: false
   expected_local_decision: NOT_GO
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-current-head-v0-recertification-after-dda74a5-readiness-audit
+objective: refresh current-head v0 release blocker recertification after readiness audit
+
+baseline_head: dda74a5
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  expected_readiness_decision: NOT_GO
+  expected_bundle_decision: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
+
+v0_readiness:
+  decision: NOT_GO
+  release_ready: false
+  verification_ok: true
+  unexpected_blockers: []
+  acceptable_not_go_blockers:
+    - real_trained_adapter_no_fake_endpoint
+  blockers:
+    - real_trained_adapter_no_fake_endpoint
+
+training_preflight:
+  status: NOT_READY_CUDA_LORA_TRAINING
+  blockers:
+    - cuda_visible
+  docker_base_image_env_digest: true
+  docker_base_image_available: true
+  strict_model_cache_files: true
+
+m6_prereq:
+  status: NOT_READY_PRECHECK_FAILED
+  missing_prereq_ids:
+    - adapter_safetensors_present
+    - adapter_config_present
+    - adapter_manifest_present
+    - docker_image_available
+    - host_cuda_visible
+
+handoff:
+  decision: WAITING_FOR_REAL_ADAPTER_INPUTS
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+
+packet_refresh_required:
+  required: true
+  reason: recertification and real-adapter handoff artifacts are source-pinned operator-packet inputs
+  next_source_commit: pending_recertification_commit
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-current-head-external-cuda-handoff-readiness-audit-after-2e3a70b

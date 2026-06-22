@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: DESKTOP_E2E_ROUTE_REPAIR
+phase_id: V0_RELEASE_READINESS_AUDIT
 milestone: M6_RC_Blocker_Remediation
-phase_status: desktop_e2e_route_repair_verified
+phase_status: v0_release_readiness_audit_verified_not_go
 active_slice: none
-gate_id: mib-studio-desktop-e2e-route-repair
+gate_id: mib-studio-v0-release-readiness-audit
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,26 +53,29 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-desktop-e2e-route-repair
+  gate: mib-studio-v0-release-readiness-audit
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: restore desktop M1/FE v6/M2 e2e route verification after the project creation screen title drifted from the canonical route-contract text
+  objective: add machine-readable v0 release readiness audit for final-program completion evidence and the remaining M6 real-adapter blocker
   evidence:
+    v0_release_readiness_audit: artifacts/review/v0_release_readiness_audit_evidence.md
+    v0_release_readiness_audit_json: artifacts/review/v0_release_readiness_audit.json
     desktop_e2e_route_repair: artifacts/review/desktop_e2e_route_repair_evidence.md
     fe_v6_evidence: artifacts/review/fe_v6_evidence.md
     m6_rc_evidence_verification: artifacts/review/m6_rc_evidence_verification.json
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
-    - apps/desktop/src/main.mjs now renders the project wizard title as Create route contract project
-    - M1 desktop happy path e2e passes in real localhost/headless Chrome
-    - FE v6 route contract e2e passes in real localhost/headless Chrome
-    - M2 teacher packet preview e2e passes in real localhost/headless Chrome
-    - no backend, schema, training, export, runtime, or M6 evidence policy files changed
-    - M6-RC remains NOT_GO until real trained CUDA lora_adapter no-fake Docker endpoint evidence exists or release policy changes
+    - scripts/verify_v0_release_readiness.py now audits FE v6 evidence, desktop route repair evidence, M6-RC evidence verification, and real adapter prereq audit together
+    - current v0 release readiness decision is NOT_GO, release_ready false, verification_ok true
+    - current unexpected_blockers is empty
+    - the only current release blocker is real_trained_adapter_no_fake_endpoint
+    - current missing prereqs are adapter_dir_present, adapter_safetensors_present, adapter_config_present, adapter_manifest_present, docker_image_available, and host_cuda_visible
+    - no backend, schema, training, export, runtime, UI behavior, or M6 evidence policy files changed
 
 important_previous_commits:
+  desktop_e2e_route_repair: cf2fdf5
   real_adapter_prereq_audit: ac34a7e
   real_adapter_rc_gate_runner: c26ffe4
   structured_endpoint_evidence: d3dfbc6
@@ -93,13 +96,13 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: desktop_e2e_route_repair_verified
+status: v0_release_readiness_audit_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - COREPACK_HOME=/tmp/corepack corepack pnpm test
-  - COREPACK_HOME=/tmp/corepack corepack pnpm e2e
-  - COREPACK_HOME=/tmp/corepack node --test apps/desktop/e2e/fe_v6_route_contract.test.mjs
-  - COREPACK_HOME=/tmp/corepack node --test apps/desktop/e2e/m2_teacher_packet_preview.test.mjs
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_v0_release_readiness.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_v0_release_readiness.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
+  - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
   - git diff --check
   - git diff --cached --check
 warnings:
@@ -139,6 +142,7 @@ recorded_go:
   Real_Adapter_RC_Gate_Runner_Tooling: true
   Real_Adapter_Prereq_Audit_Tooling: true
   Desktop_E2E_Route_Repair: true
+  V0_Release_Readiness_Audit: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -146,9 +150,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-desktop-e2e-route-repair
-  review_bundle: artifacts/review/desktop_e2e_route_repair_evidence.md
-  decision: desktop_e2e_route_repair_go_m6_not_go
+  id: mib-studio-v0-release-readiness-audit
+  review_bundle: artifacts/review/v0_release_readiness_audit_evidence.md
+  decision: not_go_real_trained_adapter_no_fake_endpoint
 
 active_release_blocker:
   id: m6-real-trained-adapter-no-fake-endpoint-evidence
@@ -187,11 +191,13 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-desktop-e2e-route-repair: apps/desktop/src/main.mjs now renders the
-project wizard title as "Create route contract project", restoring M1 desktop
-happy path, FE v6 route contract, and M2 teacher packet preview e2e checks in a
-real localhost/headless Chrome environment. Evidence is in
-artifacts/review/desktop_e2e_route_repair_evidence.md.
+mib-studio-v0-release-readiness-audit. Use
+scripts/verify_v0_release_readiness.py --expected-decision NOT_GO to audit the
+current final-program completion state. The current JSON report is
+artifacts/review/v0_release_readiness_audit.json: FE v6 and desktop route repair
+evidence are present, M6-RC evidence verification is current, release_ready is
+false, unexpected_blockers is empty, and the only release blocker is
+real_trained_adapter_no_fake_endpoint.
 
 Do not claim M6-RC GO. M6-RC remains NOT_GO until real trained CUDA
 lora_adapter no-fake Docker endpoint evidence exists or release policy

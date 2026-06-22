@@ -1,0 +1,93 @@
+{
+  "acceptable_not_go_blockers": [
+    "real_trained_adapter_no_fake_endpoint"
+  ],
+  "blockers": [
+    "real_trained_adapter_no_fake_endpoint"
+  ],
+  "checks": [
+    {
+      "blocker": null,
+      "id": "fe_v6_applied",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/fe_v6_evidence.md",
+      "present": true,
+      "release_required": true
+    },
+    {
+      "blocker": null,
+      "id": "desktop_e2e_route_repair",
+      "missing_markers": [],
+      "ok": true,
+      "path": "artifacts/review/desktop_e2e_route_repair_evidence.md",
+      "present": true,
+      "release_required": true
+    },
+    {
+      "blockers": [
+        "real_trained_adapter_no_fake_endpoint"
+      ],
+      "decision": "NOT_GO",
+      "id": "m6_rc_evidence_verification",
+      "ok": false,
+      "path": "artifacts/review/m6_rc_evidence_verification.json",
+      "present": true,
+      "release_required": true,
+      "unexpected_blockers": [],
+      "verification_ok": true
+    },
+    {
+      "decision": "NOT_READY",
+      "errors": [
+        "adapter_dir_present: missing adapter directory: /tmp/mib-real-adapter/adapter",
+        "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
+        "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
+        "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
+        "docker_image_available: Error response from daemon: No such image: mib-export:test",
+        "host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'"
+      ],
+      "id": "m6_real_adapter_prereq_audit",
+      "missing_prereq_ids": [
+        "adapter_dir_present",
+        "adapter_safetensors_present",
+        "adapter_config_present",
+        "adapter_manifest_present",
+        "docker_image_available",
+        "host_cuda_visible"
+      ],
+      "ok": false,
+      "path": "artifacts/review/m6_real_adapter_prereq_audit.json",
+      "present": true,
+      "release_required": false,
+      "status": "NOT_READY_PRECHECK_FAILED"
+    }
+  ],
+  "decision": "NOT_GO",
+  "decision_matches_expected": true,
+  "expected_decision": "NOT_GO",
+  "notes": [
+    "Release GO requires current M6-RC evidence verification decision GO.",
+    "Current NOT_GO is acceptable only when real_trained_adapter_no_fake_endpoint is the sole blocker.",
+    "Prereq audit is diagnostic; it explains what must be supplied before the live M6-RC gate can run."
+  ],
+  "release_ready": false,
+  "schema_version": "mib_v0_release_readiness.v1",
+  "summary": {
+    "desktop_e2e_route_repair_verified": true,
+    "fe_v6_applied": true,
+    "m6_rc_decision": "NOT_GO",
+    "m6_rc_verification_ok": true,
+    "real_adapter_missing_prereq_ids": [
+      "adapter_dir_present",
+      "adapter_safetensors_present",
+      "adapter_config_present",
+      "adapter_manifest_present",
+      "docker_image_available",
+      "host_cuda_visible"
+    ],
+    "real_adapter_prereq_status": "NOT_READY_PRECHECK_FAILED"
+  },
+  "unexpected_blockers": [],
+  "verification_ok": true
+}

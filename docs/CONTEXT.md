@@ -458,15 +458,15 @@ external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.js
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 external_cuda_operator_transfer_manifest_builder: scripts/build_external_cuda_operator_transfer_manifest.py
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
-external_cuda_operator_packet_source_commit: 5fc0a75
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
-external_cuda_operator_packet_refresh_reason: current-head recertification changed source-pinned handoff/recertification artifacts after packet source commit 5fc0a75
+external_cuda_operator_packet_source_commit: f31050c
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
+external_cuda_operator_packet_refresh_reason: none; packet refreshed after current-head recertification commit f31050c
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
 cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
-current_recertification_head: 159a00a
+current_recertification_head: f31050c
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -545,7 +545,7 @@ Current actionable NOT_GO recertification summary:
 
 ```yaml
 summary_file: artifacts/review/v0_release_blocker_recertification.json
-current_head: 159a00a
+current_head: f31050c
 top_level_fields:
   - blocking_reasons
   - operator_next_actions
@@ -643,7 +643,7 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: 5fc0a75
+handoff_source_commit: f31050c
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -670,14 +670,14 @@ Current external CUDA operator packet verification:
 ```yaml
 verification_json: artifacts/review/external_cuda_operator_packet_verification.json
 schema_version: mib_external_cuda_operator_packet_verification.v1
-stored_decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
-stored_operator_packet_ready: true
+decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+operator_packet_ready: true
 release_claimed_go: false
 m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
   - 18 required committed file sha256/size values
-  - 18 required committed file blobs at handoff source commit 5fc0a75
+  - 18 required committed file blobs at handoff source commit f31050c
   - operator sequence keeps the packet file from the current checkout
   - primary handoff must be the verified launcher, not the lower-level training handoff
   - packet.git.head resolves even when current checkout is a later closeout commit
@@ -687,15 +687,12 @@ validated:
   - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
 warning: none
 current_checkout_reverification_after_recertification:
-  decision: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
-  expected_decision: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
-  blocker: required_committed_file_hashes
-  stale_hash_paths:
-    - artifacts/review/real_adapter_cuda_handoff.json
-    - artifacts/review/real_adapter_cuda_handoff.md
-    - artifacts/review/v0_release_blocker_recertification.json
-meaning: packet artifact was GO at source commit 5fc0a75, but current-head recertification changed source-pinned artifacts; refresh the packet before external operator use
-current_phase_note: keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  expected_decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  blocker: none
+  stale_hash_paths: []
+meaning: packet artifact is refreshed at source commit f31050c and ready for external CUDA operator use; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
+current_phase_note: no packet refresh is pending after f31050c; keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
 ```
 
 Current verified external CUDA training launcher:

@@ -1,19 +1,26 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Refresh the external CUDA operator packet after current-head blocker recertification so packet verification is GO again for the current checkout without changing release criteria or claiming M6/v0 GO.",
+  "goal": "Record the successfully prepared strict Phi-3.5 model cache, refresh current v0 release blocker recertification, and keep the release decision NOT_GO without changing product behavior or evidence criteria.",
   "phase": "done",
-  "gate": "mib-studio-current-head-external-cuda-packet-refresh",
+  "gate": "mib-studio-strict-model-cache-ready-recertification",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "a1dd0cc",
+  "head": "d13a1fa",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet.md",
-    "artifacts/review/external_cuda_operator_packet_verification.json",
+    "artifacts/review/strict_model_cache_preparation.json",
+    "artifacts/review/real_adapter_candidate_scan.json",
+    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "artifacts/review/m6_real_adapter_prereq_audit.json",
+    "artifacts/review/real_adapter_evidence_bundle_verification.json",
+    "artifacts/review/v0_release_readiness_audit.json",
+    "artifacts/review/real_adapter_cuda_handoff.json",
+    "artifacts/review/real_adapter_cuda_handoff.md",
+    "artifacts/review/real_adapter_cuda_handoff.sh",
+    "artifacts/review/v0_release_blocker_recertification.json",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
@@ -34,162 +41,162 @@
     "docs/reviews",
     "artifacts/review/real_adapter/",
     "artifacts/review/real_adapter_evidence_bundle",
+    "artifacts/review/external_cuda_operator_packet",
     ".github",
     ".venv"
   ],
   "blocked_scope": [
-    "Changing product runtime code, API behavior, frontend behavior, DB schema, source tests, scripts, model catalog, examples, schemas, or release readiness acceptance criteria",
-    "Changing real-adapter recertification results, v0 readiness results, M6 RC acceptance criteria, or no-fake endpoint evidence checks",
-    "Inventing or copying real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
+    "Changing product runtime code, API behavior, frontend behavior, DB schema, source tests, scripts, model catalog, examples, schemas, release readiness acceptance criteria, packet verifier criteria, or no-fake endpoint checks",
+    "Inventing or copying real adapter, endpoint, Docker, benchmark, package, export, or release evidence into the repository",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO",
-    "Committing model weights, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
+    "Committing model weights, strict model cache files, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Regenerate only the external CUDA operator packet JSON/Markdown and its verification artifact at current source commit a1dd0cc, then update LLM-facing operational docs.",
+  "allowed_edit_paths_scope_note": "Record strict model cache readiness from /tmp only as verification metadata, then refresh expected NOT_GO release blocker artifacts. Do not commit the downloaded model cache files.",
   "reference_only_paths": [
     "/home/firewine/getbeta/docs/guides/VS_CODE_MULTI_AGENT_GATE_PROTOCOL_V4.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/build_external_cuda_operator_packet.py",
-    "scripts/verify_external_cuda_operator_packet.py",
-    "tests/scripts/test_build_external_cuda_operator_packet.py",
-    "tests/scripts/test_verify_external_cuda_operator_packet.py",
-    "artifacts/review/real_adapter_cuda_training_handoff.json",
-    "artifacts/review/real_adapter_cuda_training_handoff.md",
-    "artifacts/review/real_adapter_cuda_training_handoff.sh",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/real_adapter_cuda_handoff.md",
-    "artifacts/review/real_adapter_cuda_handoff.sh",
-    "artifacts/review/v0_release_blocker_recertification.json",
-    "/tmp/mib-current-external-packet-verification.json"
+    "scripts/prepare_strict_model_cache.py",
+    "scripts/run_v0_release_blocker_recertification.py",
+    "scripts/check_cuda_lora_training_prereqs.py",
+    "scripts/run_m6_real_adapter_rc_gate.py",
+    "scripts/verify_real_adapter_evidence_bundle.py",
+    "scripts/verify_v0_release_readiness.py",
+    "scripts/build_real_adapter_handoff.py",
+    "tests/scripts/test_prepare_strict_model_cache.py",
+    "tests/scripts/test_run_v0_release_blocker_recertification.py",
+    "/tmp/mib-strict-model-cache-preparation-attempt.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head a1dd0cc",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "rg -n -- \"a1dd0cc|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|required file hashes|required file blobs at a1dd0cc|release_claimed_go|real_trained_adapter_no_fake_endpoint|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|external_cuda_operator_packet_source_commit\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_prepare_strict_model_cache.py tests/scripts/test_run_v0_release_blocker_recertification.py -q",
+    "python3 -m py_compile scripts/prepare_strict_model_cache.py scripts/run_v0_release_blocker_recertification.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --no-download --expected-status READY_STRICT_MODEL_CACHE --json-output artifacts/review/strict_model_cache_preparation.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
+    "python3 -m json.tool artifacts/review/strict_model_cache_preparation.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
+    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
+    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
+    "rg -n -- \"READY_STRICT_MODEL_CACHE|strict_model_cache_files|docker_base_image_env_digest|cuda_visible|docker_daemon_available|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|release_claimed_go|v0_unexpected_blockers|WAITING_FOR_REAL_ADAPTER_INPUTS\" artifacts/review/strict_model_cache_preparation.json artifacts/review/real_adapter_cuda_training_prereq_preflight.json artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/real_adapter_cuda_handoff.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "git status --short",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
     "PABCD contract is valid JSON and includes mode=development plus phase notes for plan, audit, build, check, and done.",
-    "Pre-audit showed the old packet verifier failed in the current checkout due stale hashes for real_adapter_cuda_handoff.json, real_adapter_cuda_handoff.md, and v0_release_blocker_recertification.json.",
-    "External CUDA operator packet git.head is updated to a1dd0cc.",
-    "Packet verifier returns GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION with verification_ok true and warnings [].",
-    "Verifier confirms 17 required file hashes and 17 required file blobs at a1dd0cc.",
-    "release_claimed_go remains false and m6_rc_claimed_go remains false.",
-    "v0 release remains NOT_GO with real_trained_adapter_no_fake_endpoint as the active release blocker.",
-    "No product code, tests, scripts, schemas, foundation specs, M6 review docs, model artifacts, or evidence bundles are edited."
+    "The /tmp strict model cache preparation attempt completed with READY_STRICT_MODEL_CACHE before repo artifact updates.",
+    "Repo artifact artifacts/review/strict_model_cache_preparation.json reports READY_STRICT_MODEL_CACHE with cache_ready true and release_claimed_go false.",
+    "Recertification remains expected NOT_GO and release_claimed_go remains false.",
+    "real_adapter_cuda_training_prereq_preflight no longer lists strict_model_cache_files as a blocker.",
+    "Remaining training/preflight blockers are still external host or artifact inputs such as CUDA visibility, Docker/base-image, and real adapter files.",
+    "v0 readiness remains NOT_GO with v0_unexpected_blockers [].",
+    "The active release blocker remains real_trained_adapter_no_fake_endpoint.",
+    "No model cache files under /tmp, adapter files, evidence bundles, Docker artifacts, product code, source tests, scripts, schemas, foundation specs, or M6 review docs are staged."
   ],
   "executed_verification_commands": [
-    {
-      "command": "python3 -m json.tool .codex/tasks/current.json",
-      "result": "passed before build; rerun after final done-state update"
-    },
-    {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-      "result": "passed: 11 passed in 0.11s"
-    },
-    {
-      "command": "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-      "result": "passed"
-    },
-    {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head a1dd0cc",
-      "result": "passed: packet status PREPARED_NOT_RUN, primary_external_handoff verified launcher, release_claimed_go false"
-    },
-    {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-      "result": "passed: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION, verification_ok true"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
-      "result": "passed: git.head a1dd0cc, release_claimed_go false, 17 required committed files"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-      "result": "passed: required file hashes verified, required file blobs at a1dd0cc verified, warnings []"
-    },
-    {
-      "command": "rg -n -- \"a1dd0cc|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|required file hashes|required file blobs at a1dd0cc|release_claimed_go|real_trained_adapter_no_fake_endpoint|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|external_cuda_operator_packet_source_commit\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
-      "result": "passed: current packet source commit, GO packet verification, no-GO release guardrails, and active release blocker references found"
-    },
-    {
-      "command": "git diff --check",
-      "result": "passed after final done-state contract update"
-    },
-    {
-      "command": "git diff --cached --check",
-      "result": "passed after final staging"
-    }
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE --json-output /tmp/mib-strict-model-cache-preparation-attempt.json",
+    "python3 -m json.tool .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_prepare_strict_model_cache.py tests/scripts/test_run_v0_release_blocker_recertification.py -q",
+    "python3 -m py_compile scripts/prepare_strict_model_cache.py scripts/run_v0_release_blocker_recertification.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --no-download --expected-status READY_STRICT_MODEL_CACHE --json-output artifacts/review/strict_model_cache_preparation.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
+    "python3 -m json.tool artifacts/review/strict_model_cache_preparation.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
+    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
+    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
+    "rg -n -- \"READY_STRICT_MODEL_CACHE|strict_model_cache_files|docker_base_image_env_digest|cuda_visible|docker_daemon_available|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|release_claimed_go|v0_unexpected_blockers|WAITING_FOR_REAL_ADAPTER_INPUTS\" artifacts/review/strict_model_cache_preparation.json artifacts/review/real_adapter_cuda_training_prereq_preflight.json artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/real_adapter_cuda_handoff.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "rg -n -- \"strict_model_cache_files\" artifacts/review/v0_release_blocker_recertification.json",
+    "git status --short",
+    "git diff --check"
   ],
   "failed_verification_commands": [],
   "observed_evidence": {
-    "pre_audit_packet_verification": {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output /tmp/mib-current-external-packet-verification.json",
-      "result": "failed as expected before this phase: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+    "pre_phase_tmp_download": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE --json-output /tmp/mib-strict-model-cache-preparation-attempt.json",
+      "result": "passed: READY_STRICT_MODEL_CACHE, cache_ready true, downloaded to /tmp only",
+      "cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77"
+    },
+    "repo_strict_model_cache_preparation": {
+      "path": "artifacts/review/strict_model_cache_preparation.json",
+      "status": "READY_STRICT_MODEL_CACHE",
+      "cache_ready": true,
+      "download_allowed": false,
+      "missing_files": [],
+      "downloaded_files": [],
+      "required_file_count": 5,
+      "release_claimed_go": false
+    },
+    "cuda_training_preflight": {
+      "path": "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+      "status": "NOT_READY_CUDA_LORA_TRAINING",
+      "strict_model_cache_files_ok": true,
       "blockers": [
-        "required_committed_file_hashes"
-      ],
-      "stale_paths": [
-        "artifacts/review/real_adapter_cuda_handoff.json:sha256",
-        "artifacts/review/real_adapter_cuda_handoff.md:sha256",
-        "artifacts/review/v0_release_blocker_recertification.json:sha256"
+        "docker_base_image_env_digest",
+        "cuda_visible",
+        "docker_daemon_available",
+        "docker_base_image_available"
       ]
     },
-    "packet_git_head": "a1dd0cc",
-    "packet_status": "PREPARED_NOT_RUN",
-    "packet_required_committed_files": 17,
-    "packet_verification_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
-    "packet_verification_ok": true,
-    "packet_operator_ready": true,
-    "packet_verification_warnings": [],
-    "packet_handoff_source_commit": "a1dd0cc",
-    "required_file_hashes": "verified 17 required file hashes",
-    "required_commit_blobs": "verified 17 required file blobs at a1dd0cc",
-    "release_claimed_go": false,
-    "m6_rc_claimed_go": false,
-    "v0_release_ready": false,
-    "active_release_blocker": "real_trained_adapter_no_fake_endpoint",
-    "product_code_changed": false,
-    "tests_changed": false,
-    "scripts_changed": false,
-    "release_criteria_changed": false,
-    "docs_reviews_M6_changed": false,
-    "real_adapter_evidence_created": false
+    "v0_release_blocker_recertification": {
+      "path": "artifacts/review/v0_release_blocker_recertification.json",
+      "status": "NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION",
+      "recertification_ok": true,
+      "release_claimed_go": false,
+      "v0_unexpected_blockers": [],
+      "sole_v0_blocker": "real_trained_adapter_no_fake_endpoint",
+      "handoff_decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
+      "strict_model_cache_files_in_top_level_blocking_reasons": false
+    },
+    "docs": {
+      "updated": [
+        "docs/CONTEXT.md",
+        "docs/WORKING.md",
+        "docs/plans/2026-05-09_COMPLETION_LOG.md"
+      ],
+      "docs_reviews_M6_changed": false
+    },
+    "scope_check": {
+      "product_code_changed": false,
+      "tests_changed": false,
+      "scripts_changed": false,
+      "model_cache_files_committed": false,
+      "release_claimed_go": false
+    }
   },
   "warnings": [
-    "This phase refreshes packet integrity artifacts only.",
+    "This phase records strict model cache readiness and refreshes expected NOT_GO diagnostics only.",
+    "The downloaded model cache lives under /tmp and must not be committed.",
     "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Regenerate the external CUDA operator packet at source commit a1dd0cc after current-head recertification changed required handoff artifact hashes.",
-    "audit": "Old packet verification failed in the current checkout because real_adapter_cuda_handoff.json, real_adapter_cuda_handoff.md, and v0_release_blocker_recertification.json hashes no longer matched the packet generated at 222f00c.",
-    "build": "Run the existing packet generator with --git-head a1dd0cc, then verify the packet with the existing verifier and update LLM operational docs.",
-    "check": "Run generator/verifier unit tests, py_compile, packet generation, packet verification, JSON validation, evidence search, and diff checks.",
-    "done": "Required verification passed; LLM docs updated; stage, commit, and push this phase while keeping release GO claims false."
+    "plan": "Use the successfully downloaded /tmp strict Phi-3.5 cache to refresh strict model cache readiness and current release blocker diagnostics.",
+    "audit": "Before this phase, strict_model_cache_files was a CUDA training preflight blocker and /tmp cache files were missing; the allow-download preparation attempt succeeded in /tmp.",
+    "build": "Write strict_model_cache_preparation.json via no-download verification against the prepared cache, rerun v0 release blocker recertification, and update LLM operational docs.",
+    "check": "Run focused tests, py_compile, strict cache READY verification, recertification, JSON validation, evidence search, git status artifact-scope check, and diff checks.",
+    "done": "After verification passes, mark the phase complete, stage only allowed files, commit, push, and keep release GO claims false."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-current-head-external-cuda-packet-refresh",
-    "status": "DONE",
+    "gate": "mib-studio-strict-model-cache-ready-recertification",
+    "status": "COMPLETE_PENDING_COMMIT_PUSH",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Refresh external CUDA operator packet integrity artifacts and LLM docs for current checkout commit a1dd0cc.",
-    "blocked_scope": "No product/runtime/test/script/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model, adapter, Docker, endpoint, evidence bundle, or venv artifacts.",
+    "approved_scope": "Record strict model cache readiness from /tmp, refresh expected NOT_GO release blocker artifacts, and update LLM docs.",
+    "blocked_scope": "No product/runtime/test/script/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, or venv artifacts.",
     "phase_completion_git_policy": "After verification passes, stage, commit, and push this phase.",
-    "plan": "Regenerate the external CUDA operator packet at source commit a1dd0cc after current-head recertification changed required handoff artifact hashes.",
-    "audit": "Old packet verification failed in the current checkout because real_adapter_cuda_handoff.json, real_adapter_cuda_handoff.md, and v0_release_blocker_recertification.json hashes no longer matched the packet generated at 222f00c.",
-    "build": "Run the existing packet generator with --git-head a1dd0cc, then verify the packet with the existing verifier and update LLM operational docs.",
-    "check": "Run generator/verifier unit tests, py_compile, packet generation, packet verification, JSON validation, evidence search, and diff checks.",
-    "done": "Required verification passed; LLM docs updated; stage, commit, and push this phase while keeping release GO claims false."
+    "plan": "Use the successfully downloaded /tmp strict Phi-3.5 cache to refresh strict model cache readiness and current release blocker diagnostics.",
+    "audit": "Before this phase, strict_model_cache_files was a CUDA training preflight blocker and /tmp cache files were missing; the allow-download preparation attempt succeeded in /tmp.",
+    "build": "Write strict_model_cache_preparation.json via no-download verification against the prepared cache, rerun v0 release blocker recertification, and update LLM operational docs.",
+    "check": "Run focused tests, py_compile, strict cache READY verification, recertification, JSON validation, evidence search, git status artifact-scope check, and diff checks.",
+    "done": "After verification passes, mark the phase complete, stage only allowed files, commit, push, and keep release GO claims false."
   }
 }

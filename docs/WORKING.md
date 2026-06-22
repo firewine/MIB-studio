@@ -41,15 +41,16 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CURRENT_HEAD_EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH
+phase_id: STRICT_MODEL_CACHE_READY_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: external_cuda_operator_packet_verification_restored
-gate_id: mib-studio-current-head-external-cuda-packet-refresh
+phase_status: strict_model_cache_ready_release_still_not_go
+gate_id: mib-studio-strict-model-cache-ready-recertification
 mode: development
 product_code_changed: false
 verification_tooling_changed: false
 verification_artifacts_refreshed: true
-external_operator_packet_refreshed: true
+external_operator_packet_refreshed: false
+strict_model_cache_ready: true
 release_claimed_go: false
 
 current_decision:
@@ -59,6 +60,83 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-strict-model-cache-ready-recertification
+objective: record strict Phi-3.5 model cache readiness from the prepared /tmp cache and refresh current expected NOT_GO release diagnostics
+
+source_head: d13a1fa
+pre_phase_download:
+  command_status: READY_STRICT_MODEL_CACHE
+  cache_dir: /tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77
+  repository_model_cache_files_committed: false
+
+files:
+  refreshed_artifacts:
+    - artifacts/review/strict_model_cache_preparation.json
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_readiness_audit.json
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/real_adapter_cuda_handoff.sh
+    - artifacts/review/v0_release_blocker_recertification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+strict_model_cache:
+  status: READY_STRICT_MODEL_CACHE
+  cache_ready: true
+  download_allowed_for_repo_artifact: false
+  required_file_count: 5
+  missing_files: []
+  downloaded_files: []
+  release_claimed_go: false
+
+training_preflight:
+  status: NOT_READY_CUDA_LORA_TRAINING
+  strict_model_cache_files_ok: true
+  blockers:
+    - docker_base_image_env_digest
+    - cuda_visible
+    - docker_daemon_available
+    - docker_base_image_available
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  v0_release_ready: false
+  v0_unexpected_blockers: []
+  sole_v0_blocker: real_trained_adapter_no_fake_endpoint
+  handoff_decision: WAITING_FOR_REAL_ADAPTER_INPUTS
+  blocking_reasons_removed:
+    - strict_model_cache_files
+
+scope:
+  product_code_changed: false
+  tests_changed: false
+  scripts_changed: false
+  release_criteria_changed: false
+  docs_reviews_M6_changed: false
+  real_adapter_evidence_created: false
+  model_cache_files_committed: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+follow_up:
+  external_cuda_operator_packet_refresh_required: true
+  reason: this recertification changed source-pinned handoff and blocker artifacts after the previous packet refresh
+```
 
 ```yaml
 gate: mib-studio-current-head-external-cuda-packet-refresh
@@ -1419,7 +1497,7 @@ files:
 
 strict_model_cache_contract:
   schema_version: mib_strict_model_cache_preparation.v1
-  current_status: NOT_READY_STRICT_MODEL_CACHE
+  historical_status_at_gate: NOT_READY_STRICT_MODEL_CACHE
   no_download_default: true
   explicit_download_flag: --allow-download
   required_model_cache_dir: /tmp/mib-strict-model-cache-phi/model_cache
@@ -1440,7 +1518,7 @@ handoff_contract:
 
 summary:
   - prepare_strict_model_cache.py exposes the existing pinned ModelCacheService as an operator CLI
-  - default no-download mode reports NOT_READY_STRICT_MODEL_CACHE when required pinned files are absent
+  - default no-download mode reported NOT_READY_STRICT_MODEL_CACHE at this historical gate when required pinned files were absent
   - generated external CUDA training handoff now runs prepare_strict_model_cache before preflight_cuda_training
   - external CUDA operator packet now pins scripts/prepare_strict_model_cache.py and requires prepare_strict_model_cache in command order
   - current recertification remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole v0 release blocker
@@ -1918,8 +1996,8 @@ summary:
   - the current local state remains NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
   - FE v6 remains verified through docs/mockup/mib_fe_mockup_v6_routes_contract.html and artifacts/review/fe_v6_evidence.md
   - current scan found 0 candidates and 0 GO candidates; /tmp/mib-real-adapter has generated training config but no adapter directory or manifest
-  - current strict model cache preparation is NOT_READY_STRICT_MODEL_CACHE because the pinned Phi-3.5 required files are absent under /tmp/mib-strict-model-cache-phi/model_cache
-  - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING with blockers docker_base_image_env_digest, strict_model_cache_files, cuda_visible, docker_daemon_available, and docker_base_image_available
+  - historical strict model cache preparation at this gate was NOT_READY_STRICT_MODEL_CACHE because the pinned Phi-3.5 required files were absent under /tmp/mib-strict-model-cache-phi/model_cache
+  - historical CUDA training preflight at this gate was NOT_READY_CUDA_LORA_TRAINING with blockers docker_base_image_env_digest, strict_model_cache_files, cuda_visible, docker_daemon_available, and docker_base_image_available
   - current M6 real-adapter preflight is NOT_READY_PRECHECK_FAILED
   - current real-adapter bundle verification is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
   - current handoff decision is WAITING_FOR_REAL_ADAPTER_INPUTS
@@ -2267,12 +2345,12 @@ allows the current checkout to be a later closeout commit than packet.git.head
 when packet.git.head resolves and required committed file blobs verify at that
 pinned handoff commit. This is packet integrity GO only, not M6-RC or v0 release
 GO.
-The generated CUDA training handoff now runs
+The generated CUDA training handoff runs
 scripts/prepare_strict_model_cache.py --allow-download before
-preflight_cuda_training. The strict model cache CLI defaults to no-download
-verification and currently reports NOT_READY_STRICT_MODEL_CACHE because the
-pinned Phi-3.5 files are absent under
-/tmp/mib-strict-model-cache-phi/model_cache. The handoff still embeds
+preflight_cuda_training. The local strict Phi-3.5 cache has now been prepared
+under /tmp/mib-strict-model-cache-phi/model_cache, and the repo-local
+no-download verification artifact reports READY_STRICT_MODEL_CACHE with all 5
+pinned files present. The handoff still embeds
 package_readiness_checks and fails fast if the dataset JSONL, repo Python,
 LLaMA-Factory CLI, backend_config.yaml, or downstream RC handoff shell is
 missing.
@@ -2296,11 +2374,11 @@ the next agent can distinguish archive metadata, source bundle, M6 review-doc,
 and real endpoint evidence blockers without weakening release acceptance.
 NOT_GO recertification summaries also include blocking_reasons and
 operator_next_actions so the next agent can distinguish missing adapter files,
-strict model cache, CUDA visibility, Docker image/base-image, bundle, endpoint,
-and handoff blockers without weakening release acceptance.
-For strict model cache blockers, operator_next_actions now gives the exact
-prepare_strict_model_cache.py command with --allow-download and expected status
-READY_STRICT_MODEL_CACHE before CUDA training preflight.
+CUDA visibility, Docker image/base-image, bundle, endpoint, and handoff
+blockers without weakening release acceptance.
+The current local strict model cache blocker is cleared: the CUDA training
+preflight check for strict_model_cache_files is ok and no longer appears in the
+top-level blocker list.
 The latest current-state recertification records docker_daemon_available as a
 diagnostic blocker because this execution context cannot access the Docker API;
 this does not change the release blocker, which is still the missing real

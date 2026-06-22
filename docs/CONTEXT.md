@@ -461,10 +461,12 @@ external_cuda_operator_packet_source_commit: a1dd0cc
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
-current_recertification_head: 20701d1
+current_recertification_head: d13a1fa
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+strict_model_cache_status: READY_STRICT_MODEL_CACHE
+strict_model_cache_files_committed: false
 ```
 
 Continuation sequence for future LLM agents:
@@ -517,7 +519,7 @@ required_before_release_go:
   - real trained CUDA lora_adapter artifact:
       adapter_dir: /tmp/mib-real-adapter/adapter
       manifest: /tmp/mib-real-adapter/manifest.json
-  - strict base-model cache prepared from pinned presets/model_catalog.yaml files
+  - strict base-model cache available on the active CUDA/release host from pinned presets/model_catalog.yaml files
   - digest-pinned CUDA/Python Docker base image on the CUDA host
   - mib-export:test image built with the real adapter
   - no-fake-backend live Docker endpoint evidence
@@ -546,7 +548,6 @@ sole_v0_blocker: real_trained_adapter_no_fake_endpoint
 current_blocking_reasons_include:
   - no_go_adapter_candidates
   - docker_base_image_env_digest
-  - strict_model_cache_files
   - cuda_visible
   - docker_daemon_available
   - docker_base_image_available
@@ -565,7 +566,9 @@ current_blocking_reasons_include:
   - WAITING_FOR_REAL_ADAPTER_INPUTS
 next_actions_are_in_artifact: true
 first_operator_action: run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before training handoff execution
-strict_model_cache_action: run ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE before CUDA training preflight
+strict_model_cache_status: READY_STRICT_MODEL_CACHE
+strict_model_cache_action: keep /tmp/mib-strict-model-cache-phi/model_cache available on the active host; rerun prepare_strict_model_cache.py with --allow-download only if that host cache is missing
+strict_model_cache_files_current_preflight_ok: true
 ```
 
 Current external CUDA training handoff package:

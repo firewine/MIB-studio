@@ -2,7 +2,6 @@
   "blocking_reasons": [
     "no_go_adapter_candidates",
     "docker_base_image_env_digest",
-    "strict_model_cache_files",
     "cuda_visible",
     "docker_daemon_available",
     "docker_base_image_available",
@@ -78,7 +77,7 @@
       "output": "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
       "returncode": 0,
       "stderr_tail": "",
-      "stdout_tail": "{\"blockers\": [\"docker_base_image_env_digest\", \"strict_model_cache_files\", \"cuda_visible\", \"docker_daemon_available\", \"docker_base_image_available\"], \"json_output\": \"artifacts/review/real_adapter_cuda_training_prereq_preflight.json\", \"status\": \"NOT_READY_CUDA_LORA_TRAINING\"}\n"
+      "stdout_tail": "{\"blockers\": [\"docker_base_image_env_digest\", \"cuda_visible\", \"docker_daemon_available\", \"docker_base_image_available\"], \"json_output\": \"artifacts/review/real_adapter_cuda_training_prereq_preflight.json\", \"status\": \"NOT_READY_CUDA_LORA_TRAINING\"}\n"
     },
     {
       "command": [
@@ -199,7 +198,6 @@
     "candidate_scan_decision": "NO_GO_CANDIDATES_FOUND",
     "cuda_training_blockers": [
       "docker_base_image_env_digest",
-      "strict_model_cache_files",
       "cuda_visible",
       "docker_daemon_available",
       "docker_base_image_available"
@@ -224,7 +222,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T19:35:02.438007+00:00",
+  "date": "2026-06-22T19:53:26.289707+00:00",
   "expectation_checks": [
     {
       "actual": "NOT_READY_CUDA_LORA_TRAINING",
@@ -262,7 +260,6 @@
     "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host first; it verifies the operator packet before invoking artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.",
     "Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.",
-    "Run ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE before CUDA training preflight.",
     "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.",
     "Build or pull the required Docker images, including the digest-pinned base image and mib-export:test.",
     "Rerun on a CUDA host where nvidia-smi is visible to the process.",

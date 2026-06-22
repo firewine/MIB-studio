@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import sys
 import tarfile
@@ -180,11 +181,57 @@ def write_complete_bundle(root: Path) -> None:
     )
 
 
-def write_archive_from_dir(source: Path, archive_path: Path) -> None:
+def archive_metadata(source: Path) -> tuple[dict[str, object], dict[str, object]]:
+    verification = closeout.promotion.add_expected(closeout.promotion.verifier.verify_bundle(source), closeout.promotion.GO_DECISION)
+    files = []
+    for logical_name, filename in closeout.promotion.fixed_bundle_files().items():
+        path = source / filename
+        files.append(
+            {
+                "logical_name": logical_name,
+                "filename": filename,
+                "source_path": str(path),
+                "bundle_path": str(path),
+                "present": path.is_file(),
+                "copied": False,
+                "sha256": closeout.promotion.sha256_file(path) if path.is_file() else None,
+                "size_bytes": path.stat().st_size if path.is_file() else None,
+            }
+        )
+    manifest = {
+        "schema_version": "mib_real_adapter_evidence_bundle_manifest.v1",
+        "source_dir": str(source),
+        "bundle_dir": str(source),
+        "expected_decision": verification["expected_decision"],
+        "decision_matches_expected": verification["decision_matches_expected"],
+        "files": files,
+        "missing_files": [row["logical_name"] for row in files if not row["present"]],
+        "verification_summary": {
+            "decision": verification["decision"],
+            "release_bundle_ready": verification["release_bundle_ready"],
+            "m6_rc_claimed_go": verification["m6_rc_claimed_go"],
+            "blockers": verification["blockers"],
+        },
+    }
+    return manifest, verification
+
+
+def add_json_member(archive: tarfile.TarFile, name: str, payload: dict[str, object]) -> None:
+    data = json.dumps(payload, sort_keys=True, indent=2).encode("utf-8") + b"\n"
+    info = tarfile.TarInfo(name)
+    info.size = len(data)
+    archive.addfile(info, io.BytesIO(data))
+
+
+def write_archive_from_dir(source: Path, archive_path: Path, *, include_metadata: bool = True) -> None:
     archive_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest, verification = archive_metadata(source)
     with tarfile.open(archive_path, "w:gz") as archive:
         for path in sorted(source.iterdir()):
             archive.add(path, arcname=path.name)
+        if include_metadata:
+            add_json_member(archive, "real_adapter_evidence_bundle_manifest.json", manifest)
+            add_json_member(archive, "real_adapter_evidence_bundle_verification.json", verification)
 
 
 def test_closeout_promotes_go_archive_and_returns_release_go(tmp_path: Path) -> None:
@@ -205,6 +252,28 @@ def test_closeout_promotes_go_archive_and_returns_release_go(tmp_path: Path) -> 
     assert summary["resolved_bundle_archive"] == str(archive)
     assert v0_report["decision"] == "GO"
     assert (root / "artifacts/review/real_adapter_evidence_bundle_verification.json").is_file()
+
+
+def test_closeout_refuses_go_archive_without_builder_metadata(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    write_required_release_docs(root, m6_go=True)
+    bundle_dir = tmp_path / "bundle"
+    archive = root / "incoming" / "bundle.tar.gz"
+    write_complete_bundle(bundle_dir)
+    write_archive_from_dir(bundle_dir, archive, include_metadata=False)
+
+    summary, promotion_manifest, _bundle_verification, v0_report = closeout.closeout(
+        args_for(root, bundle_archive=Path("incoming/bundle.tar.gz"))
+    )
+
+    assert summary["status"] == "NOT_GO_BUNDLE_PROMOTION"
+    assert summary["closeout_ok"] is False
+    assert summary["release_claimed_go"] is False
+    assert summary["promotion_summary"]["reason"] == "archive_metadata_not_verified"
+    assert promotion_manifest["archive_metadata"]["ok"] is False
+    assert "manifest:missing" in promotion_manifest["archive_metadata"]["failures"]
+    assert v0_report["decision"] == "NOT_GO"
+    assert v0_report["summary"]["real_adapter_evidence_bundle_decision"] == "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
 
 
 def test_closeout_refuses_not_go_bundle_before_readiness_go(tmp_path: Path) -> None:

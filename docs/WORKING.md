@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: STRICT_TOOLCHAIN_PREPARER
+phase_id: REAL_ADAPTER_BUNDLE_ARCHIVE_METADATA
 milestone: Final_Program_Development_Closeout
-phase_status: strict_toolchain_preparer_verified_not_go
-gate_id: mib-studio-strict-toolchain-preparer
+phase_status: real_adapter_bundle_archive_metadata_verified_not_go
+gate_id: mib-studio-real-adapter-bundle-archive-metadata
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,39 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-real-adapter-bundle-archive-metadata
+objective: require transferred real-adapter evidence bundle archives to include builder metadata before promotion
+
+files:
+  promotion_tool: scripts/promote_real_adapter_evidence_bundle.py
+  promotion_tests: tests/scripts/test_promote_real_adapter_evidence_bundle.py
+  closeout_tests: tests/scripts/test_run_v0_release_closeout_from_bundle.py
+  working_state: docs/WORKING.md
+
+archive_metadata_contract:
+  required_archive_members:
+    - real_adapter_evidence_bundle_manifest.json
+    - real_adapter_evidence_bundle_verification.json
+  required_consistency:
+    - manifest verification_summary matches strict verifier result after extraction
+    - verification metadata decision/release_bundle_ready/blockers match strict verifier result after extraction
+    - manifest fixed-file sha256 rows match extracted fixed evidence files
+  missing_or_mismatched_metadata_result:
+    promotion_ok: false
+    promoted: false
+    verification_decision: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
+    blocker: archive_metadata_not_verified
+  release_claimed_go: false
+
+summary:
+  - archive path traversal was already blocked; this gate adds archive provenance/metadata validation
+  - GO archives without build_real_adapter_evidence_bundle metadata are rejected before promotion
+  - metadata failures now downgrade returned bundle verification to NOT_GO so v0 readiness cannot see a misleading GO bundle artifact
+  - focused promotion and closeout tests cover metadata-positive archive closeout and metadata-negative rejection
+  - current recertification remains NOT_GO with real_trained_adapter_no_fake_endpoint as the sole v0 blocker
+```
 
 ```yaml
 gate: mib-studio-strict-toolchain-preparer
@@ -170,6 +203,7 @@ recorded_tooling_ready:
   Real_Adapter_CUDA_Training_Handoff: true
   Real_Adapter_Docker_Image_Handoff: true
   Real_Adapter_RC_Gate_Runner_Tooling: true
+  Real_Adapter_Bundle_Archive_Metadata_Guard: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -180,8 +214,12 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: strict_toolchain_preparer_verified_not_go
+status: real_adapter_bundle_archive_metadata_verified_not_go
 passed:
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_promote_real_adapter_evidence_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py -q
+  - python3 -m py_compile scripts/promote_real_adapter_evidence_bundle.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
+  - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_prepare_strict_toolchain.py -q
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_toolchain.py --dry-run --json-output /tmp/mib-strict-toolchain-dry-run.json
   - python3 -m json.tool /tmp/mib-strict-toolchain-dry-run.json
@@ -212,6 +250,7 @@ fixed_verification_blockers:
   - fe_e2e_missing_node_experimental_websocket_flag
   - handoff_missing_embedded_local_closeout_after_bundle_transfer
   - strict_toolchain_setup_was_manual_and_hook_fragile
+  - bundle_archive_promotion_did_not_require_builder_metadata
 
 warnings:
   - M6-RC remains NOT_GO.

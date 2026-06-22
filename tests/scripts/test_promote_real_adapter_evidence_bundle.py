@@ -131,10 +131,56 @@ self_test: false
     )
 
 
-def write_archive_from_dir(source: Path, archive_path: Path) -> None:
+def archive_metadata(source: Path) -> tuple[dict[str, object], dict[str, object]]:
+    verification = promotion.add_expected(promotion.verifier.verify_bundle(source), promotion.GO_DECISION)
+    files = []
+    for logical_name, filename in promotion.fixed_bundle_files().items():
+        path = source / filename
+        files.append(
+            {
+                "logical_name": logical_name,
+                "filename": filename,
+                "source_path": str(path),
+                "bundle_path": str(path),
+                "present": path.is_file(),
+                "copied": False,
+                "sha256": promotion.sha256_file(path) if path.is_file() else None,
+                "size_bytes": path.stat().st_size if path.is_file() else None,
+            }
+        )
+    manifest = {
+        "schema_version": "mib_real_adapter_evidence_bundle_manifest.v1",
+        "source_dir": str(source),
+        "bundle_dir": str(source),
+        "expected_decision": verification["expected_decision"],
+        "decision_matches_expected": verification["decision_matches_expected"],
+        "files": files,
+        "missing_files": [row["logical_name"] for row in files if not row["present"]],
+        "verification_summary": {
+            "decision": verification["decision"],
+            "release_bundle_ready": verification["release_bundle_ready"],
+            "m6_rc_claimed_go": verification["m6_rc_claimed_go"],
+            "blockers": verification["blockers"],
+        },
+    }
+    return manifest, verification
+
+
+def add_json_member(archive: tarfile.TarFile, name: str, payload: dict[str, object]) -> None:
+    data = json.dumps(payload, sort_keys=True, indent=2).encode("utf-8") + b"\n"
+    info = tarfile.TarInfo(name)
+    info.size = len(data)
+    archive.addfile(info, io.BytesIO(data))
+
+
+def write_archive_from_dir(source: Path, archive_path: Path, *, include_metadata: bool = True) -> None:
+    manifest, verification = archive_metadata(source)
     with tarfile.open(archive_path, "w:gz") as archive:
         for path in sorted(source.iterdir()):
             archive.add(path, arcname=path.name)
+        if include_metadata:
+            add_json_member(archive, "real_adapter_evidence_bundle_manifest.json", manifest)
+            add_json_member(archive, "real_adapter_evidence_bundle_verification.json", verification)
 
 
 def test_promotes_complete_go_bundle_into_target(tmp_path: Path) -> None:
@@ -171,6 +217,25 @@ def test_promotes_complete_go_archive_into_target(tmp_path: Path) -> None:
     assert manifest["bundle_archive_sha256"]
     assert (target_dir / "real_trained_adapter_endpoint_evidence.json").is_file()
     assert not (target_dir / "unrelated.txt").exists()
+
+
+def test_rejects_go_archive_without_builder_metadata(tmp_path: Path) -> None:
+    bundle_dir = tmp_path / "bundle"
+    archive_path = tmp_path / "real_adapter_evidence_bundle.tar.gz"
+    target_dir = tmp_path / "review"
+    write_complete_bundle(bundle_dir)
+    write_archive_from_dir(bundle_dir, archive_path, include_metadata=False)
+
+    manifest, verification = promotion.promote_bundle(args_for(tmp_path, bundle_archive=archive_path, target_dir=target_dir))
+
+    assert verification["decision"] == "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
+    assert "archive_metadata_not_verified" in verification["blockers"]
+    assert manifest["promoted"] is False
+    assert manifest["promotion_ok"] is False
+    assert manifest["reason"] == "archive_metadata_not_verified"
+    assert "manifest:missing" in manifest["archive_metadata"]["failures"]
+    assert "verification:missing" in manifest["archive_metadata"]["failures"]
+    assert not target_dir.exists() or list(target_dir.iterdir()) == []
 
 
 def test_rejects_unsafe_bundle_archive_member_path(tmp_path: Path) -> None:

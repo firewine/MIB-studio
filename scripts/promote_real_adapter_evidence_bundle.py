@@ -35,6 +35,10 @@ verifier = load_verifier_module()
 SCHEMA_VERSION = "mib_real_adapter_evidence_bundle_promotion.v1"
 GO_DECISION = "GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
 NOT_GO_DECISION = "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
+ARCHIVE_METADATA_FILES = {
+    "manifest": "real_adapter_evidence_bundle_manifest.json",
+    "verification": "real_adapter_evidence_bundle_verification.json",
+}
 
 
 def now_utc() -> str:
@@ -47,6 +51,18 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def read_json_object(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    if not path.is_file():
+        return None, "missing"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return None, f"invalid JSON: {exc}"
+    if not isinstance(value, dict):
+        return None, "expected JSON object"
+    return value, None
 
 
 def expected_decision(value: str) -> str:
@@ -103,6 +119,67 @@ def add_expected(report: dict[str, Any], expected: str) -> dict[str, Any]:
     return result
 
 
+def archive_metadata_report(bundle_dir: Path, source_verification: dict[str, Any]) -> dict[str, Any]:
+    manifest_path = bundle_dir / ARCHIVE_METADATA_FILES["manifest"]
+    verification_path = bundle_dir / ARCHIVE_METADATA_FILES["verification"]
+    manifest, manifest_error = read_json_object(manifest_path)
+    verification, verification_error = read_json_object(verification_path)
+    failures: list[str] = []
+    if manifest_error:
+        failures.append(f"manifest:{manifest_error}")
+    if verification_error:
+        failures.append(f"verification:{verification_error}")
+    if manifest:
+        if manifest.get("schema_version") != "mib_real_adapter_evidence_bundle_manifest.v1":
+            failures.append("manifest:schema_version")
+        summary = manifest.get("verification_summary")
+        if not isinstance(summary, dict):
+            failures.append("manifest:verification_summary")
+            summary = {}
+        if summary.get("decision") != source_verification.get("decision"):
+            failures.append("manifest:verification_summary.decision")
+        if summary.get("release_bundle_ready") != source_verification.get("release_bundle_ready"):
+            failures.append("manifest:verification_summary.release_bundle_ready")
+        if summary.get("blockers") != source_verification.get("blockers"):
+            failures.append("manifest:verification_summary.blockers")
+        rows = manifest.get("files")
+        if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+            failures.append("manifest:files")
+            rows = []
+        by_filename = {row.get("filename"): row for row in rows if isinstance(row.get("filename"), str)}
+        for filename in fixed_bundle_files().values():
+            source = bundle_dir / filename
+            row = by_filename.get(filename)
+            if row is None:
+                failures.append(f"manifest:files.{filename}.missing")
+                continue
+            if source.is_file():
+                if row.get("present") is not True:
+                    failures.append(f"manifest:files.{filename}.present")
+                if row.get("sha256") != sha256_file(source):
+                    failures.append(f"manifest:files.{filename}.sha256")
+            elif row.get("present") is True:
+                failures.append(f"manifest:files.{filename}.unexpected_present")
+    if verification:
+        if verification.get("schema_version") != verifier.SCHEMA_VERSION:
+            failures.append("verification:schema_version")
+        for key in ["decision", "release_bundle_ready", "m6_rc_claimed_go", "blockers"]:
+            if verification.get(key) != source_verification.get(key):
+                failures.append(f"verification:{key}")
+        for key in ["expected_decision", "decision_matches_expected", "verification_ok"]:
+            if key in verification and verification.get(key) != source_verification.get(key):
+                failures.append(f"verification:{key}")
+    return {
+        "checked": True,
+        "ok": not failures,
+        "manifest_path": str(manifest_path),
+        "verification_path": str(verification_path),
+        "manifest_sha256": sha256_file(manifest_path) if manifest_path.is_file() else None,
+        "verification_sha256": sha256_file(verification_path) if verification_path.is_file() else None,
+        "failures": failures,
+    }
+
+
 def assert_safe_archive_member(member: tarfile.TarInfo, destination: Path) -> None:
     name = member.name
     target = (destination / name).resolve()
@@ -145,12 +222,33 @@ def promote_bundle_dir(args: argparse.Namespace, bundle_dir: Path, *, bundle_arc
 
     expected = expected_decision(args.expected_decision)
     source_verification = add_expected(verifier.verify_bundle(bundle_dir), expected)
-    source_is_go = source_verification.get("decision") == GO_DECISION and source_verification.get("release_bundle_ready") is True
+    archive_metadata = archive_metadata_report(bundle_dir, source_verification) if bundle_archive else {"checked": False, "ok": True}
+    archive_metadata_ok = archive_metadata.get("ok") is True
+    source_is_go = (
+        source_verification.get("decision") == GO_DECISION
+        and source_verification.get("release_bundle_ready") is True
+        and archive_metadata_ok
+    )
     copy_allowed = expected == GO_DECISION and source_is_go and not args.dry_run
 
     copied_files: list[dict[str, Any]] = []
     target_verification: dict[str, Any] | None = None
     final_verification = source_verification
+    if not archive_metadata_ok:
+        final_verification = dict(source_verification)
+        blockers = list(final_verification.get("blockers", []))
+        if "archive_metadata_not_verified" not in blockers:
+            blockers.append("archive_metadata_not_verified")
+        final_verification.update(
+            {
+                "decision": NOT_GO_DECISION,
+                "release_bundle_ready": False,
+                "verification_ok": False,
+                "decision_matches_expected": False,
+                "blockers": blockers,
+                "archive_metadata": archive_metadata,
+            }
+        )
     if copy_allowed:
         copied_files = copy_fixed_files(bundle_dir, target_dir)
         target_verification = add_expected(verifier.verify_bundle(target_dir), expected)
@@ -161,12 +259,18 @@ def promote_bundle_dir(args: argparse.Namespace, bundle_dir: Path, *, bundle_arc
         reason = "dry_run"
     elif expected != GO_DECISION:
         reason = "expected_decision_is_not_go"
+    elif not archive_metadata_ok:
+        reason = "archive_metadata_not_verified"
     elif not source_is_go:
         reason = "source_bundle_not_go"
     elif not promoted:
         reason = "target_verification_not_go"
     else:
         reason = "promoted"
+
+    promotion_ok = final_verification.get("verification_ok") is True if args.dry_run or expected != GO_DECISION else promoted
+    if not archive_metadata_ok:
+        promotion_ok = False
 
     manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -179,8 +283,9 @@ def promote_bundle_dir(args: argparse.Namespace, bundle_dir: Path, *, bundle_arc
         "expected_decision": expected,
         "copy_allowed": copy_allowed,
         "promoted": promoted,
-        "promotion_ok": final_verification.get("verification_ok") is True if args.dry_run or expected != GO_DECISION else promoted,
+        "promotion_ok": promotion_ok,
         "reason": reason,
+        "archive_metadata": archive_metadata,
         "verification_output": args.verification_output,
         "promotion_manifest_output": args.promotion_manifest_output,
         "copied_files": copied_files,

@@ -13,6 +13,7 @@ from typing import Any
 SCHEMA_VERSION = "mib_external_cuda_operator_packet.v1"
 STATUS = "PREPARED_NOT_RUN"
 PRIMARY_HANDOFF = "artifacts/review/real_adapter_cuda_training_handoff.sh"
+VERIFIED_LAUNCHER_HANDOFF = "artifacts/review/verified_external_cuda_training_launcher.sh"
 REQUIRED_COMMITTED_FILES = {
     "training_handoff_json": "artifacts/review/real_adapter_cuda_training_handoff.json",
     "training_handoff_markdown": "artifacts/review/real_adapter_cuda_training_handoff.md",
@@ -22,6 +23,7 @@ REQUIRED_COMMITTED_FILES = {
     "rc_handoff_shell": "artifacts/review/real_adapter_cuda_handoff.sh",
     "recertification_summary": "artifacts/review/v0_release_blocker_recertification.json",
     "router_training_dataset": "examples/fixtures/router_20.jsonl",
+    "strict_model_cache_preparation": "scripts/prepare_strict_model_cache.py",
     "training_handoff_generator": "scripts/prepare_cuda_lora_training_run.py",
     "cuda_training_preflight": "scripts/check_cuda_lora_training_prereqs.py",
     "cuda_base_image_resolver": "scripts/resolve_cuda_base_image.py",
@@ -90,10 +92,11 @@ def build_packet(args: argparse.Namespace) -> dict[str, Any]:
     training = read_json(root, args.training_handoff_json)
     rc_handoff = read_json(root, args.rc_handoff_json)
     recertification = read_json(root, args.recertification_json)
-    primary_handoff = str(recertification.get("primary_external_handoff") or PRIMARY_HANDOFF)
+    recertification_primary = str(recertification.get("primary_external_handoff") or PRIMARY_HANDOFF)
+    primary_handoff = PRIMARY_HANDOFF
 
-    if primary_handoff != PRIMARY_HANDOFF:
-        raise ValueError(f"unexpected primary handoff: {primary_handoff}")
+    if recertification_primary not in {PRIMARY_HANDOFF, VERIFIED_LAUNCHER_HANDOFF}:
+        raise ValueError(f"unexpected recertification primary handoff: {recertification_primary}")
     if training.get("release_claimed_go") is True or recertification.get("release_claimed_go") is True:
         raise ValueError("operator packet refuses to build from GO-claiming handoff artifacts")
 
@@ -112,6 +115,7 @@ def build_packet(args: argparse.Namespace) -> dict[str, Any]:
             "clean_worktree_required": True,
         },
         "primary_external_handoff": primary_handoff,
+        "recertification_primary_external_handoff": recertification_primary,
         "primary_handoff_status": training.get("status"),
         "recertification_status": recertification.get("status"),
         "required_committed_files": required_file_rows(root),

@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T14:59:24.314284+00:00
+date: 2026-06-22T15:15:25.475252+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false
@@ -21,7 +21,7 @@ go_candidate_count: 0
 fixture_like_candidate_count: 0
 prereq_status: NOT_READY_PRECHECK_FAILED
 prereq_decision: NOT_READY
-missing_prereq_ids: ["adapter_safetensors_present", "adapter_config_present", "adapter_manifest_present", "model_cache_dir_present", "docker_image_available", "host_cuda_visible"]
+missing_prereq_ids: ["adapter_safetensors_present", "adapter_config_present", "adapter_manifest_present", "docker_image_available", "host_cuda_visible"]
 v0_readiness_decision: NOT_GO
 v0_release_ready: false
 real_adapter_evidence_bundle_decision: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
@@ -41,7 +41,7 @@ v0_unexpected_blockers: []
 | `docker_image_available` | missing | Docker image tag exists for the export that packages the same adapter |
 | `docker_image_adapter_matches_adapter_manifest` | pending | Docker /app/adapter hash matches manifest adapter_sha256 |
 | `host_cuda_visible` | missing | nvidia-smi succeeds on the host |
-| `model_cache_dir_present` | missing | Strict base-model cache directory is present and mounted read-only |
+| `model_cache_dir_present` | available | Strict base-model cache directory is present and mounted read-only |
 | `bearer_token_ready` | available | MIB_RUNTIME_BEARER_TOKEN is at least 32 characters |
 | `fake_backend_env_absent` | available | MIB_RUNTIME_ALLOW_FAKE_BACKEND is unset |
 

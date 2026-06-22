@@ -28,6 +28,7 @@ REQUIRED_READINESS_IDS = [
 ]
 REQUIRED_TRAINING_COMMANDS = [
     "resolve_cuda_base_image",
+    "prepare_strict_model_cache",
     "preflight_cuda_training",
     "train_real_adapter",
     "finalize_manifest",
@@ -53,6 +54,10 @@ REQUIRED_FORBIDDEN_LABELS = [
     "raw live endpoint transcripts",
     "copied external real-adapter evidence bundles",
 ]
+REQUIRED_COMMITTED_FILE_PATHS = {
+    PRIMARY_HANDOFF,
+    "scripts/prepare_strict_model_cache.py",
+}
 
 FORBIDDEN_TRACKED_EXACT = {
     "artifacts/review/real_adapter_evidence_bundle.tar.gz",
@@ -152,8 +157,9 @@ def check_required_files(root: Path, packet: dict[str, Any]) -> dict[str, Any]:
         if expected_size != actual_size:
             failures.append(f"{relative}:size_bytes")
 
-    if PRIMARY_HANDOFF not in paths:
-        failures.append("primary_handoff_not_in_required_files")
+    for required_path in sorted(REQUIRED_COMMITTED_FILE_PATHS):
+        if required_path not in paths:
+            failures.append(f"{required_path}:not_in_required_files")
     return check_row(
         "required_committed_file_hashes",
         not failures,

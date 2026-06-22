@@ -1,0 +1,94 @@
+{
+  "cache_ready": false,
+  "date": "2026-06-22T15:09:44.435007+00:00",
+  "download_allowed": false,
+  "downloaded_files": [],
+  "error": {
+    "code": "MODEL_CACHE_MISS_OFFLINE",
+    "details": {
+      "hf_commit_sha": "2fe192450127e6a83f7441aef6e3ca586c338b77",
+      "missing_files": [
+        "config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "model-00001-of-00002.safetensors",
+        "model-00002-of-00002.safetensors"
+      ],
+      "model_id": "microsoft/Phi-3.5-mini-instruct"
+    },
+    "message": "Model cache is missing required files while offline mode is enabled."
+  },
+  "gate": "mib-studio-strict-model-cache-preparation",
+  "inputs": {
+    "backend": "cuda",
+    "base_model": "microsoft/Phi-3.5-mini-instruct",
+    "catalog": "/home/firewine/MIB-studio/presets/model_catalog.yaml",
+    "model_cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache",
+    "purpose": "external_cuda_training"
+  },
+  "m6_rc_claimed_go": false,
+  "missing_files": [
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "model-00001-of-00002.safetensors",
+    "model-00002-of-00002.safetensors"
+  ],
+  "model": {
+    "cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77",
+    "cache_subdir": "microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77",
+    "hf_commit_sha": "2fe192450127e6a83f7441aef6e3ca586c338b77",
+    "id": "microsoft/Phi-3.5-mini-instruct",
+    "required_file_count": 5
+  },
+  "operator_next_actions": [
+    "Populate the strict model cache with the required pinned files from presets/model_catalog.yaml.",
+    "Rerun this command with --allow-download on a trusted networked host if the cache is missing.",
+    "Do not commit model weights or copied model cache files to this repository."
+  ],
+  "release_claimed_go": false,
+  "required_files": [
+    {
+      "actual_size_bytes": null,
+      "cache_path": "/tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77/config.json",
+      "expected_sha256": "224de4f6a15b9d2a89695ec04b7f7ab2dd93a008a506979925e5a88cb5804974",
+      "expected_size_bytes": 3451,
+      "path": "config.json",
+      "present": false
+    },
+    {
+      "actual_size_bytes": null,
+      "cache_path": "/tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77/tokenizer.json",
+      "expected_sha256": "9e2ae3d66819f163cdcfedba5078f3a3af8118c2712491ed60912f77886bda6f",
+      "expected_size_bytes": 1844408,
+      "path": "tokenizer.json",
+      "present": false
+    },
+    {
+      "actual_size_bytes": null,
+      "cache_path": "/tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77/tokenizer_config.json",
+      "expected_sha256": "92a6e3f894075fda19f47d8755c6ce65b2a974716307d13ae5d79196011ebb44",
+      "expected_size_bytes": 3984,
+      "path": "tokenizer_config.json",
+      "present": false
+    },
+    {
+      "actual_size_bytes": null,
+      "cache_path": "/tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77/model-00001-of-00002.safetensors",
+      "expected_sha256": "c5214cdb995ed3dd716add8d9efbfe016b76bb2f1c4c1e6c1c6a95497d7a8837",
+      "expected_size_bytes": 4972489328,
+      "path": "model-00001-of-00002.safetensors",
+      "present": false
+    },
+    {
+      "actual_size_bytes": null,
+      "cache_path": "/tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77/model-00002-of-00002.safetensors",
+      "expected_sha256": "41246eed2b75b66526339c5d32d6f7acdefe0bd24180f97c74303f4656877344",
+      "expected_size_bytes": 2669692552,
+      "path": "model-00002-of-00002.safetensors",
+      "present": false
+    }
+  ],
+  "schema_version": "mib_strict_model_cache_preparation.v1",
+  "status": "NOT_READY_STRICT_MODEL_CACHE"
+}

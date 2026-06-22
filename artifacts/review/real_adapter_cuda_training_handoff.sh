@@ -29,11 +29,6 @@ if [ ! -x ./.venv/bin/llamafactory-cli ]; then
   exit 2
 fi
 
-if [ ! -d /tmp/mib-strict-model-cache-phi/model_cache ]; then
-  echo "Refusing to run: model cache directory is missing: /tmp/mib-strict-model-cache-phi/model_cache" >&2
-  exit 2
-fi
-
 if [ ! -f /tmp/mib-real-adapter/backend_config.yaml ]; then
   echo "Refusing to run: backend_config.yaml is missing under /tmp/mib-real-adapter" >&2
   exit 2
@@ -58,6 +53,9 @@ case "${MIB_DOCKER_BASE_IMAGE_WITH_DIGEST:-}" in
   *@sha256:*) ;;
   *) echo "Refusing to run: MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256." >&2; exit 2 ;;
 esac
+
+printf '\n== prepare_strict_model_cache ==\n'
+./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE --json-output artifacts/review/strict_model_cache_preparation.json
 
 printf '\n== preflight_cuda_training ==\n'
 ./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --llamafactory-cli ./.venv/bin/llamafactory-cli --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json

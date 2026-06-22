@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_RECERTIFICATION_VERIFIED_LAUNCHER_ROUTING
+phase_id: V0_STRICT_MODEL_CACHE_HANDOFF
 milestone: Final_Program_Development_Closeout
-phase_status: v0_recertification_verified_launcher_routing_not_go_release
-gate_id: mib-studio-recertification-verified-launcher-routing
+phase_status: v0_strict_model_cache_handoff_not_go_release
+gate_id: mib-studio-strict-model-cache-handoff
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,55 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-strict-model-cache-handoff
+objective: make strict base-model cache preparation a repo-local external CUDA handoff command
+
+files:
+  strict_model_cache_cli: scripts/prepare_strict_model_cache.py
+  strict_model_cache_tests: tests/scripts/test_prepare_strict_model_cache.py
+  training_handoff_generator: scripts/prepare_cuda_lora_training_run.py
+  generated_training_handoff:
+    - artifacts/review/real_adapter_cuda_training_handoff.json
+    - artifacts/review/real_adapter_cuda_training_handoff.md
+    - artifacts/review/real_adapter_cuda_training_handoff.sh
+  operator_packet:
+    - artifacts/review/external_cuda_operator_packet.json
+    - artifacts/review/external_cuda_operator_packet.md
+    - artifacts/review/external_cuda_operator_packet_verification.json
+  recertification_summary: artifacts/review/v0_release_blocker_recertification.json
+  strict_model_cache_report: artifacts/review/strict_model_cache_preparation.json
+
+strict_model_cache_contract:
+  schema_version: mib_strict_model_cache_preparation.v1
+  current_status: NOT_READY_STRICT_MODEL_CACHE
+  no_download_default: true
+  explicit_download_flag: --allow-download
+  required_model_cache_dir: /tmp/mib-strict-model-cache-phi/model_cache
+  required_base_model: microsoft/Phi-3.5-mini-instruct
+  required_status_before_training_preflight: READY_STRICT_MODEL_CACHE
+  release_claimed_go: false
+
+handoff_contract:
+  training_command_order_prefix:
+    - resolve_cuda_base_image
+    - prepare_strict_model_cache
+    - preflight_cuda_training
+  packet_required_committed_files_count: 16
+  packet_required_committed_files_include:
+    - scripts/prepare_strict_model_cache.py
+  packet_verification_decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  recertification_action: run prepare_strict_model_cache.py with --allow-download before CUDA training preflight
+
+summary:
+  - prepare_strict_model_cache.py exposes the existing pinned ModelCacheService as an operator CLI
+  - default no-download mode reports NOT_READY_STRICT_MODEL_CACHE when required pinned files are absent
+  - generated external CUDA training handoff now runs prepare_strict_model_cache before preflight_cuda_training
+  - external CUDA operator packet now pins scripts/prepare_strict_model_cache.py and requires prepare_strict_model_cache in command order
+  - current recertification remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole v0 release blocker
+  - no model weights, adapter files, Docker images, endpoint transcripts, copied evidence bundles, M6-RC GO, or v0 GO were created
+```
 
 ```yaml
 gate: mib-studio-recertification-verified-launcher-routing
@@ -527,8 +576,9 @@ summary:
   - docker_daemon_available and docker_image_available are current diagnostic blockers alongside missing CUDA/model/adapter inputs
   - the current local state remains NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
   - FE v6 remains verified through docs/mockup/mib_fe_mockup_v6_routes_contract.html and artifacts/review/fe_v6_evidence.md
-  - current scan found 0 candidates and 0 GO candidates; /tmp/mib-real-adapter and /tmp/mib-phi-docker-export-_vgqfd4g are currently absent
-  - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING with blockers docker_base_image_env_digest, backend_config_ready, strict_model_cache_files, cuda_visible, and docker_base_image_available
+  - current scan found 0 candidates and 0 GO candidates; /tmp/mib-real-adapter has generated training config but no adapter directory or manifest
+  - current strict model cache preparation is NOT_READY_STRICT_MODEL_CACHE because the pinned Phi-3.5 required files are absent under /tmp/mib-strict-model-cache-phi/model_cache
+  - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING with blockers docker_base_image_env_digest, strict_model_cache_files, cuda_visible, docker_daemon_available, and docker_base_image_available
   - current M6 real-adapter preflight is NOT_READY_PRECHECK_FAILED
   - current real-adapter bundle verification is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
   - current handoff decision is WAITING_FOR_REAL_ADAPTER_INPUTS
@@ -550,6 +600,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  Strict_Model_Cache_Preparation_Handoff: true
   V0_Release_Blocker_Recertification_Verified_Launcher_Routing: true
   Verified_External_CUDA_Training_Launcher: true
   External_CUDA_Operator_Packet_Verification: true
@@ -580,8 +631,23 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_recertification_verified_launcher_routing_not_go_release
+status: v0_strict_model_cache_handoff_not_go_release
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_prepare_strict_model_cache.py tests/scripts/test_prepare_cuda_lora_training_run.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py tests/scripts/test_run_v0_release_blocker_recertification.py -q
+  - python3 -m py_compile scripts/prepare_strict_model_cache.py scripts/prepare_cuda_lora_training_run.py scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py scripts/run_v0_release_blocker_recertification.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --no-download --expected-status NOT_READY_STRICT_MODEL_CACHE --json-output artifacts/review/strict_model_cache_preparation.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --dataset-jsonl examples/fixtures/router_20.jsonl --dataset-id review_router_20 --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --training-preset quick
+  - bash -n artifacts/review/real_adapter_cuda_training_handoff.sh
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head eff6486
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json
+  - python3 -m json.tool artifacts/review/strict_model_cache_preparation.json
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_training_handoff.json
+  - python3 -m json.tool artifacts/review/external_cuda_operator_packet.json
+  - python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json
+  - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
+  - rg -n -- "prepare_strict_model_cache.py|strict_model_cache_preparation|prepare_strict_model_cache|READY_STRICT_MODEL_CACHE|NOT_READY_STRICT_MODEL_CACHE|model_cache_dir_present|strict_model_cache_files|release_claimed_go|real_trained_adapter_no_fake_endpoint" scripts/prepare_strict_model_cache.py tests/scripts/test_prepare_strict_model_cache.py scripts/prepare_cuda_lora_training_run.py tests/scripts/test_prepare_cuda_lora_training_run.py scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py artifacts/review/real_adapter_cuda_training_handoff.json artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json artifacts/review/v0_release_blocker_recertification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q
   - python3 -m py_compile scripts/run_v0_release_blocker_recertification.py
@@ -710,9 +776,8 @@ local_missing_inputs:
   - /tmp/mib-real-adapter/adapter/adapter.safetensors
   - /tmp/mib-real-adapter/adapter/adapter_config.json
   - /tmp/mib-real-adapter/adapter directory
-  - /tmp/mib-real-adapter/backend_config.yaml
   - /tmp/mib-real-adapter/manifest.json
-  - /tmp/mib-strict-model-cache-phi/model_cache
+  - pinned Phi-3.5 files under /tmp/mib-strict-model-cache-phi/model_cache
   - nvidia-smi_cuda_visibility
   - MIB_DOCKER_BASE_IMAGE_WITH_DIGEST
   - local_digest_pinned_cuda_python_base_image
@@ -739,6 +804,7 @@ prepare_strict_toolchain_before_strict_checks:
 
 external_cuda_host_flow:
   - run bash artifacts/review/verified_external_cuda_training_launcher.sh on a CUDA host
+  - allow the training handoff to run scripts/prepare_strict_model_cache.py with --allow-download before CUDA preflight
   - run artifacts/review/real_adapter_docker_image_handoff.sh after a real adapter exists
   - run scripts/run_m6_real_adapter_rc_gate.py --endpoint-evidence-only for live no-fake endpoint evidence
   - review endpoint evidence before changing M6 review docs
@@ -789,7 +855,7 @@ passes. This launcher is PREPARED_NOT_RUN and does not claim M6-RC or v0 release
 GO.
 The external CUDA operator packet is
 artifacts/review/external_cuda_operator_packet.json and .md. It pins the handoff
-source commit to d6ecc02, records required committed file sha256 values, names
+source commit to eff6486, records required committed file sha256 values, names
 artifacts/review/real_adapter_cuda_training_handoff.sh as the primary external
 handoff, and forbids committing model weights, LoRA adapter files, Docker image
 layers/archives, raw endpoint transcripts, or copied external evidence bundles.
@@ -798,12 +864,19 @@ scripts/verify_external_cuda_operator_packet.py with
 artifacts/review/external_cuda_operator_packet.json and require
 GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION. The current verification artifact
 is artifacts/review/external_cuda_operator_packet_verification.json; it verifies
-15 required committed file hashes, 6 package readiness checks, command order,
+16 required committed file hashes including scripts/prepare_strict_model_cache.py,
+6 package readiness checks, command order,
 forbidden artifact labels, and no forbidden tracked artifacts. This is packet
 integrity GO only, not M6-RC or v0 release GO.
-The generated CUDA training handoff now embeds package_readiness_checks and its
-shell fails fast if the dataset JSONL, repo Python, LLaMA-Factory CLI, strict
-model cache, backend_config.yaml, or downstream RC handoff shell is missing.
+The generated CUDA training handoff now runs
+scripts/prepare_strict_model_cache.py --allow-download before
+preflight_cuda_training. The strict model cache CLI defaults to no-download
+verification and currently reports NOT_READY_STRICT_MODEL_CACHE because the
+pinned Phi-3.5 files are absent under
+/tmp/mib-strict-model-cache-phi/model_cache. The handoff still embeds
+package_readiness_checks and fails fast if the dataset JSONL, repo Python,
+LLaMA-Factory CLI, backend_config.yaml, or downstream RC handoff shell is
+missing.
 The current recertification summary now sets primary_external_handoff to
 artifacts/review/verified_external_cuda_training_launcher.sh and lists that
 launcher as the first operator_next_actions item for missing real-adapter/CUDA
@@ -826,6 +899,9 @@ NOT_GO recertification summaries also include blocking_reasons and
 operator_next_actions so the next agent can distinguish missing adapter files,
 strict model cache, CUDA visibility, Docker image/base-image, bundle, endpoint,
 and handoff blockers without weakening release acceptance.
+For strict model cache blockers, operator_next_actions now gives the exact
+prepare_strict_model_cache.py command with --allow-download and expected status
+READY_STRICT_MODEL_CACHE before CUDA training preflight.
 The latest current-state recertification records docker_daemon_available as a
 diagnostic blocker because this execution context cannot access the Docker API;
 this does not change the release blocker, which is still the missing real

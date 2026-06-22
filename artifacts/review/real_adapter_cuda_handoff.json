@@ -219,7 +219,6 @@
       "adapter_safetensors_present",
       "adapter_config_present",
       "adapter_manifest_present",
-      "model_cache_dir_present",
       "docker_image_available",
       "host_cuda_visible"
     ],
@@ -234,7 +233,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T14:59:24.314284+00:00",
+  "date": "2026-06-22T15:15:25.475252+00:00",
   "decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
   "executable_artifact": "artifacts/review/real_adapter_cuda_handoff.sh",
   "gate": "mib-studio-real-adapter-cuda-handoff",
@@ -329,7 +328,7 @@
     {
       "id": "model_cache_dir_present",
       "requirement": "Strict base-model cache directory is present and mounted read-only",
-      "status": "missing"
+      "status": "available"
     },
     {
       "id": "bearer_token_ready",

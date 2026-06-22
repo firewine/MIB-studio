@@ -59,6 +59,7 @@ def readiness_rows() -> list[dict[str, object]]:
 def write_packet(root: Path, *, release_claimed_go: bool = False, bad_hash: bool = False) -> Path:
     rows = [
         required_row(root, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        required_row(root, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
         required_row(root, "training_handoff_json", "artifacts/review/real_adapter_cuda_training_handoff.json"),
         required_row(root, "rc_handoff_shell", "artifacts/review/real_adapter_cuda_handoff.sh"),
     ]

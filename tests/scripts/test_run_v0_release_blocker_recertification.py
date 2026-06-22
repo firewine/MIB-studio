@@ -83,7 +83,12 @@ def write_step_output(root: Path, step_id: str, output: str) -> None:
             output,
             {
                 "status": "NOT_READY_CUDA_LORA_TRAINING",
-                "blockers": ["docker_base_image_env_digest", "cuda_visible", "docker_base_image_available"],
+                "blockers": [
+                    "docker_base_image_env_digest",
+                    "strict_model_cache_files",
+                    "cuda_visible",
+                    "docker_base_image_available",
+                ],
             },
         )
     elif step_id == "m6_rc_preflight":
@@ -158,6 +163,7 @@ def test_recertification_summarizes_current_expected_not_go(tmp_path: Path) -> N
     assert summary["blocking_reasons"] == [
         "no_go_adapter_candidates",
         "docker_base_image_env_digest",
+        "strict_model_cache_files",
         "cuda_visible",
         "docker_base_image_available",
         "adapter_dir_present",
@@ -170,6 +176,7 @@ def test_recertification_summarizes_current_expected_not_go(tmp_path: Path) -> N
         "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host first; it verifies the operator packet before invoking artifacts/review/real_adapter_cuda_training_handoff.sh.",
         "Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.",
         "Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.",
+        "Run ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE before CUDA training preflight.",
         "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.",
         "Build or pull the required Docker images, including the digest-pinned base image and mib-export:test.",
         "Rerun on a CUDA host where nvidia-smi is visible to the process.",

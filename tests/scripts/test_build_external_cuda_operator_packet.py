@@ -46,6 +46,8 @@ def populate_root(root: Path, *, training_claims_go: bool = False) -> None:
                 {"id": "python_executable_present", "path": "./.venv/bin/python"},
             ],
             "command_sequence": [
+                {"id": "resolve_cuda_base_image"},
+                {"id": "prepare_strict_model_cache"},
                 {"id": "preflight_cuda_training"},
                 {"id": "train_real_adapter"},
             ],
@@ -65,7 +67,7 @@ def populate_root(root: Path, *, training_claims_go: bool = False) -> None:
         {
             "status": "NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION",
             "release_claimed_go": False,
-            "primary_external_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
+            "primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
         },
     )
 
@@ -96,14 +98,21 @@ def test_packet_is_commit_pinned_and_names_primary_handoff(tmp_path: Path) -> No
     assert result["m6_rc_claimed_go"] is False
     assert result["git"]["head"] == "unitsha"
     assert result["primary_external_handoff"] == "artifacts/review/real_adapter_cuda_training_handoff.sh"
+    assert result["recertification_primary_external_handoff"] == "artifacts/review/verified_external_cuda_training_launcher.sh"
     assert result["primary_handoff_status"] == "PREPARED_NOT_RUN"
     assert [row["id"] for row in result["package_readiness_checks"]] == [
         "dataset_jsonl_present",
         "python_executable_present",
     ]
-    assert result["command_order"]["training_handoff"] == ["preflight_cuda_training", "train_real_adapter"]
+    assert result["command_order"]["training_handoff"] == [
+        "resolve_cuda_base_image",
+        "prepare_strict_model_cache",
+        "preflight_cuda_training",
+        "train_real_adapter",
+    ]
     assert result["command_order"]["post_transfer_closeout"] == ["local_closeout_after_bundle_transfer"]
     assert any(row["path"] == "artifacts/review/real_adapter_cuda_training_handoff.sh" for row in result["required_committed_files"])
+    assert any(row["path"] == "scripts/prepare_strict_model_cache.py" for row in result["required_committed_files"])
     assert "model weights" in result["forbidden_committed_artifacts"]
     assert "raw live endpoint transcripts" in result["forbidden_committed_artifacts"]
     assert "git_head: unitsha" in markdown

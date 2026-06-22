@@ -371,6 +371,7 @@ cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.json
 external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.json
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
+strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 current_local_unexpected_blockers: []
@@ -411,6 +412,7 @@ required_before_release_go:
   - real trained CUDA lora_adapter artifact:
       adapter_dir: /tmp/mib-real-adapter/adapter
       manifest: /tmp/mib-real-adapter/manifest.json
+  - strict base-model cache prepared from pinned presets/model_catalog.yaml files
   - digest-pinned CUDA/Python Docker base image on the CUDA host
   - mib-export:test image built with the real adapter
   - no-fake-backend live Docker endpoint evidence
@@ -442,7 +444,6 @@ current_blocking_reasons_include:
   - adapter_safetensors_present
   - adapter_config_present
   - adapter_manifest_present
-  - model_cache_dir_present
   - docker_image_available
   - host_cuda_visible
   - endpoint_live_no_fake_json
@@ -455,6 +456,7 @@ current_blocking_reasons_include:
   - WAITING_FOR_REAL_ADAPTER_INPUTS
 next_actions_are_in_artifact: true
 first_operator_action: run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before training handoff execution
+strict_model_cache_action: run ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE before CUDA training preflight
 ```
 
 Current external CUDA training handoff package:
@@ -465,6 +467,12 @@ status: PREPARED_NOT_RUN
 release_claimed_go: false
 top_level_fields:
   - package_readiness_checks
+  - command_sequence
+strict_model_cache_report: artifacts/review/strict_model_cache_preparation.json
+command_order_prefix:
+  - resolve_cuda_base_image
+  - prepare_strict_model_cache
+  - preflight_cuda_training
 shell_guarded_prereqs:
   - dataset_jsonl_present
   - python_executable_present
@@ -484,8 +492,14 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: d6ecc02
+handoff_source_commit: eff6486
 primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+required_committed_files_count: 16
+required_committed_files_include:
+  - scripts/prepare_strict_model_cache.py
+training_handoff_command_order_include:
+  - prepare_strict_model_cache
 forbidden_committed_artifacts:
   - model weights
   - LoRA adapter files
@@ -505,12 +519,12 @@ release_claimed_go: false
 m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
-  - 15 required committed file sha256/size values
+  - 16 required committed file sha256/size values
   - 6 package readiness checks
   - training/RC/local-closeout command order
   - forbidden committed artifact labels
   - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
-warning: packet handoff source commit d6ecc02 differs from current packet-management checkout 6588915
+warning: none
 meaning: packet integrity is GO; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
 ```
 

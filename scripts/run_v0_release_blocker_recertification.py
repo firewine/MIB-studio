@@ -363,7 +363,9 @@ def operator_next_actions(reasons: list[str]) -> list[str]:
     } & set(reasons):
         add("Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.")
     if {"model_cache_dir_present", "strict_model_cache_files"} & set(reasons):
-        add("Prepare the strict model cache at /tmp/mib-strict-model-cache-phi/model_cache with required base-model files and hashes.")
+        add(
+            "Run ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE before CUDA training preflight."
+        )
     if "docker_base_image_env_digest" in reasons:
         add("Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.")
     if {"docker_base_image_available", "docker_image_available"} & set(reasons):

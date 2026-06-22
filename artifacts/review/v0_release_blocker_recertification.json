@@ -9,7 +9,6 @@
     "adapter_safetensors_present",
     "adapter_config_present",
     "adapter_manifest_present",
-    "model_cache_dir_present",
     "docker_image_available",
     "host_cuda_visible",
     "endpoint_live_no_fake_json",
@@ -150,7 +149,7 @@
       "output": "artifacts/review/v0_release_readiness_audit.json",
       "returncode": 0,
       "stderr_tail": "",
-      "stdout_tail": "e: [Errno 2] No such file or directory: 'nvidia-smi'\"], \"id\": \"m6_real_adapter_prereq_audit\", \"missing_prereq_ids\": [\"adapter_safetensors_present\", \"adapter_config_present\", \"adapter_manifest_present\", \"model_cache_dir_present\", \"docker_image_available\", \"host_cuda_visible\"], \"ok\": false, \"path\": \"artifacts/review/m6_real_adapter_prereq_audit.json\", \"present\": true, \"release_required\": false, \"status\": \"NOT_READY_PRECHECK_FAILED\"}], \"decision\": \"NOT_GO\", \"decision_matches_expected\": true, \"expected_decision\": \"NOT_GO\", \"notes\": [\"Release GO requires current M6-RC evidence verification decision GO.\", \"M0-M6 milestone evidence markers are release-required and become unexpected blockers if missing.\", \"Current NOT_GO is acceptable only when real_trained_adapter_no_fake_endpoint is the sole blocker.\", \"v0 release GO requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE from the real adapter bundle verifier.\", \"Prereq audit is diagnostic; it explains what must be supplied before the live M6-RC gate can run.\"], \"release_ready\": false, \"schema_version\": \"mib_v0_release_readiness.v1\", \"summary\": {\"desktop_e2e_route_repair_verified\": true, \"fe_v6_applied\": true, \"m0_product_lock_verified\": true, \"m1_current_environment_smoke_verified\": true, \"m6_rc_decision\": \"NOT_GO\", \"m6_rc_verification_ok\": true, \"m6_review_docs_current\": true, \"real_adapter_evidence_bundle_blockers\": [\"endpoint_live_no_fake_json\", \"endpoint_markdown_present\", \"adapter_intake_go\", \"adapter_hash_crosscheck\", \"rc_gate_go\", \"m6_verification_go\"], \"real_adapter_evidence_bundle_decision\": \"NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE\", \"real_adapter_evidence_bundle_ready\": false, \"real_adapter_missing_prereq_ids\": [\"adapter_safetensors_present\", \"adapter_config_present\", \"adapter_manifest_present\", \"model_cache_dir_present\", \"docker_image_available\", \"host_cuda_visible\"], \"real_adapter_prereq_status\": \"NOT_READY_PRECHECK_FAILED\", \"working_recorded_milestone_state_verified\": true}, \"unexpected_blockers\": [], \"verification_ok\": true}\n"
+      "stdout_tail": "API at unix:///var/run/docker.sock\", \"host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'\"], \"id\": \"m6_real_adapter_prereq_audit\", \"missing_prereq_ids\": [\"adapter_safetensors_present\", \"adapter_config_present\", \"adapter_manifest_present\", \"docker_image_available\", \"host_cuda_visible\"], \"ok\": false, \"path\": \"artifacts/review/m6_real_adapter_prereq_audit.json\", \"present\": true, \"release_required\": false, \"status\": \"NOT_READY_PRECHECK_FAILED\"}], \"decision\": \"NOT_GO\", \"decision_matches_expected\": true, \"expected_decision\": \"NOT_GO\", \"notes\": [\"Release GO requires current M6-RC evidence verification decision GO.\", \"M0-M6 milestone evidence markers are release-required and become unexpected blockers if missing.\", \"Current NOT_GO is acceptable only when real_trained_adapter_no_fake_endpoint is the sole blocker.\", \"v0 release GO requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE from the real adapter bundle verifier.\", \"Prereq audit is diagnostic; it explains what must be supplied before the live M6-RC gate can run.\"], \"release_ready\": false, \"schema_version\": \"mib_v0_release_readiness.v1\", \"summary\": {\"desktop_e2e_route_repair_verified\": true, \"fe_v6_applied\": true, \"m0_product_lock_verified\": true, \"m1_current_environment_smoke_verified\": true, \"m6_rc_decision\": \"NOT_GO\", \"m6_rc_verification_ok\": true, \"m6_review_docs_current\": true, \"real_adapter_evidence_bundle_blockers\": [\"endpoint_live_no_fake_json\", \"endpoint_markdown_present\", \"adapter_intake_go\", \"adapter_hash_crosscheck\", \"rc_gate_go\", \"m6_verification_go\"], \"real_adapter_evidence_bundle_decision\": \"NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE\", \"real_adapter_evidence_bundle_ready\": false, \"real_adapter_missing_prereq_ids\": [\"adapter_safetensors_present\", \"adapter_config_present\", \"adapter_manifest_present\", \"docker_image_available\", \"host_cuda_visible\"], \"real_adapter_prereq_status\": \"NOT_READY_PRECHECK_FAILED\", \"working_recorded_milestone_state_verified\": true}, \"unexpected_blockers\": [], \"verification_ok\": true}\n"
     },
     {
       "command": [
@@ -214,7 +213,6 @@
       "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
       "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
       "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
-      "model_cache_dir_present: missing model cache dir: /tmp/mib-strict-model-cache-phi/model_cache",
       "docker_image_available: permission denied while trying to connect to the docker API at unix:///var/run/docker.sock",
       "host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'"
     ],
@@ -226,7 +224,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T14:59:24.319729+00:00",
+  "date": "2026-06-22T15:15:25.480070+00:00",
   "expectation_checks": [
     {
       "actual": "NOT_READY_CUDA_LORA_TRAINING",
@@ -264,7 +262,7 @@
     "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host first; it verifies the operator packet before invoking artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.",
     "Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.",
-    "Prepare the strict model cache at /tmp/mib-strict-model-cache-phi/model_cache with required base-model files and hashes.",
+    "Run ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE before CUDA training preflight.",
     "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.",
     "Build or pull the required Docker images, including the digest-pinned base image and mib-export:test.",
     "Rerun on a CUDA host where nvidia-smi is visible to the process.",

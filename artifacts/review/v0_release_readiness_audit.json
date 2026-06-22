@@ -102,7 +102,6 @@
         "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
         "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
         "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
-        "model_cache_dir_present: missing model cache dir: /tmp/mib-strict-model-cache-phi/model_cache",
         "docker_image_available: permission denied while trying to connect to the docker API at unix:///var/run/docker.sock",
         "host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'"
       ],
@@ -111,7 +110,6 @@
         "adapter_safetensors_present",
         "adapter_config_present",
         "adapter_manifest_present",
-        "model_cache_dir_present",
         "docker_image_available",
         "host_cuda_visible"
       ],
@@ -156,7 +154,6 @@
       "adapter_safetensors_present",
       "adapter_config_present",
       "adapter_manifest_present",
-      "model_cache_dir_present",
       "docker_image_available",
       "host_cuda_visible"
     ],

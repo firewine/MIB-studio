@@ -2,26 +2,27 @@
 
 ```yaml
 schema_version: mib_external_cuda_operator_packet.v1
-date: 2026-06-22T14:34:42.098795+00:00
+date: 2026-06-22T15:17:46.182808+00:00
 gate: mib-studio-external-cuda-operator-packet
 status: PREPARED_NOT_RUN
 release_claimed_go: false
 m6_rc_claimed_go: false
-git_head: d6ecc02
+git_head: eff6486
 primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 ```
 
 ## Required Committed Files
 
-- `artifacts/review/real_adapter_cuda_training_handoff.json` (training_handoff_json): `1e640393415ac6d5c5514b90c27705462d476bdfc97d2f8985111a4ade733dfe`
-- `artifacts/review/real_adapter_cuda_training_handoff.md` (training_handoff_markdown): `d0af90ce2e35fd8c4514aefa6594085c0ff64ac87215694ed8ce3bf720944275`
-- `artifacts/review/real_adapter_cuda_training_handoff.sh` (training_handoff_shell): `7dd6c10883befa4b44e4f5c7b9d0895a791a91200af4a0baeb9a6c1c56dc9b75`
-- `artifacts/review/real_adapter_cuda_handoff.json` (rc_handoff_json): `a2dc09ee5ac135b3e40559f7fd0329712f1798bb1a984cce66848686cb259ae9`
-- `artifacts/review/real_adapter_cuda_handoff.md` (rc_handoff_markdown): `2a3ebd1019fde562335c4447a63069f25c48a1854dca905d601126f1c5c9677d`
+- `artifacts/review/real_adapter_cuda_training_handoff.json` (training_handoff_json): `7aa526075b226f67a4b9d41bb412a9f2bc3a28b95339d2dcaba207a1ba8584f5`
+- `artifacts/review/real_adapter_cuda_training_handoff.md` (training_handoff_markdown): `da9abc50ba0100a2cf5b1e3f30d9c87ec7894bb93a77f1d29f6f266b2b251bc3`
+- `artifacts/review/real_adapter_cuda_training_handoff.sh` (training_handoff_shell): `dade49ab2aa5718cdd9b07fa05196927130546fef943a9390ff99927d284e697`
+- `artifacts/review/real_adapter_cuda_handoff.json` (rc_handoff_json): `06f6ed97f3a71d8362100239e4e479cc18363c3702df1cd3f1f29892f748171a`
+- `artifacts/review/real_adapter_cuda_handoff.md` (rc_handoff_markdown): `59fb0e932b1ced0170b8438df4407956aff544e5645ce15011bd607206512552`
 - `artifacts/review/real_adapter_cuda_handoff.sh` (rc_handoff_shell): `4f480e310d70fc036e2e17f420bea22c51cf19261c74a6839100f37a43e53c9c`
-- `artifacts/review/v0_release_blocker_recertification.json` (recertification_summary): `122d94b1ccc669077cbd4b0eee680aa2f3e60cd2bf62e9b5de22dbba05cefdf9`
+- `artifacts/review/v0_release_blocker_recertification.json` (recertification_summary): `ed75fdd076360fea8ec7926d063aa189d6d7ff0ace738b8bd718c6391a13a7db`
 - `examples/fixtures/router_20.jsonl` (router_training_dataset): `3be5cdfe2f6b655eed0e9c11c8ec23b5778bf61798b4c8fb152be67a9953bd90`
-- `scripts/prepare_cuda_lora_training_run.py` (training_handoff_generator): `72f52447fe46ab7ac90cba3d80f3dfeb2dc3012f0b58c807857d66ccd8debf65`
+- `scripts/prepare_strict_model_cache.py` (strict_model_cache_preparation): `327352a72b263b1f06665d84e55d25bdd4f963fdc504b5c8c8854b1ff35d8452`
+- `scripts/prepare_cuda_lora_training_run.py` (training_handoff_generator): `8681af37c4a0cc0c16d5f47db30bb5fe236c44f96320fc9da54ac8341f49b323`
 - `scripts/check_cuda_lora_training_prereqs.py` (cuda_training_preflight): `ac5b0df5eb6efbb860e5a516c257596a0e7e8a9ae31ae41c9285a3c128d2137e`
 - `scripts/resolve_cuda_base_image.py` (cuda_base_image_resolver): `0c8d641aa46a6f94441ec9ca2b3c0f61cf72b94b6be9cd3dcf8ca6e00ae8a685`
 - `scripts/prepare_real_adapter_docker_image.py` (docker_image_handoff_generator): `0c9e92b0a3bfcd711a4a85ec26fd3a3393fbd74387e59ac7169cb9ea8609c69f`
@@ -40,7 +41,7 @@ primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 
 ## Operator Sequence
 
-1. Clone or update the repository to commit d6ecc02.
+1. Clone or update the repository to commit eff6486.
 2. Verify the required_committed_files sha256 values before running artifacts/review/real_adapter_cuda_training_handoff.sh.
 3. Run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host and require all package_readiness_checks to pass.
 4. Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.

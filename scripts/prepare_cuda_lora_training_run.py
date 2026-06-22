@@ -142,6 +142,21 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
     config_path = write_llamafactory_artifacts(trainer_input, model_cache_path=Path(args.model_cache_dir), dataset_id=args.dataset_id)
     backend_config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     resolver_command = cuda_base_image_resolver_command(args)
+    model_cache_command = [
+        args.python,
+        "scripts/prepare_strict_model_cache.py",
+        "--base-model",
+        args.base_model,
+        "--backend",
+        "cuda",
+        "--model-cache-dir",
+        args.model_cache_dir,
+        "--allow-download",
+        "--expected-status",
+        "READY_STRICT_MODEL_CACHE",
+        "--json-output",
+        args.model_cache_json_output,
+    ]
     preflight_command = [
         args.python,
         "scripts/check_cuda_lora_training_prereqs.py",
@@ -237,6 +252,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         "outputs": {
             "train_config": str(output_root / "train_config.json"),
             "backend_config": str(config_path),
+            "strict_model_cache_report": args.model_cache_json_output,
             "cuda_base_image_resolution_report": args.cuda_base_image_json_output,
             "cuda_base_image_env": args.cuda_base_image_env_output,
             "preflight_report": args.preflight_json_output,
@@ -260,6 +276,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         "package_readiness_checks": package_readiness_checks(args, config_path),
         "command_sequence": [
             command_row("resolve_cuda_base_image", resolver_command, note=f"Run only when {DOCKER_BASE_IMAGE_ENV} is unset; writes a digest-pinned CUDA base image env file for downstream preflight and Docker build."),
+            command_row("prepare_strict_model_cache", model_cache_command, note="Create or verify the strict pinned base-model cache before CUDA training preflight. This may download large model files only because --allow-download is explicit."),
             command_row("preflight_cuda_training", preflight_command, note="Fail fast unless CUDA, LLaMA-Factory, Docker base image, backend config, dataset, and strict model cache prerequisites are ready."),
             command_row("train_real_adapter", train_command, note="Run actual CUDA QLoRA training with LLaMA-Factory on the CUDA host."),
             command_row("finalize_manifest", finalize_command, note="Write manifest.json from the trained adapter directory."),
@@ -270,6 +287,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         "operator_rules": [
             "Run on a host with NVIDIA CUDA visible to nvidia-smi.",
             "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
+            "Run scripts/prepare_strict_model_cache.py before CUDA training preflight so pinned model files are present and hash-verified.",
             f"If {DOCKER_BASE_IMAGE_ENV} is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before preflight.",
             "Do not use fixture-sized or self-test adapters as release evidence.",
             "Do not claim M6-RC or v0 GO until the downstream real adapter handoff and verifiers return GO.",
@@ -366,7 +384,6 @@ def render_shell(report: dict[str, Any]) -> str:
         if row["id"] != "resolve_cuda_base_image"
     )
     output_root = shlex.quote(report["inputs"]["output_root"])
-    model_cache_dir = shlex.quote(report["inputs"]["model_cache_dir"])
     dataset_jsonl = shlex.quote(report["inputs"]["dataset_jsonl"])
     python_path = next(
         row["path"]
@@ -415,11 +432,6 @@ if [ ! -f {dataset_jsonl} ]; then
 fi
 
 {llamafactory_check}
-
-if [ ! -d {model_cache_dir} ]; then
-  echo "Refusing to run: model cache directory is missing: {model_cache_dir}" >&2
-  exit 2
-fi
 
 if [ ! -f {output_root}/backend_config.yaml ]; then
   echo "Refusing to run: backend_config.yaml is missing under {output_root}" >&2
@@ -473,6 +485,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--docker-context-output", default="/tmp/mib-real-adapter/docker_context")
     parser.add_argument("--cuda-base-image-json-output", default="artifacts/review/real_adapter_cuda_base_image_resolution.json")
     parser.add_argument("--cuda-base-image-env-output", default="artifacts/review/real_adapter_cuda_base_image.env")
+    parser.add_argument("--model-cache-json-output", default="artifacts/review/strict_model_cache_preparation.json")
     parser.add_argument("--preflight-json-output", default="artifacts/review/real_adapter_cuda_training_prereq_preflight.json")
     parser.add_argument("--adapter-intake-json-output", default="artifacts/review/real_adapter_artifact_intake.json")
     parser.add_argument("--finalize-json-output", default="artifacts/review/real_adapter_cuda_training_finalize.json")

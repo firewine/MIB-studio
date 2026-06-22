@@ -1,7 +1,7 @@
 # CUDA LoRA Training Handoff
 
 ```yaml
-date: 2026-06-22T14:19:51.251122+00:00
+date: 2026-06-22T15:15:15.868744+00:00
 gate: mib-studio-cuda-real-adapter-training-handoff
 status: PREPARED_NOT_RUN
 release_claimed_go: false
@@ -39,6 +39,7 @@ output_dir: /tmp/mib-real-adapter/adapter
 
 - Run on a host with NVIDIA CUDA visible to nvidia-smi.
 - Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.
+- Run scripts/prepare_strict_model_cache.py before CUDA training preflight so pinned model files are present and hash-verified.
 - If MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before preflight.
 - Do not use fixture-sized or self-test adapters as release evidence.
 - Do not claim M6-RC or v0 GO until the downstream real adapter handoff and verifiers return GO.
@@ -60,6 +61,12 @@ The generated shell refuses to run until these package prerequisites are present
 
 ```bash
 ./.venv/bin/python scripts/resolve_cuda_base_image.py --json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --env-output artifacts/review/real_adapter_cuda_base_image.env --expected-status CUDA_BASE_IMAGE_RESOLVED --candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+```
+
+### prepare_strict_model_cache
+
+```bash
+./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE --json-output artifacts/review/strict_model_cache_preparation.json
 ```
 
 ### preflight_cuda_training

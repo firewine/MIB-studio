@@ -9,3 +9,4 @@
 - 외부 CUDA operator packet verifier를 추가해 handoff 실행 전 packet 계약, 필수 파일 hash, 명령 순서, 커밋 금지 artifact를 자동 검증하게 했다.
 - 외부 CUDA training launcher를 추가해 packet verifier 통과 후에만 real-adapter CUDA training handoff가 실행되도록 했다.
 - v0 release blocker recertification의 첫 외부 조치를 verified CUDA training launcher로 재연결했다.
+- strict model cache 준비 CLI를 추가하고 외부 CUDA training handoff와 operator packet에 preflight 전 실행 단계로 연결했다.

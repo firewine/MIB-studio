@@ -69,6 +69,7 @@ def args_for(tmp_path: Path) -> SimpleNamespace:
         docker_context_output=str(tmp_path / "mib-real-adapter" / "docker_context"),
         cuda_base_image_json_output="artifacts/review/real_adapter_cuda_base_image_resolution.json",
         cuda_base_image_env_output="artifacts/review/real_adapter_cuda_base_image.env",
+        model_cache_json_output="artifacts/review/strict_model_cache_preparation.json",
         preflight_json_output="artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
         adapter_intake_json_output="artifacts/review/real_adapter_artifact_intake.json",
         finalize_json_output="artifacts/review/real_adapter_cuda_training_finalize.json",
@@ -109,6 +110,10 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert report["backend_config_summary"]["lora_rank"] == 8
     assert "mib_router_unit_router" in dataset_info
     assert "scripts/check_cuda_lora_training_prereqs.py" in shell
+    assert "scripts/prepare_strict_model_cache.py" in shell
+    assert "--model-cache-dir" in shell
+    assert "--allow-download" in shell
+    assert "READY_STRICT_MODEL_CACHE" in shell
     assert "Python executable is missing or not executable" in shell
     assert "dataset JSONL is missing" in shell
     assert "RC handoff shell is missing" in shell
@@ -116,6 +121,7 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime" in shell
     assert "artifacts/review/real_adapter_cuda_base_image.env" in shell
     assert shell.index("== resolve_cuda_base_image ==") < shell.index("== preflight_cuda_training ==")
+    assert shell.index("== prepare_strict_model_cache ==") < shell.index("== preflight_cuda_training ==")
     assert "--llamafactory-cli ./.venv/bin/llamafactory-cli" in shell
     assert "./.venv/bin/llamafactory-cli train" in shell
     assert "scripts/verify_real_adapter_artifact.py" in shell
@@ -130,6 +136,7 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert shell.index("== prepare_docker_image ==") < shell.index("== run_rc_handoff ==")
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256" in shell
+    assert "model cache directory is missing" not in shell
     assert "## Package Readiness Checks" in markdown
     assert "`dataset_jsonl_present`" in markdown
     assert "`python_executable_present`" in markdown

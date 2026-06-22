@@ -28,6 +28,26 @@
     {
       "argv": [
         "./.venv/bin/python",
+        "scripts/prepare_strict_model_cache.py",
+        "--base-model",
+        "microsoft/Phi-3.5-mini-instruct",
+        "--backend",
+        "cuda",
+        "--model-cache-dir",
+        "/tmp/mib-strict-model-cache-phi/model_cache",
+        "--allow-download",
+        "--expected-status",
+        "READY_STRICT_MODEL_CACHE",
+        "--json-output",
+        "artifacts/review/strict_model_cache_preparation.json"
+      ],
+      "id": "prepare_strict_model_cache",
+      "note": "Create or verify the strict pinned base-model cache before CUDA training preflight. This may download large model files only because --allow-download is explicit.",
+      "shell": "./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --allow-download --expected-status READY_STRICT_MODEL_CACHE --json-output artifacts/review/strict_model_cache_preparation.json"
+    },
+    {
+      "argv": [
+        "./.venv/bin/python",
         "scripts/check_cuda_lora_training_prereqs.py",
         "--dataset-jsonl",
         "examples/fixtures/router_20.jsonl",
@@ -135,7 +155,7 @@
       "shell": "bash artifacts/review/real_adapter_cuda_handoff.sh"
     }
   ],
-  "date": "2026-06-22T14:19:51.251122+00:00",
+  "date": "2026-06-22T15:15:15.868744+00:00",
   "gate": "mib-studio-cuda-real-adapter-training-handoff",
   "inputs": {
     "base_model": "microsoft/Phi-3.5-mini-instruct",
@@ -156,6 +176,7 @@
   "operator_rules": [
     "Run on a host with NVIDIA CUDA visible to nvidia-smi.",
     "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
+    "Run scripts/prepare_strict_model_cache.py before CUDA training preflight so pinned model files are present and hash-verified.",
     "If MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before preflight.",
     "Do not use fixture-sized or self-test adapters as release evidence.",
     "Do not claim M6-RC or v0 GO until the downstream real adapter handoff and verifiers return GO."
@@ -173,6 +194,7 @@
     "manifest": "/tmp/mib-real-adapter/manifest.json",
     "preflight_report": "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
     "rc_handoff_shell": "artifacts/review/real_adapter_cuda_handoff.sh",
+    "strict_model_cache_report": "artifacts/review/strict_model_cache_preparation.json",
     "train_config": "/tmp/mib-real-adapter/train_config.json"
   },
   "package_readiness_checks": [

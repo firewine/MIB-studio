@@ -43,6 +43,11 @@ printf '\n== local_closeout_after_bundle_transfer ==\n'
 cat <<'MIB_LOCAL_CLOSEOUT'
 Copy artifacts/review/real_adapter_evidence_bundle.tar.gz from the CUDA host
 back into this repository, then run the local closeout command below.
+The archive must be metadata-bearing and include:
+- real_adapter_evidence_bundle_manifest.json
+- real_adapter_evidence_bundle_verification.json
+Missing or mismatched metadata returns archive_metadata_not_verified and
+prevents promotion.
 Expected success status: GO_V0_RELEASE_CLOSEOUT.
 
 # local_closeout_after_bundle_transfer: ./.venv/bin/python scripts/run_v0_release_closeout_from_bundle.py --bundle-archive artifacts/review/real_adapter_evidence_bundle.tar.gz --expected-bundle-decision GO --expected-readiness-decision GO

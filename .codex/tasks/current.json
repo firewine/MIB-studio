@@ -1,17 +1,16 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Strengthen v0 release closeout by requiring transferred real-adapter evidence bundle archives to include builder metadata that matches strict bundle verification before promotion.",
+  "goal": "Align the generated real-adapter CUDA handoff with the new bundle archive metadata guard so operators know local closeout requires a metadata-bearing archive.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-bundle-archive-metadata",
+  "gate": "mib-studio-real-adapter-handoff-archive-metadata-contract",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "45a18c2",
+  "head": "2e7fca8",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/promote_real_adapter_evidence_bundle.py",
-    "tests/scripts/test_promote_real_adapter_evidence_bundle.py",
-    "tests/scripts/test_run_v0_release_closeout_from_bundle.py",
+    "scripts/build_real_adapter_handoff.py",
+    "tests/scripts/test_build_real_adapter_handoff.py",
     "artifacts/review/real_adapter_candidate_scan.json",
     "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
     "artifacts/review/m6_real_adapter_prereq_audit.json",
@@ -43,70 +42,71 @@
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may strengthen archive metadata/provenance validation for real-adapter evidence bundle promotion, update focused closeout tests, and refresh current NOT_GO recertification artifacts only.",
+  "allowed_edit_paths_scope_note": "This gate may update the CUDA handoff generator so generated handoff artifacts explicitly describe the required metadata-bearing evidence bundle archive, plus focused tests and current NOT_GO regenerated artifacts.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
+    "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "scripts/build_real_adapter_evidence_bundle.py",
-    "scripts/verify_real_adapter_evidence_bundle.py",
+    "scripts/promote_real_adapter_evidence_bundle.py",
     "scripts/run_v0_release_closeout_from_bundle.py",
-    "artifacts/review/real_adapter_cuda_handoff.sh"
+    "scripts/run_v0_release_blocker_recertification.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_promote_real_adapter_evidence_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
     "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"archive_metadata|real_adapter_evidence_bundle_manifest.json|real_adapter_evidence_bundle_verification.json|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/promote_real_adapter_evidence_bundle.py tests/scripts/test_promote_real_adapter_evidence_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"bundle_archive_contract|metadata-bearing|real_adapter_evidence_bundle_manifest.json|real_adapter_evidence_bundle_verification.json|archive_metadata_not_verified|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Archive promotion rejects GO archives that omit build_real_adapter_evidence_bundle metadata files.",
-    "Archive metadata manifest and verification decisions must match the strict verification computed after extraction.",
-    "Focused promotion and closeout tests cover metadata-positive and metadata-negative archive cases.",
+    "Generated CUDA handoff JSON includes a bundle_archive_contract with required metadata files and closeout failure behavior.",
+    "Generated markdown and shell handoff explicitly tell operators the copied archive must be metadata-bearing and produced by build_real_adapter_evidence_bundle.py.",
+    "Focused handoff tests cover the archive metadata contract in JSON/Markdown/Shell.",
     "Current v0 readiness remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker.",
     "No release GO is claimed from current local artifacts."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "python3 -m py_compile scripts/promote_real_adapter_evidence_bundle.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_promote_real_adapter_evidence_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED (rerun with host Docker access after sandbox recorded permission denial)",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
     "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"archive_metadata|real_adapter_evidence_bundle_manifest.json|real_adapter_evidence_bundle_verification.json|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/promote_real_adapter_evidence_bundle.py tests/scripts/test_promote_real_adapter_evidence_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py docs/WORKING.md .codex/tasks/current.json",
-    "git diff --check"
+    "rg -n -- \"bundle_archive_contract|metadata-bearing|real_adapter_evidence_bundle_manifest.json|real_adapter_evidence_bundle_verification.json|archive_metadata_not_verified|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md .codex/tasks/current.json",
+    "git diff --check",
+    "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
     "The current host still lacks real trained adapter no-fake Docker endpoint evidence.",
-    "This gate tightens release closeout tooling only; it does not create or promote release evidence.",
-    "The first recertification run was repeated with host Docker access because sandboxed Docker access recorded a permission-denied diagnostic."
+    "This gate only aligns operator handoff text/metadata with existing closeout enforcement; it does not create release evidence."
   ],
   "phase_notes": {
-    "plan": "Require builder metadata inside transferred real-adapter evidence bundle archives before promotion.",
-    "audit": "Archive extraction is path-safe, but archive promotion currently verifies fixed evidence files without requiring the archive metadata emitted by build_real_adapter_evidence_bundle.py.",
-    "build": "Patch promote_real_adapter_evidence_bundle.py and focused tests so archive closeout requires manifest/verification metadata consistency.",
-    "check": "Run focused promotion/closeout tests, current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this release tooling hardening phase."
+    "plan": "Add bundle archive metadata contract fields and operator text to the generated CUDA handoff.",
+    "audit": "Closeout now rejects archives without build_real_adapter_evidence_bundle metadata, but generated handoff text only says to copy the tarball and run closeout.",
+    "build": "Patch build_real_adapter_handoff.py and focused tests, then regenerate current NOT_GO handoff artifacts through the existing recertification runner.",
+    "check": "Run focused handoff tests, current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this handoff alignment phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-bundle-archive-metadata",
-    "status": "MIB_STUDIO_REAL_ADAPTER_BUNDLE_ARCHIVE_METADATA_VERIFIED_NOT_GO",
+    "gate": "mib-studio-real-adapter-handoff-archive-metadata-contract",
+    "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Real-adapter bundle archive metadata/provenance validation, focused tests, WORKING state, and PABCD only.",
+    "approved_scope": "Generated CUDA handoff archive metadata contract, focused handoff tests, regenerated current NOT_GO handoff artifacts, WORKING state, and PABCD only.",
     "blocked_scope": "No product behavior changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Require builder metadata inside transferred real-adapter evidence bundle archives before promotion.",
-    "audit": "Archive extraction is path-safe, but archive promotion currently verifies fixed evidence files without requiring the archive metadata emitted by build_real_adapter_evidence_bundle.py.",
-    "build": "Patch promote_real_adapter_evidence_bundle.py and focused tests so archive closeout requires manifest/verification metadata consistency.",
-    "check": "Run focused promotion/closeout tests, current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this release tooling hardening phase."
+    "plan": "Add bundle archive metadata contract fields and operator text to the generated CUDA handoff.",
+    "audit": "Closeout now rejects archives without build_real_adapter_evidence_bundle metadata, but generated handoff text only says to copy the tarball and run closeout.",
+    "build": "Patch build_real_adapter_handoff.py and focused tests, then regenerate current NOT_GO handoff artifacts through the existing recertification runner.",
+    "check": "Run focused handoff tests, current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this handoff alignment phase."
   }
 }

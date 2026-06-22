@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_BUNDLE_ARCHIVE_METADATA
+phase_id: REAL_ADAPTER_HANDOFF_ARCHIVE_METADATA_CONTRACT
 milestone: Final_Program_Development_Closeout
-phase_status: real_adapter_bundle_archive_metadata_verified_not_go
-gate_id: mib-studio-real-adapter-bundle-archive-metadata
+phase_status: real_adapter_handoff_archive_metadata_contract_verified_not_go
+gate_id: mib-studio-real-adapter-handoff-archive-metadata-contract
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,45 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-real-adapter-handoff-archive-metadata-contract
+objective: align generated CUDA handoff with the metadata-bearing bundle archive closeout requirement
+
+files:
+  handoff_generator: scripts/build_real_adapter_handoff.py
+  handoff_tests: tests/scripts/test_build_real_adapter_handoff.py
+  generated_handoff:
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/real_adapter_cuda_handoff.sh
+  refreshed_not_go_artifacts:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_blocker_recertification.json
+  working_state: docs/WORKING.md
+
+bundle_archive_contract_in_handoff:
+  producer: scripts/build_real_adapter_evidence_bundle.py
+  bundle_dir: artifacts/review/real_adapter_evidence_bundle
+  bundle_archive_output: artifacts/review/real_adapter_evidence_bundle.tar.gz
+  required_metadata_files:
+    - artifacts/review/real_adapter_evidence_bundle_manifest.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+  local_closeout_requires_metadata: true
+  missing_or_mismatched_metadata_status: archive_metadata_not_verified
+  expected_success_status: GO_V0_RELEASE_CLOSEOUT
+
+summary:
+  - generated handoff JSON now exposes bundle_archive_contract for the copied evidence archive
+  - generated markdown has a Bundle Archive Contract section and a metadata-bearing local closeout section
+  - generated shell tells operators that copied tarballs without builder metadata are rejected with archive_metadata_not_verified
+  - focused handoff tests cover JSON, markdown, and shell output for the metadata contract
+  - current recertification remains NOT_GO with real_trained_adapter_no_fake_endpoint as the sole v0 blocker
+  - no M6-RC GO or v0 GO is claimed from current local artifacts
+```
 
 ```yaml
 gate: mib-studio-real-adapter-bundle-archive-metadata
@@ -200,6 +239,7 @@ recorded_tooling_ready:
   Real_Adapter_Evidence_Bundle_Promotion: true
   Real_Adapter_Evidence_Bundle_Assembly: true
   Real_Adapter_CUDA_Handoff: true
+  Real_Adapter_CUDA_Handoff_Archive_Metadata_Contract: true
   Real_Adapter_CUDA_Training_Handoff: true
   Real_Adapter_Docker_Image_Handoff: true
   Real_Adapter_RC_Gate_Runner_Tooling: true
@@ -214,8 +254,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: real_adapter_bundle_archive_metadata_verified_not_go
+status: real_adapter_handoff_archive_metadata_contract_verified_not_go
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json
+  - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
+  - rg -n -- "bundle_archive_contract|metadata-bearing|real_adapter_evidence_bundle_manifest.json|real_adapter_evidence_bundle_verification.json|archive_metadata_not_verified|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_promote_real_adapter_evidence_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py -q
   - python3 -m py_compile scripts/promote_real_adapter_evidence_bundle.py
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
@@ -251,6 +297,7 @@ fixed_verification_blockers:
   - handoff_missing_embedded_local_closeout_after_bundle_transfer
   - strict_toolchain_setup_was_manual_and_hook_fragile
   - bundle_archive_promotion_did_not_require_builder_metadata
+  - handoff_did_not_explain_metadata_bearing_archive_requirement
 
 warnings:
   - M6-RC remains NOT_GO.
@@ -323,6 +370,11 @@ local_closeout_after_bundle_transfer:
     --bundle-archive <copied_real_adapter_evidence_bundle.tar.gz>
     --expected-bundle-decision GO
     --expected-readiness-decision GO
+  requires_metadata_bearing_archive: true
+  required_archive_metadata:
+    - real_adapter_evidence_bundle_manifest.json
+    - real_adapter_evidence_bundle_verification.json
+  missing_or_mismatched_metadata_status: archive_metadata_not_verified
   expected_success_status: GO_V0_RELEASE_CLOSEOUT
 ```
 
@@ -335,10 +387,14 @@ commands. The active closeout tool is
 scripts/run_v0_release_blocker_recertification.py. It refreshes the current
 candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle
 verification, v0 readiness, and CUDA handoff artifacts with one command.
-The generated CUDA handoff now embeds local_closeout_after_bundle_transfer:
-after copying artifacts/review/real_adapter_evidence_bundle.tar.gz back into
-this repo, run scripts/run_v0_release_closeout_from_bundle.py with expected GO
-bundle/readiness decisions and require GO_V0_RELEASE_CLOSEOUT.
+The generated CUDA handoff now embeds bundle_archive_contract and
+local_closeout_after_bundle_transfer. After copying the metadata-bearing
+artifacts/review/real_adapter_evidence_bundle.tar.gz back into this repo, run
+scripts/run_v0_release_closeout_from_bundle.py with expected GO bundle/readiness
+decisions and require GO_V0_RELEASE_CLOSEOUT. The archive must include
+real_adapter_evidence_bundle_manifest.json and
+real_adapter_evidence_bundle_verification.json; missing or mismatched metadata
+returns archive_metadata_not_verified and prevents promotion.
 The latest host-access recertification confirmed docker_daemon_available ok:true
 and mib-export:test missing as "No such image", so Docker permission denial is
 not the current release blocker.

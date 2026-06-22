@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T13:39:16.412971+00:00
+date: 2026-06-22T13:48:25.644150+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false
@@ -52,9 +52,22 @@ v0_unexpected_blockers: []
 - The Docker image must package the same adapter hash recorded by manifest.json.
 - The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.
 - Capture endpoint evidence before updating M6 review docs to GO; the generated shell stops before M6 GO verification until those docs contain final GO markers.
-- Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and portable archive, then require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.
-- After transferring the bundle archive back to the release workstation, run run_v0_release_closeout_from_bundle.py and require GO_V0_RELEASE_CLOSEOUT.
+- Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and metadata-bearing portable archive, then require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.
+- The archive must include real_adapter_evidence_bundle_manifest.json and real_adapter_evidence_bundle_verification.json; local closeout rejects missing or mismatched metadata with archive_metadata_not_verified.
+- After transferring the metadata-bearing bundle archive back to the release workstation, run run_v0_release_closeout_from_bundle.py and require GO_V0_RELEASE_CLOSEOUT.
 - M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.
+
+## Bundle Archive Contract
+
+```yaml
+producer: scripts/build_real_adapter_evidence_bundle.py
+bundle_dir: artifacts/review/real_adapter_evidence_bundle
+bundle_archive_output: artifacts/review/real_adapter_evidence_bundle.tar.gz
+required_metadata_files: ["artifacts/review/real_adapter_evidence_bundle_manifest.json", "artifacts/review/real_adapter_evidence_bundle_verification.json"]
+local_closeout_requires_metadata: true
+missing_or_mismatched_metadata_status: archive_metadata_not_verified
+expected_success_status: GO_V0_RELEASE_CLOSEOUT
+```
 
 ## Command Sequence
 
@@ -106,9 +119,9 @@ MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scri
 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision GO --json-output artifacts/review/v0_release_readiness_audit.json
 ```
 
-## Local Closeout After Bundle Transfer
+## Local Closeout After Metadata-Bearing Bundle Transfer
 
-Copy `artifacts/review/real_adapter_evidence_bundle.tar.gz` from the CUDA host back into this repository, then run:
+Copy the metadata-bearing `artifacts/review/real_adapter_evidence_bundle.tar.gz` from the CUDA host back into this repository, then run:
 
 ### local_closeout_after_bundle_transfer
 
@@ -116,4 +129,4 @@ Copy `artifacts/review/real_adapter_evidence_bundle.tar.gz` from the CUDA host b
 ./.venv/bin/python scripts/run_v0_release_closeout_from_bundle.py --bundle-archive artifacts/review/real_adapter_evidence_bundle.tar.gz --expected-bundle-decision GO --expected-readiness-decision GO
 ```
 
-Run in this repository after copying the real adapter evidence bundle archive back from the CUDA host. Expected success status: GO_V0_RELEASE_CLOSEOUT.
+Run in this repository after copying the real adapter evidence bundle archive back from the CUDA host. The archive must be metadata-bearing and produced by build_real_adapter_evidence_bundle.py; missing or mismatched archive metadata returns archive_metadata_not_verified and prevents promotion. Expected success status: GO_V0_RELEASE_CLOSEOUT.

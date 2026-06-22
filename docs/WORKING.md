@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_B3EFBA2_RECERTIFICATION
+phase_id: CURRENT_HEAD_EXTERNAL_CUDA_HANDOFF_READINESS_AUDIT_AFTER_E5D761F
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-external-cuda-operator-packet-refresh-after-b3efba2-recertification
+gate_id: mib-studio-current-head-external-cuda-handoff-readiness-audit-after-e5d761f
 mode: development
 product_code_changed: false
 frontend_code_changed: false
@@ -52,6 +52,7 @@ verification_tooling_changed: false
 verification_artifacts_refreshed: true
 external_operator_packet_refreshed: true
 external_operator_packet_refresh_required_after_phase_commit: false
+external_cuda_handoff_readiness_refreshed: true
 operator_packet_ready: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
@@ -60,12 +61,60 @@ release_claimed_go: false
 
 current_decision:
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  external_cuda_handoff_readiness_status: WAITING_FOR_EXTERNAL_CUDA_HOST
   v0_release_ready: false
   expected_local_decision: NOT_GO
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-current-head-external-cuda-handoff-readiness-audit-after-e5d761f
+objective: refresh current-head external CUDA handoff readiness after packet refresh
+
+checkout_head: e5d761f
+packet_source_commit: b3efba2
+
+readiness_audit:
+  status: WAITING_FOR_EXTERNAL_CUDA_HOST
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  current_release_blocker: real_trained_adapter_no_fake_endpoint
+
+ready_requirements:
+  - GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  - READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  - READY_STRICT_MODEL_CACHE
+  - backend_config_present
+  - docker_daemon_available
+  - docker_base_image_available
+
+blocking_requirements:
+  - nvidia_smi_available
+  - adapter_safetensors_present
+  - adapter_config_present
+  - adapter_manifest_present
+  - mib_export_test_image_available
+  - runtime_bearer_token_present
+
+local_host_checks:
+  nvidia_smi_available: false
+  docker_daemon_available: true
+  docker_server_version: 29.6.0
+  docker_base_image_available: true
+  mib_export_test_image_available: false
+  adapter_safetensors_present: false
+  adapter_config_present: false
+  adapter_manifest_present: false
+  runtime_bearer_token_present: false
+
+operator_next_step:
+  run: bash artifacts/review/verified_external_cuda_training_launcher.sh
+  host: external CUDA host with full repository checkout at or after e5d761f, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, and real adapter output paths
+  note: readiness audit does not claim M6-RC GO or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-external-cuda-operator-packet-refresh-after-b3efba2-recertification

@@ -2,15 +2,15 @@
 
 ```yaml
 schema_version: mib_external_cuda_handoff_readiness_audit.v1
-date: "2026-06-22T21:23:30Z"
+date: "2026-06-22T21:56:41Z"
 gate: mib-studio-external-cuda-handoff-readiness-audit
 status: WAITING_FOR_EXTERNAL_CUDA_HOST
 release_claimed_go: false
 m6_rc_claimed_go: false
 v0_release_ready: false
 current_release_blocker: real_trained_adapter_no_fake_endpoint
-workspace_head: b79322a
-packet_handoff_source_commit: f31050c
+workspace_head: e5d761f
+packet_handoff_source_commit: b3efba2
 ```
 
 ## Ready
@@ -33,7 +33,7 @@ packet_handoff_source_commit: f31050c
 
 ## Next External CUDA Host Actions
 
-1. Run from a full repository checkout at or after `b79322a`.
+1. Run from a full repository checkout at or after `e5d761f`; the packet source commit is `b3efba2`.
 2. Ensure `nvidia-smi` succeeds on the host.
 3. Set a real `MIB_RUNTIME_BEARER_TOKEN` with at least 32 characters.
 4. Run `bash artifacts/review/verified_external_cuda_training_launcher.sh`.
@@ -41,5 +41,6 @@ packet_handoff_source_commit: f31050c
 6. After training, require `adapter.safetensors`, `adapter_config.json`, and `/tmp/mib-real-adapter/manifest.json`.
 7. Build or provide `mib-export:test` with the same real adapter hash.
 8. Capture live no-fake Docker endpoint evidence before changing M6 review docs to GO.
+9. Return only the metadata-bearing evidence bundle archive and accepted review doc updates for local closeout.
 
 This audit does not claim M6-RC or v0 release GO.

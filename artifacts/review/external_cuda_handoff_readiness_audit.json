@@ -1,6 +1,6 @@
 {
   "schema_version": "mib_external_cuda_handoff_readiness_audit.v1",
-  "date": "2026-06-22T21:23:30Z",
+  "date": "2026-06-22T21:56:41Z",
   "gate": "mib-studio-external-cuda-handoff-readiness-audit",
   "status": "WAITING_FOR_EXTERNAL_CUDA_HOST",
   "release_claimed_go": false,
@@ -10,28 +10,29 @@
   "workspace": {
     "root": "/home/firewine/MIB-studio",
     "branch": "main",
-    "head": "b79322a",
+    "head": "e5d761f",
     "git_status": "clean_against_origin_main"
   },
   "packet_readiness": {
     "packet_json": "artifacts/review/external_cuda_operator_packet.json",
-    "verification_json": "/tmp/mib-external-cuda-packet-b79322a-readiness.json",
+    "verification_json": "/tmp/mib-e5d761f-external-cuda-packet-readiness.json",
     "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
     "verification_ok": true,
     "operator_packet_ready": true,
-    "packet_handoff_source_commit": "f31050c",
+    "packet_handoff_source_commit": "b3efba2",
     "required_committed_files": 18,
+    "required_commit_blobs": "verified 18 required file blobs at b3efba2",
     "warnings": []
   },
   "transfer_manifest_readiness": {
-    "json_output": "/tmp/mib-external-cuda-transfer-b79322a-readiness.json",
+    "json_output": "/tmp/mib-e5d761f-external-cuda-transfer-readiness.json",
     "status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
     "full_checkout_required": true,
     "partial_file_archive_allowed": false,
-    "packet_handoff_source_commit": "f31050c"
+    "packet_handoff_source_commit": "b3efba2"
   },
   "strict_model_cache_readiness": {
-    "json_output": "/tmp/mib-strict-model-cache-b79322a-readiness.json",
+    "json_output": "/tmp/mib-e5d761f-strict-model-cache-readiness.json",
     "status": "READY_STRICT_MODEL_CACHE",
     "download_allowed": false,
     "cache_ready": true,
@@ -70,7 +71,7 @@
     "docker_base_image_available"
   ],
   "next_external_cuda_host_actions": [
-    "Run from a full repository checkout at or after b79322a.",
+    "Run from a full repository checkout at or after e5d761f; the operator packet handoff source commit remains b3efba2.",
     "Ensure nvidia-smi succeeds on the host.",
     "Set a real MIB_RUNTIME_BEARER_TOKEN with at least 32 characters before the RC handoff.",
     "Run bash artifacts/review/verified_external_cuda_training_launcher.sh.",

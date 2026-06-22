@@ -41,17 +41,17 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: FE_V6_WORKFLOW_ORDER_ALIGNMENT
+phase_id: CURRENT_HEAD_V0_RECERTIFICATION_AFTER_FE_V6_ORDER
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-fe-v6-workflow-order-alignment
+gate_id: mib-studio-current-head-v0-recertification-after-fe-v6-order
 mode: development
-product_code_changed: true
-frontend_code_changed: true
+product_code_changed: false
+frontend_code_changed: false
 verification_tooling_changed: false
 verification_artifacts_refreshed: true
 external_operator_packet_refreshed: already_ready
-external_operator_packet_refresh_required_after_phase_commit: false
+external_operator_packet_refresh_required_after_phase_commit: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
@@ -64,6 +64,58 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-current-head-v0-recertification-after-fe-v6-order
+objective: refresh tracked v0 release blocker recertification after FE v6 workflow order commit
+
+source_head: f57f3ff
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  release_claimed_go: false
+  v0_readiness_decision: NOT_GO
+  v0_unexpected_blockers: []
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+training_preflight:
+  status: NOT_READY_CUDA_LORA_TRAINING
+  blockers:
+    - cuda_visible
+  digest_pinned_base_image_ready: true
+  strict_model_cache_ready: true
+  docker_daemon_available: true
+
+m6_prereq:
+  status: NOT_READY_PRECHECK_FAILED
+  missing_prereq_ids:
+    - adapter_safetensors_present
+    - adapter_config_present
+    - adapter_manifest_present
+    - docker_image_available
+    - host_cuda_visible
+
+handoff:
+  decision: WAITING_FOR_REAL_ADAPTER_INPUTS
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+
+packet_state:
+  current_packet_source_head: f31050c
+  current_packet_verification_after_recertification: NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  stale_hash_paths:
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/v0_release_blocker_recertification.json
+  packet_refresh_required: true
+  next_gate: refresh external CUDA operator packet from the recertification commit
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-fe-v6-workflow-order-alignment

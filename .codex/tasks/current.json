@@ -1,24 +1,29 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Align the desktop sidebar workflow order with the canonical FE v6 mockup and UX_SPEC without changing release GO state.",
+  "goal": "Refresh v0 release blocker recertification at current HEAD f57f3ff after FE v6 workflow alignment, without claiming release GO.",
   "phase": "done",
-  "gate": "mib-studio-fe-v6-workflow-order-alignment",
+  "gate": "mib-studio-current-head-v0-recertification-after-fe-v6-order",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "006cc89",
+  "head": "f57f3ff",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "apps/desktop/src/lib/appModel.mjs",
-    "apps/desktop/src/lib/appModel.test.mjs",
-    "apps/desktop/e2e/fe_v6_route_contract.test.mjs",
+    "artifacts/review/real_adapter_candidate_scan.json",
+    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "artifacts/review/m6_real_adapter_prereq_audit.json",
+    "artifacts/review/m6_rc_evidence_verification.json",
     "artifacts/review/toolchain_report.json",
     "artifacts/review/file_size_report.json",
     "artifacts/review/import_boundary_report.json",
-    "artifacts/review/fe_v6_evidence.md",
-    "artifacts/review/fe_v6_workflow_order_alignment.md",
+    "artifacts/review/real_adapter_evidence_bundle_verification.json",
+    "artifacts/review/v0_release_readiness_audit.json",
+    "artifacts/review/real_adapter_cuda_handoff.json",
+    "artifacts/review/real_adapter_cuda_handoff.md",
+    "artifacts/review/real_adapter_cuda_handoff.sh",
+    "artifacts/review/v0_release_blocker_recertification.json",
     "artifacts/security/model_manifest_verification.json",
     "artifacts/security/pii_holdout_report.json",
     "artifacts/security/pip_audit_cuda.json",
@@ -27,6 +32,7 @@
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
   "blocked_path_prefixes": [
+    "apps",
     "services",
     "packages",
     "presets",
@@ -44,62 +50,76 @@
     "artifacts/review/external_cuda_operator_packet_verification.json",
     "artifacts/review/real_adapter/",
     "artifacts/review/real_adapter_evidence_bundle",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/real_adapter_cuda_handoff.md",
-    "artifacts/review/real_adapter_cuda_handoff.sh",
-    "artifacts/review/v0_release_blocker_recertification.json",
-    "artifacts/review/v0_release_readiness_audit.json",
+    "artifacts/review/real_adapter_artifact_intake.json",
+    "artifacts/review/m6_real_adapter_rc_gate_run.json",
+    "artifacts/review/real_trained_adapter_endpoint_evidence.json",
+    "artifacts/review/real_trained_adapter_endpoint_evidence.md",
     "artifacts/**/*.tar",
     "artifacts/**/*.tar.gz",
     ".github",
     ".venv"
   ],
   "blocked_scope": [
-    "Changing backend/API/DB/schema behavior, source scripts, release readiness acceptance criteria, packet verifier criteria, or no-fake endpoint checks",
+    "Changing product/runtime code, API behavior, frontend behavior, DB schema, source tests, scripts, schemas, release readiness acceptance criteria, packet verifier criteria, or no-fake endpoint checks",
+    "Refreshing the external CUDA operator packet in this phase before the recertification commit exists as a source commit",
     "Generating, inventing, copying, or promoting real adapter, endpoint, benchmark, package, export, release, or external evidence into the repository",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO",
     "Committing model weights, strict model cache files, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Only align FE v6 sidebar workflow order with UX_SPEC and canonical mockup, add focused tests/evidence/docs, and preserve all release GO claims as false.",
+  "allowed_edit_paths_scope_note": "Refresh tracked recertification and handoff readiness artifacts for current HEAD f57f3ff only. Record that the operator packet must be refreshed in a follow-up source-pinned phase.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "docs/specs/UX_SPEC.md",
-    "docs/mockup/mib_fe_mockup_v6_routes_contract.html",
-    "docs/mockup/README.md",
-    "artifacts/review/fe_v6_evidence.md"
+    "artifacts/review/real_adapter_cuda_base_image.env",
+    "artifacts/review/real_adapter_cuda_base_image_resolution.json",
+    "artifacts/review/external_cuda_operator_packet.json",
+    "artifacts/review/external_cuda_operator_packet_verification.json",
+    "scripts/run_v0_release_blocker_recertification.py",
+    "scripts/verify_external_cuda_operator_packet.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs test",
-    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --test apps/desktop/src/lib/appModel.test.mjs",
-    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs",
-    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build",
-    "rg -n -- \"workflow order|Hardware.*Define.*Data|FE_V6|release_claimed_go: false|real_trained_adapter_no_fake_endpoint|M6-RC and v0 release remain NOT_GO\" artifacts/review/fe_v6_evidence.md artifacts/review/fe_v6_workflow_order_alignment.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST=pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126 PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision NOT_GO --json-output /tmp/mib-f57-stale-packet-verification.json",
+    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
+    "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
+    "python3 -m json.tool /tmp/mib-f57-stale-packet-verification.json",
+    "bash -n artifacts/review/real_adapter_cuda_handoff.sh",
+    "rg -n -- \"f57f3ff|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|WAITING_FOR_REAL_ADAPTER_INPUTS|NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|release_claimed_go: false|packet_refresh_required\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/real_adapter_cuda_handoff.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git status --short",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
     "PABCD contract is valid JSON and includes mode=development plus phase notes for plan, audit, build, check, and done.",
-    "Desktop workflow step order matches UX_SPEC/canonical v6 order: Project/Workbench, Hardware, Define, Data, Train, Benchmark, Package, Export.",
-    "Focused app model test verifies the workflow order.",
-    "FE v6 browser smoke verifies visible sidebar order and route contract interactions.",
-    "Strict m1-smoke bootstrap no longer reports toolchain mismatch.",
-    "No M6-RC or v0 release GO claim is made."
+    "Strict m1-smoke bootstrap passes without toolchain mismatch.",
+    "Current-head recertification returns NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION with release_claimed_go=false.",
+    "v0 readiness remains NOT_GO with only real_trained_adapter_no_fake_endpoint as the release blocker and no unexpected blockers.",
+    "Training preflight shows digest-pinned base image and strict model cache are ready, with cuda_visible as the local training blocker.",
+    "Real adapter handoff remains WAITING_FOR_REAL_ADAPTER_INPUTS.",
+    "Existing external CUDA operator packet is expected-stale after recertification changes and must be refreshed in the next source-pinned phase.",
+    "No real adapter, endpoint transcript, evidence bundle, Docker image, model cache, M6 review GO, product code, tests, scripts, schemas, or packet artifact changes are staged."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs test",
-    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --test apps/desktop/src/lib/appModel.test.mjs",
-    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs",
-    "COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build",
-    "rg -n -- \"workflow order|Hardware.*Define.*Data|FE_V6|release_claimed_go: false|real_trained_adapter_no_fake_endpoint|M6-RC and v0 release remain NOT_GO\" artifacts/review/fe_v6_evidence.md artifacts/review/fe_v6_workflow_order_alignment.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST=pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126 PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision NOT_GO --json-output /tmp/mib-f57-stale-packet-verification.json",
+    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
+    "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
+    "python3 -m json.tool /tmp/mib-f57-stale-packet-verification.json",
+    "bash -n artifacts/review/real_adapter_cuda_handoff.sh",
+    "rg -n -- \"f57f3ff|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|WAITING_FOR_REAL_ADAPTER_INPUTS|NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|release_claimed_go: false|packet_refresh_required\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/real_adapter_cuda_handoff.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git status --short",
     "git diff --check",
     "git diff --cached --check"
@@ -109,27 +129,30 @@
     "baseline": {
       "workspace_root": "/home/firewine/MIB-studio",
       "branch": "main",
-      "head": "006cc89",
+      "head": "f57f3ff",
       "status": "clean_against_origin_main"
     },
-    "source_gap": {
-      "ux_spec_order": "Dashboard/Workbench, Hardware Doctor, Define, Data, Train, Benchmark, Package, Export",
-      "previous_app_order": "Project, Define, Data, Hardware, Train, Benchmark, Package, Export",
-      "impact": "Sidebar workflow order did not match the canonical v6 mockup/UX workflow ordering."
+    "preflight_tmp_audit": {
+      "status": "NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION",
+      "v0_readiness_decision": "NOT_GO",
+      "unexpected_blockers": [],
+      "training_preflight_blockers": [
+        "cuda_visible"
+      ],
+      "release_claimed_go": false
     },
-    "frontend_alignment": {
-      "current_app_order": "Workbench, Hardware, Define, Data, Train, Benchmark, Package, Export",
-      "unit_test_order_assertion": true,
-      "browser_test_order_assertion": true
-    },
-    "verification": {
-      "task_json": "PASS",
+    "refreshed_tracked_evidence": {
+      "recertification_status": "NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION",
+      "v0_readiness_decision": "NOT_GO",
+      "v0_unexpected_blockers": [],
+      "training_preflight_status": "NOT_READY_CUDA_LORA_TRAINING",
+      "training_preflight_blockers": [
+        "cuda_visible"
+      ],
+      "handoff_decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
       "strict_m1_smoke_bootstrap": "PASS",
-      "frontend_unit_tests": "PASS",
-      "fe_v6_browser_smoke": "PASS",
-      "frontend_build": "PASS",
-      "evidence_rg": "PASS",
-      "diff_check": "PASS"
+      "packet_refresh_required": true,
+      "current_packet_verification_after_recertification": "NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION"
     },
     "release_state": {
       "release_claimed_go": false,
@@ -139,31 +162,32 @@
     }
   },
   "warnings": [
-    "This phase changes FE workflow ordering and tests only.",
-    "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
+    "This phase refreshes recertification evidence only.",
+    "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists.",
+    "External CUDA operator packet refresh is intentionally deferred until after this recertification commit exists as the source commit."
   ],
   "phase_notes": {
-    "plan": "Use UX_SPEC and canonical v6 mockup as the source for sidebar workflow order.",
-    "audit": "Existing app already implements FE v6 route contract behavior, but workflowSteps orders Hardware after Data while the v6 workflow places Hardware before Define/Data.",
-    "build": "Move Hardware before Define/Data in workflowSteps, add focused unit/e2e checks, and update FE evidence/working docs.",
-    "check": "Run task JSON validation, strict m1-smoke bootstrap, frontend unit tests, FE v6 browser smoke, build, evidence search, status, and diff checks.",
-    "done": "Verification passed, workflow order is aligned with FE v6, and release GO claims remain false."
+    "plan": "Refresh tracked v0 release blocker recertification at current HEAD f57f3ff after FE v6 workflow order alignment.",
+    "audit": "A /tmp host-access audit already confirms expected NOT_GO, no unexpected blockers, digest-pinned base image ready, and cuda_visible as the local training blocker.",
+    "build": "Regenerate tracked recertification/readiness/handoff artifacts and update LLM working docs/completion log; do not refresh packet in this phase.",
+    "check": "Validate JSON, handoff shell syntax, expected stale packet verification, evidence strings, status, and diff checks.",
+    "done": "Verification passed; current-head recertification artifacts are refreshed, release remains NOT_GO, and packet refresh is required in the next source-pinned phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-fe-v6-workflow-order-alignment",
+    "gate": "mib-studio-current-head-v0-recertification-after-fe-v6-order",
     "status": "COMPLETE_PENDING_COMMIT_PUSH",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Align FE v6 sidebar workflow order with canonical mockup/UX_SPEC and update focused tests/evidence/docs.",
-    "blocked_scope": "No backend/API/schema/script/M6 review/release evidence changes; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, packet artifact, recertification artifact, or venv artifacts.",
+    "approved_scope": "Refresh current-head recertification and handoff readiness artifacts only, preserving release NOT_GO.",
+    "blocked_scope": "No product/runtime/test/script/schema/M6 review/packet refresh changes in this phase; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, packet artifact, or venv artifacts.",
     "phase_completion_git_policy": "After verification passes, stage, commit, push over SSH, and refresh origin/main tracking.",
-    "plan": "Use UX_SPEC and canonical v6 mockup as the source for sidebar workflow order.",
-    "audit": "Existing app already implements FE v6 route contract behavior, but workflowSteps orders Hardware after Data while the v6 workflow places Hardware before Define/Data.",
-    "build": "Move Hardware before Define/Data in workflowSteps, add focused unit/e2e checks, and update FE evidence/working docs.",
-    "check": "Run task JSON validation, strict m1-smoke bootstrap, frontend unit tests, FE v6 browser smoke, build, evidence search, status, and diff checks.",
-    "done": "Verification passed, workflow order is aligned with FE v6, and release GO claims remain false."
+    "plan": "Refresh tracked v0 release blocker recertification at current HEAD f57f3ff after FE v6 workflow order alignment.",
+    "audit": "A /tmp host-access audit already confirms expected NOT_GO, no unexpected blockers, digest-pinned base image ready, and cuda_visible as the local training blocker.",
+    "build": "Regenerate tracked recertification/readiness/handoff artifacts and update LLM working docs/completion log; do not refresh packet in this phase.",
+    "check": "Validate JSON, handoff shell syntax, expected stale packet verification, evidence strings, status, and diff checks.",
+    "done": "Verification passed; current-head recertification artifacts are refreshed, release remains NOT_GO, and packet refresh is required in the next source-pinned phase."
   }
 }

@@ -53,3 +53,4 @@
 - HTTPS credential 문제로 막혔던 phase closeout push를 SSH 인증 경로로 완료하고 `origin/main` 추적 ref를 `1e5cfdf`까지 갱신했다.
 - `b79322a` 기준 외부 CUDA handoff readiness audit를 추가해 packet GO, transfer manifest READY, strict model cache READY는 확인했지만 `nvidia-smi`/실제 adapter 파일/`mib-export:test` 이미지가 없어 v0 release는 계속 NOT_GO임을 명확히 했다.
 - FE v6 canonical mockup/UX_SPEC에 맞춰 desktop sidebar workflow 순서를 `Workbench -> Hardware -> Define -> Data -> Train -> Benchmark -> Package -> Export`로 정렬하고 unit/browser smoke/build와 strict m1-smoke 재검증을 통과했다.
+- current HEAD `f57f3ff` 기준 v0 release blocker recertification을 다시 실행해 digest-pinned base image/strict cache/Docker 준비 상태를 유지하고, unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다. 이 recertification 변경으로 외부 CUDA operator packet refresh가 다음 phase에 필요하다.

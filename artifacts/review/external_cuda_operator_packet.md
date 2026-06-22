@@ -2,12 +2,12 @@
 
 ```yaml
 schema_version: mib_external_cuda_operator_packet.v1
-date: 2026-06-22T15:34:18.541011+00:00
+date: 2026-06-22T15:39:55.368255+00:00
 gate: mib-studio-external-cuda-operator-packet
 status: PREPARED_NOT_RUN
 release_claimed_go: false
 m6_rc_claimed_go: false
-git_head: f2227bf
+git_head: 65dfd1a
 primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 ```
 
@@ -42,7 +42,7 @@ primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 
 ## Operator Sequence
 
-1. Clone or update the repository to commit f2227bf.
+1. Clone or update the repository to commit 65dfd1a.
 2. Verify the required_committed_files sha256 values before running artifacts/review/real_adapter_cuda_training_handoff.sh.
 3. Run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host and require all package_readiness_checks to pass.
 4. Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.

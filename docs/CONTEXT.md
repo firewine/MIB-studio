@@ -492,7 +492,7 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: f2227bf
+handoff_source_commit: 65dfd1a
 primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 required_committed_files_count: 17
@@ -521,7 +521,7 @@ m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
   - 17 required committed file sha256/size values
-  - 17 required committed file blobs at handoff source commit f2227bf
+  - 17 required committed file blobs at handoff source commit 65dfd1a
   - 6 package readiness checks
   - training/RC/local-closeout command order
   - forbidden committed artifact labels

@@ -1,7 +1,7 @@
 # CUDA LoRA Training Handoff
 
 ```yaml
-date: 2026-06-22T02:37:09.014061+00:00
+date: 2026-06-22T02:44:08.731642+00:00
 gate: mib-studio-cuda-real-adapter-training-handoff
 status: PREPARED_NOT_RUN
 release_claimed_go: false
@@ -17,7 +17,7 @@ dataset_jsonl: examples/fixtures/router_20.jsonl
 dataset_id: review_router_20
 dataset_sha256: 3be5cdfe2f6b655eed0e9c11c8ec23b5778bf61798b4c8fb152be67a9953bd90
 base_model: microsoft/Phi-3.5-mini-instruct
-model_cache_dir: /tmp/mib-strict-model-cache/model_cache
+model_cache_dir: /tmp/mib-strict-model-cache-phi/model_cache
 output_root: /tmp/mib-real-adapter
 training_preset: quick
 seed: 42
@@ -47,7 +47,7 @@ output_dir: /tmp/mib-real-adapter/adapter
 ### preflight_cuda_training
 
 ```bash
-./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json
 ```
 
 ### train_real_adapter

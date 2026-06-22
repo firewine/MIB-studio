@@ -155,6 +155,25 @@ def test_recertification_summarizes_current_expected_not_go(tmp_path: Path) -> N
     assert summary["m6_rc_claimed_go"] is False
     assert summary["current_state"]["v0_blockers"] == ["real_trained_adapter_no_fake_endpoint"]
     assert summary["current_state"]["handoff_decision"] == "WAITING_FOR_REAL_ADAPTER_INPUTS"
+    assert summary["blocking_reasons"] == [
+        "no_go_adapter_candidates",
+        "docker_base_image_env_digest",
+        "cuda_visible",
+        "docker_base_image_available",
+        "adapter_dir_present",
+        "endpoint_live_no_fake_json",
+        "real_trained_adapter_no_fake_endpoint",
+        "WAITING_FOR_REAL_ADAPTER_INPUTS",
+    ]
+    assert summary["operator_next_actions"] == [
+        "Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.",
+        "Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.",
+        "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.",
+        "Build or pull the required Docker images, including the digest-pinned base image and mib-export:test.",
+        "Rerun on a CUDA host where nvidia-smi is visible to the process.",
+        "Run the real-adapter M6 RC gate against a live no-fake Docker endpoint and collect accepted JSON/markdown evidence.",
+        "Follow artifacts/review/real_adapter_cuda_handoff.sh on the external CUDA host, then transfer the metadata-bearing evidence bundle back.",
+    ]
     assert all(row["ok"] for row in summary["expectation_checks"])
     assert summary["operator_next_step"].startswith("Run the external CUDA host handoff")
 
@@ -175,4 +194,8 @@ def test_recertification_refuses_failed_child_command(tmp_path: Path) -> None:
     assert summary["recertification_ok"] is False
     assert summary["release_claimed_go"] is False
     assert summary["failed_step"] == "cuda_training_preflight"
+    assert summary["blocking_reasons"][0] == "child_command_failed:cuda_training_preflight"
+    assert summary["operator_next_actions"][0] == (
+        "Inspect the failed child command stderr/stdout tail in commands, fix the tool/runtime failure, and rerun recertification."
+    )
     assert [row["id"] for row in summary["commands"]] == ["candidate_scan", "cuda_training_preflight"]

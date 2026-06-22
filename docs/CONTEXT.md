@@ -366,7 +366,9 @@ frontend_canonical_mockup: docs/mockup/mib_fe_mockup_v6_routes_contract.html
 frontend_evidence: artifacts/review/fe_v6_evidence.md
 latest_operational_state: docs/WORKING.md
 release_readiness_report: artifacts/review/v0_release_readiness_audit.json
+release_blocker_recertification: artifacts/review/v0_release_blocker_recertification.json
 current_local_release_decision: NOT_GO
+current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
@@ -381,6 +383,7 @@ development_continuation_sequence:
   - do not restart from M1 or Day-0 bootstrap
   - create_or_update_pabcd_contract_before_edits
   - keep allowed_edit_paths narrow and explicit
+  - use scripts/run_v0_release_blocker_recertification.py for current blocker/action refreshes
   - verify current release state with scripts/verify_v0_release_readiness.py
   - stage_commit_push_after_verified_phase_completion
 ```
@@ -413,6 +416,33 @@ required_before_release_go:
   - v0 release readiness decision GO
 ```
 
+Current actionable NOT_GO recertification summary:
+
+```yaml
+summary_file: artifacts/review/v0_release_blocker_recertification.json
+top_level_fields:
+  - blocking_reasons
+  - operator_next_actions
+current_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+release_claimed_go: false
+current_blocking_reasons_include:
+  - no_go_adapter_candidates
+  - docker_base_image_env_digest
+  - backend_config_ready
+  - strict_model_cache_files
+  - cuda_visible
+  - adapter_dir_present
+  - adapter_safetensors_present
+  - adapter_config_present
+  - adapter_manifest_present
+  - model_cache_dir_present
+  - docker_image_available
+  - host_cuda_visible
+  - endpoint_live_no_fake_json
+  - real_trained_adapter_no_fake_endpoint
+next_actions_are_in_artifact: true
+```
+
 Recommended external CUDA host sequence:
 
 ```yaml
@@ -442,6 +472,9 @@ requires_local_m6_review_docs_go:
 missing_local_m6_review_docs_go_status: m6_review_docs_not_current
 expected_success_status: GO_V0_RELEASE_CLOSEOUT
 not_go_summary_fields:
+  - blocking_reasons
+  - operator_next_actions
+recertification_not_go_summary_fields:
   - blocking_reasons
   - operator_next_actions
 ```

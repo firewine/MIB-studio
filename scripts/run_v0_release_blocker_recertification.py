@@ -289,6 +289,80 @@ def expectation_checks(args: argparse.Namespace, state: dict[str, Any]) -> list[
     return checks
 
 
+def append_unique(values: list[str], value: object) -> None:
+    if isinstance(value, str) and value and value not in values:
+        values.append(value)
+
+
+def append_many_unique(values: list[str], candidates: object) -> None:
+    if isinstance(candidates, list):
+        for candidate in candidates:
+            append_unique(values, candidate)
+
+
+def prereq_id(value: object) -> str | None:
+    if not isinstance(value, str) or not value:
+        return None
+    return value.split(":", 1)[0].strip()
+
+
+def blocking_reasons(failed_step: str | None, state: dict[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    if failed_step:
+        append_unique(reasons, f"child_command_failed:{failed_step}")
+    if state.get("go_candidate_count") == 0:
+        append_unique(reasons, "no_go_adapter_candidates")
+    append_many_unique(reasons, state.get("cuda_training_blockers"))
+    if isinstance(state.get("m6_rc_prereq_errors"), list):
+        for error in state["m6_rc_prereq_errors"]:
+            append_unique(reasons, prereq_id(error))
+    append_many_unique(reasons, state.get("bundle_blockers"))
+    append_many_unique(reasons, state.get("v0_blockers"))
+    append_many_unique(reasons, state.get("v0_unexpected_blockers"))
+    if state.get("handoff_decision") and state.get("handoff_decision") != "READY_FOR_REAL_ADAPTER_RC":
+        append_unique(reasons, str(state["handoff_decision"]))
+    return reasons
+
+
+def operator_next_actions(reasons: list[str]) -> list[str]:
+    actions: list[str] = []
+
+    def add(action: str) -> None:
+        append_unique(actions, action)
+
+    if any(reason.startswith("child_command_failed:") for reason in reasons):
+        add("Inspect the failed child command stderr/stdout tail in commands, fix the tool/runtime failure, and rerun recertification.")
+    if "no_go_adapter_candidates" in reasons:
+        add("Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.")
+    if {
+        "adapter_dir_present",
+        "adapter_safetensors_present",
+        "adapter_config_present",
+        "adapter_manifest_present",
+    } & set(reasons):
+        add("Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.")
+    if {"model_cache_dir_present", "strict_model_cache_files"} & set(reasons):
+        add("Prepare the strict model cache at /tmp/mib-strict-model-cache-phi/model_cache with required base-model files and hashes.")
+    if "docker_base_image_env_digest" in reasons:
+        add("Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.")
+    if {"docker_base_image_available", "docker_image_available"} & set(reasons):
+        add("Build or pull the required Docker images, including the digest-pinned base image and mib-export:test.")
+    if {"cuda_visible", "host_cuda_visible"} & set(reasons):
+        add("Rerun on a CUDA host where nvidia-smi is visible to the process.")
+    if {
+        "endpoint_live_no_fake_json",
+        "real_trained_adapter_no_fake_endpoint",
+        "adapter_intake_go",
+        "adapter_hash_crosscheck",
+        "rc_gate_go",
+        "m6_verification_go",
+    } & set(reasons):
+        add("Run the real-adapter M6 RC gate against a live no-fake Docker endpoint and collect accepted JSON/markdown evidence.")
+    if {"endpoint_markdown_present", "WAITING_FOR_REAL_ADAPTER_INPUTS"} & set(reasons):
+        add("Follow artifacts/review/real_adapter_cuda_handoff.sh on the external CUDA host, then transfer the metadata-bearing evidence bundle back.")
+    return actions
+
+
 def recertify(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> dict[str, Any]:
     root = Path(args.root).resolve()
     results: list[dict[str, Any]] = []
@@ -311,6 +385,8 @@ def recertify(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> d
         status = GO_STATUS
     else:
         status = NOT_GO_STATUS
+    reasons = blocking_reasons(failed_step, state) if status != GO_STATUS else []
+    actions = operator_next_actions(reasons) if status != GO_STATUS else []
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -329,6 +405,8 @@ def recertify(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> d
         "commands": results,
         "expectation_checks": checks,
         "current_state": state,
+        "blocking_reasons": reasons,
+        "operator_next_actions": actions,
         "outputs": {
             "candidate_scan": args.candidate_scan_output,
             "training_preflight": args.training_preflight_output,

@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_CLOSEOUT_ACTIONABLE_BLOCKERS
+phase_id: V0_RECERTIFICATION_ACTIONABLE_BLOCKERS
 milestone: Final_Program_Development_Closeout
-phase_status: v0_closeout_actionable_blockers_verified_not_go
-gate_id: mib-studio-v0-closeout-actionable-blockers
+phase_status: v0_recertification_actionable_blockers_verified_not_go
+gate_id: mib-studio-v0-recertification-actionable-blockers
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,43 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-v0-recertification-actionable-blockers
+objective: make current release-blocker recertification output directly actionable
+
+files:
+  recertification_tool: scripts/run_v0_release_blocker_recertification.py
+  recertification_tests: tests/scripts/test_run_v0_release_blocker_recertification.py
+  recertification_summary: artifacts/review/v0_release_blocker_recertification.json
+  refreshed_not_go_artifacts:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_readiness_audit.json
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/real_adapter_cuda_handoff.sh
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+recertification_summary_contract:
+  top_level_fields:
+    - blocking_reasons
+    - operator_next_actions
+  current_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  release_claimed_go: false
+  current_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - run_v0_release_blocker_recertification.py now emits top-level blocking_reasons for current NOT_GO recertification states
+  - operator_next_actions maps missing adapter files, strict model cache, CUDA visibility, Docker image/base-image, bundle, endpoint, and handoff blockers to concrete next steps
+  - focused recertification tests cover current expected NOT_GO and failed child-command paths
+  - host-access recertification remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole v0 release blocker
+  - no M6-RC GO or v0 GO is claimed from current local artifacts
+```
 
 ```yaml
 gate: mib-studio-v0-closeout-actionable-blockers
@@ -261,8 +298,12 @@ runner_contract:
   current_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
   recertification_ok: true
   release_claimed_go: false
+  top_level_summary_fields:
+    - blocking_reasons
+    - operator_next_actions
 
 summary:
+  - recertification output now includes top-level blocking_reasons and operator_next_actions for LLM/operator handoff
   - real adapter CUDA handoff artifacts now include local_closeout_after_bundle_transfer
   - after copying artifacts/review/real_adapter_evidence_bundle.tar.gz back from the CUDA host, run scripts/run_v0_release_closeout_from_bundle.py with expected GO decisions
   - full pytest now collects duplicate-basename tests safely through pytest importlib mode
@@ -299,6 +340,7 @@ recorded_go_markers_required_by_v0_verifier:
 
 recorded_tooling_ready:
   V0_Release_Blocker_Recertification: true
+  V0_Release_Blocker_Recertification_Actionable_Blockers: true
   V0_Release_Closeout_From_Bundle: true
   V0_Release_Closeout_Actionable_Blockers: true
   Real_Adapter_Evidence_Bundle_Archive: true
@@ -321,8 +363,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_closeout_actionable_blockers_verified_not_go
+status: v0_recertification_actionable_blockers_verified_not_go
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q
+  - python3 -m py_compile scripts/run_v0_release_blocker_recertification.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
+  - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
+  - rg -n -- "blocking_reasons|operator_next_actions|real_trained_adapter_no_fake_endpoint|adapter_dir_present|docker_base_image_env_digest|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py artifacts/review/v0_release_blocker_recertification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_closeout_from_bundle.py -q
   - python3 -m py_compile scripts/run_v0_release_closeout_from_bundle.py
@@ -490,6 +538,10 @@ local closeout; otherwise v0 readiness returns m6_review_docs_not_current.
 NOT_GO closeout summaries include blocking_reasons and operator_next_actions so
 the next agent can distinguish archive metadata, source bundle, M6 review-doc,
 and real endpoint evidence blockers without weakening release acceptance.
+NOT_GO recertification summaries also include blocking_reasons and
+operator_next_actions so the next agent can distinguish missing adapter files,
+strict model cache, CUDA visibility, Docker image/base-image, bundle, endpoint,
+and handoff blockers without weakening release acceptance.
 The latest host-access recertification confirmed docker_daemon_available ok:true
 and mib-export:test missing as "No such image", so Docker permission denial is
 not the current release blocker.

@@ -1,4 +1,27 @@
 {
+  "blocking_reasons": [
+    "no_go_adapter_candidates",
+    "docker_base_image_env_digest",
+    "backend_config_ready",
+    "strict_model_cache_files",
+    "cuda_visible",
+    "docker_base_image_available",
+    "adapter_dir_present",
+    "adapter_safetensors_present",
+    "adapter_config_present",
+    "adapter_manifest_present",
+    "model_cache_dir_present",
+    "docker_image_available",
+    "host_cuda_visible",
+    "endpoint_live_no_fake_json",
+    "endpoint_markdown_present",
+    "adapter_intake_go",
+    "adapter_hash_crosscheck",
+    "rc_gate_go",
+    "m6_verification_go",
+    "real_trained_adapter_no_fake_endpoint",
+    "WAITING_FOR_REAL_ADAPTER_INPUTS"
+  ],
   "commands": [
     {
       "command": [
@@ -205,7 +228,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T13:56:08.385749+00:00",
+  "date": "2026-06-22T14:12:20.193727+00:00",
   "expectation_checks": [
     {
       "actual": "NOT_READY_CUDA_LORA_TRAINING",
@@ -239,6 +262,16 @@
   "failed_step": null,
   "gate": "mib-studio-v0-release-blocker-recertification",
   "m6_rc_claimed_go": false,
+  "operator_next_actions": [
+    "Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.",
+    "Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.",
+    "Prepare the strict model cache at /tmp/mib-strict-model-cache-phi/model_cache with required base-model files and hashes.",
+    "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.",
+    "Build or pull the required Docker images, including the digest-pinned base image and mib-export:test.",
+    "Rerun on a CUDA host where nvidia-smi is visible to the process.",
+    "Run the real-adapter M6 RC gate against a live no-fake Docker endpoint and collect accepted JSON/markdown evidence.",
+    "Follow artifacts/review/real_adapter_cuda_handoff.sh on the external CUDA host, then transfer the metadata-bearing evidence bundle back."
+  ],
   "operator_next_step": "Run the external CUDA host handoff to produce a real trained adapter and no-fake endpoint evidence.",
   "outputs": {
     "bundle_verification": "artifacts/review/real_adapter_evidence_bundle_verification.json",

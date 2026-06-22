@@ -45,21 +45,13 @@
       "soft": 240
     }
   },
-  "files_checked": 113,
+  "files_checked": 114,
   "violations": [
     {
       "hard_limit": 400,
       "kind": "default",
       "loc": 312,
       "path": "services/shared/db/repositories/training_store.py",
-      "severity": "soft",
-      "soft_limit": 260
-    },
-    {
-      "hard_limit": 400,
-      "kind": "worker_handler",
-      "loc": 351,
-      "path": "services/worker/handlers/export.py",
       "severity": "soft",
       "soft_limit": 260
     },

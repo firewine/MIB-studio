@@ -41,12 +41,12 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_CURRENT_HEAD_D68EBB8_BLOCKER_RECERTIFICATION
+phase_id: EXPORT_ADAPTER_VALIDATION_EXTRACTION
 milestone: Final_Program_Development_Closeout
-phase_status: current_head_d68ebb8_recertified_not_go_release
-gate_id: mib-studio-v0-current-head-d68ebb8-blocker-recertification
+phase_status: export_worker_soft_warning_resolved_not_go_release
+gate_id: mib-studio-export-adapter-validation-extraction
 mode: development
-product_code_changed: false
+product_code_changed: true
 verification_tooling_changed: false
 release_claimed_go: false
 
@@ -57,6 +57,58 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-export-adapter-validation-extraction
+objective: resolve the M6 zip export worker code-shape soft warning without behavior changes
+
+files:
+  worker_handlers:
+    - services/worker/handlers/export.py
+    - services/worker/handlers/export_adapter_validation.py
+  regenerated_verification_artifacts:
+    - artifacts/review/file_size_report.json
+    - artifacts/review/import_boundary_report.json
+  llm_context:
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+line_counts:
+  export_worker_before_lines: 351
+  export_worker_after_lines: 235
+  export_adapter_validation_lines: 142
+  worker_handler_soft_warning_threshold: 260
+  export_worker_below_soft_warning_threshold: true
+
+scope:
+  behavior_preserving: true
+  adapter_validation_extracted: true
+  export_manifest_changed: false
+  adapter_acceptance_rules_changed: false
+  db_schema_changed: false
+  tests_changed: false
+
+code_shape:
+  hard_limit_violations: 0
+  soft_warnings_remaining:
+    - services/shared/db/repositories/training_store.py
+    - services/worker/handlers/dataset_gen.py
+    - services/api/app/services/dataset_service.py
+    - services/api/app/services/training_service.py
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - ExportError and adapter required-path, file-format, and lineage validation moved into export_adapter_validation.py
+  - services/worker/handlers/export.py now stays below the worker handler soft warning threshold
+  - focused export API, export manifest, and docker security tests pass
+  - this phase does not change release readiness or create real adapter evidence
+```
 
 ```yaml
 gate: mib-studio-v0-current-head-d68ebb8-blocker-recertification

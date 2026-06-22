@@ -64,6 +64,10 @@ def write_json(path: str, payload: dict[str, object]) -> None:
     Path(path).write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
 
 
+def write_manifest_with_adapter_sha(args: SimpleNamespace, adapter_sha: str) -> None:
+    Path(args.adapter_manifest).write_text(json.dumps({"adapter_sha256": adapter_sha}, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def test_gate_runner_chains_intake_capture_and_m6_go(tmp_path: Path) -> None:
     args = args_for(tmp_path)
     commands: list[list[str]] = []
@@ -155,9 +159,60 @@ def test_gate_runner_preflight_only_reports_not_ready_without_executing_steps(tm
     assert summary["decision"] == "NOT_READY"
     assert summary["steps"] == []
     assert "docker_image_available" in {row["id"] for row in summary["preflight"]}
+    image_lineage = next(row for row in summary["preflight"] if row["id"] == "docker_image_adapter_matches_adapter_manifest")
+    assert image_lineage["ok"] is True
+    assert image_lineage["skipped"] is True
     assert "host_cuda_visible" in {row["id"] for row in summary["preflight"]}
     assert all(not (len(command) > 1 and command[1].endswith(".py")) for command in commands)
     assert summary["m6_rc_claimed_go"] is False
+
+
+def test_gate_runner_preflight_checks_docker_image_adapter_lineage_when_manifest_hash_exists(tmp_path: Path) -> None:
+    args = args_for(tmp_path, preflight_only=True)
+    write_manifest_with_adapter_sha(args, "a" * 64)
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        if command[:3] == ["docker", "image", "inspect"]:
+            return subprocess.CompletedProcess(command, 0, stdout="[]", stderr="")
+        if command[:3] == ["docker", "run", "--rm"]:
+            return subprocess.CompletedProcess(command, 0, stdout=json.dumps({"adapter_sha256": "a" * 64}) + "\n", stderr="")
+        if command == ["nvidia-smi"]:
+            return subprocess.CompletedProcess(command, 0, stdout="NVIDIA-SMI", stderr="")
+        raise AssertionError(f"unexpected command in preflight-only: {command}")
+
+    summary = gate.run_gate(args, runner=runner)
+
+    assert summary["status"] == "READY_TO_RUN"
+    image_lineage = next(row for row in summary["preflight"] if row["id"] == "docker_image_adapter_matches_adapter_manifest")
+    assert image_lineage["ok"] is True
+    assert image_lineage["expected_adapter_sha256"] == "a" * 64
+    assert image_lineage["image_adapter_sha256"] == "a" * 64
+    assert any(command[:3] == ["docker", "run", "--rm"] for command in commands)
+
+
+def test_gate_runner_preflight_rejects_docker_image_adapter_lineage_mismatch(tmp_path: Path) -> None:
+    args = args_for(tmp_path, preflight_only=True)
+    write_manifest_with_adapter_sha(args, "a" * 64)
+
+    def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        if command[:3] == ["docker", "image", "inspect"]:
+            return subprocess.CompletedProcess(command, 0, stdout="[]", stderr="")
+        if command[:3] == ["docker", "run", "--rm"]:
+            return subprocess.CompletedProcess(command, 0, stdout=json.dumps({"adapter_sha256": "b" * 64}) + "\n", stderr="")
+        if command == ["nvidia-smi"]:
+            return subprocess.CompletedProcess(command, 0, stdout="NVIDIA-SMI", stderr="")
+        raise AssertionError(f"unexpected command in preflight-only: {command}")
+
+    summary = gate.run_gate(args, runner=runner)
+
+    assert summary["status"] == "NOT_READY_PRECHECK_FAILED"
+    image_lineage = next(row for row in summary["preflight"] if row["id"] == "docker_image_adapter_matches_adapter_manifest")
+    assert image_lineage["ok"] is False
+    assert image_lineage["expected_adapter_sha256"] == "a" * 64
+    assert image_lineage["image_adapter_sha256"] == "b" * 64
+    assert any("Docker image adapter hash does not match" in error for error in summary["errors"])
 
 
 def test_gate_runner_plan_only_does_not_execute_runner(tmp_path: Path) -> None:

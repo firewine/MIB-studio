@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_MILESTONE_EVIDENCE_MATRIX_AUDIT
+phase_id: REAL_ADAPTER_IMAGE_LINEAGE_PREFLIGHT
 milestone: M6_RC_Blocker_Remediation
-phase_status: v0_milestone_evidence_matrix_audit_verified_not_go
+phase_status: real_adapter_image_lineage_preflight_verified_not_go
 active_slice: none
-gate_id: mib-studio-v0-milestone-evidence-matrix-audit
+gate_id: mib-studio-real-adapter-image-lineage-preflight
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,13 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-v0-milestone-evidence-matrix-audit
+  gate: mib-studio-real-adapter-image-lineage-preflight
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: extend v0 release readiness audit to verify the M0-M6 milestone evidence matrix and the remaining M6 real-adapter blocker
+  objective: harden the real-adapter RC runner so a stale or fixture Docker image cannot satisfy preflight unless its adapter hash matches the submitted adapter manifest
   evidence:
+    real_adapter_image_lineage_preflight: artifacts/review/real_adapter_image_lineage_preflight_evidence.md
     v0_release_readiness_audit: artifacts/review/v0_release_readiness_audit_evidence.md
     v0_release_readiness_audit_json: artifacts/review/v0_release_readiness_audit.json
     desktop_e2e_route_repair: artifacts/review/desktop_e2e_route_repair_evidence.md
@@ -67,14 +68,16 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
-    - scripts/verify_v0_release_readiness.py now audits M0 signoff, M1 smoke recertification, M2-M5 recorded milestone state, FE v6 evidence, desktop route repair evidence, M6 review docs, M6-RC evidence verification, and real adapter prereq audit together
-    - current v0 release readiness decision is NOT_GO, release_ready false, verification_ok true
-    - current unexpected_blockers is empty
+    - scripts/run_m6_real_adapter_rc_gate.py preflight now includes docker_image_adapter_matches_adapter_manifest
+    - when adapter manifest hash, adapter dir, and Docker image are present, preflight computes /app/adapter aggregate hash inside the image and compares it to submitted manifest adapter_sha256
+    - current preflight still reports NOT_READY_PRECHECK_FAILED and skips the new guard because real adapter artifacts and mib-export:test are missing
+    - current v0 release readiness decision remains NOT_GO, release_ready false, verification_ok true, unexpected_blockers empty
     - the only current release blocker is real_trained_adapter_no_fake_endpoint
     - current missing prereqs are adapter_dir_present, adapter_safetensors_present, adapter_config_present, adapter_manifest_present, docker_image_available, and host_cuda_visible
     - no backend, schema, training, export, runtime, UI behavior, or M6 evidence policy files changed
 
 important_previous_commits:
+  v0_milestone_evidence_matrix_audit: f9f2499
   desktop_e2e_route_repair: cf2fdf5
   real_adapter_prereq_audit: ac34a7e
   real_adapter_rc_gate_runner: c26ffe4
@@ -96,11 +99,13 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: v0_milestone_evidence_matrix_audit_verified_not_go
+status: real_adapter_image_lineage_preflight_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_v0_release_readiness.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_v0_release_readiness.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --preflight-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output artifacts/review/m6_real_adapter_prereq_audit.json
+  - python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
   - git diff --check
@@ -144,6 +149,7 @@ recorded_go:
   Desktop_E2E_Route_Repair: true
   V0_Release_Readiness_Audit: true
   V0_Milestone_Evidence_Matrix_Audit: true
+  Real_Adapter_Image_Lineage_Preflight: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -151,8 +157,8 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-v0-milestone-evidence-matrix-audit
-  review_bundle: artifacts/review/v0_release_readiness_audit_evidence.md
+  id: mib-studio-real-adapter-image-lineage-preflight
+  review_bundle: artifacts/review/real_adapter_image_lineage_preflight_evidence.md
   decision: not_go_real_trained_adapter_no_fake_endpoint
 
 active_release_blocker:
@@ -192,7 +198,10 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-v0-milestone-evidence-matrix-audit. Use
+mib-studio-real-adapter-image-lineage-preflight. The real-adapter RC runner now
+checks docker_image_adapter_matches_adapter_manifest when adapter manifest hash,
+adapter dir, and Docker image are present, preventing stale/fixture images from
+satisfying preflight by tag alone. Use
 scripts/verify_v0_release_readiness.py --expected-decision NOT_GO to audit the
 current final-program completion state. The current JSON report is
 artifacts/review/v0_release_readiness_audit.json: M0 signoff, M1 smoke

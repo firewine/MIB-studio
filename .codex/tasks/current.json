@@ -1,16 +1,16 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Extend the v0 release readiness verifier so the user's full objective is audited against the existing M0-M6 milestone evidence matrix, not only FE v6 and M6-RC evidence. The verifier must prove the already-recorded milestone evidence is present, keep the current release decision NOT_GO, and continue to treat real_trained_adapter_no_fake_endpoint as the only acceptable release blocker.",
+  "goal": "Harden the real-adapter M6-RC runner preflight so an available Docker image is not treated as sufficient unless its exported runtime adapter manifest matches the adapter artifact being submitted. This prevents fixture or stale Docker images from satisfying the remaining real trained adapter endpoint gate. Current release readiness must remain NOT_GO without real trained CUDA lora_adapter endpoint evidence.",
   "phase": "done",
-  "gate": "mib-studio-v0-milestone-evidence-matrix-audit",
+  "gate": "mib-studio-real-adapter-image-lineage-preflight",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "82a854d",
+  "head": "f9f2499",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/verify_v0_release_readiness.py",
-    "tests/scripts/test_verify_v0_release_readiness.py",
+    "scripts/run_m6_real_adapter_rc_gate.py",
+    "tests/scripts/test_run_m6_real_adapter_rc_gate.py",
     "artifacts/review/",
     "docs/WORKING.md"
   ],
@@ -42,10 +42,10 @@
   "blocked_scope": [
     "Product runtime, API, UI, DB, schema, training, export implementation, or model behavior changes",
     "Creating or committing model weights or adapter artifacts",
-    "Changing M6-RC evidence policy or claiming release GO",
-    "Weakening existing milestone evidence requirements"
+    "Claiming M6-RC or v0 release GO",
+    "Weakening real adapter endpoint evidence acceptance"
   ],
-  "allowed_edit_paths_scope_note": "This gate may extend release-readiness audit logic/tests/evidence and update WORKING.md plus this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may harden the real adapter RC runner preflight, add focused tests, generate review evidence, update WORKING.md, and update this PABCD contract only.",
   "external_runtime_paths": [
     "/tmp"
   ],
@@ -53,35 +53,35 @@
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "docs/reviews/M0/SIGNOFF_MATRIX.md",
-    "docs/reviews/M6/SIGNOFF_MATRIX.md",
-    "docs/reviews/M6/CTO_DECISION.md",
-    "artifacts/review/v0_release_readiness_audit.json",
-    "artifacts/review/m1_smoke_recertification_evidence.md",
-    "artifacts/review/fe_v6_evidence.md",
-    "artifacts/review/m6_rc_evidence_verification.json"
+    "scripts/run_m6_real_adapter_rc_gate.py",
+    "scripts/verify_real_adapter_artifact.py",
+    "artifacts/review/m6_real_adapter_prereq_audit.json",
+    "artifacts/review/v0_release_readiness_audit.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_v0_release_readiness.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_v0_release_readiness.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --preflight-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output artifacts/review/m6_real_adapter_prereq_audit.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Verifier checks M0 signoff evidence and M1 current-environment smoke evidence",
-    "Verifier checks M2-M5 recorded milestone state from WORKING.md",
-    "Verifier checks M6 signoff/review state and M6-RC verifier output",
-    "Verifier still reports NOT_GO with only real_trained_adapter_no_fake_endpoint as acceptable blocker",
+    "Preflight requires Docker image adapter manifest to match the submitted adapter artifact when prerequisites are present",
+    "Preflight still reports NOT_READY in the current environment without claiming M6-RC GO",
+    "v0 release readiness remains NOT_GO with only real_trained_adapter_no_fake_endpoint as blocker",
     "No runtime/backend/schema/training/export/UI behavior changed"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_v0_release_readiness.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_v0_release_readiness.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --preflight-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output artifacts/review/m6_real_adapter_prereq_audit.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
     "git diff --check",
@@ -90,31 +90,31 @@
   "failed_verification_commands": [],
   "warnings": [
     "M6-RC remains NOT_GO due missing real trained adapter endpoint evidence.",
-    "This gate adds audit coverage only and does not generate a trained adapter."
+    "This gate adds preflight hardening only and does not generate a trained adapter."
   ],
   "phase_notes": {
-    "plan": "Open scoped milestone evidence matrix audit gate after identifying that v0 release readiness verification should include M0-M5 recorded evidence as well as FE v6 and M6-RC.",
-    "audit": "Read docs/WORKING.md, M0/M6 review docs, current v0 readiness JSON, M1 smoke evidence, and available review artifacts. Found the previous verifier covered FE v6 and M6-RC but did not directly require M0 signoff, M1 smoke, M2-M5 recorded milestone state, or M6 review docs.",
-    "build": "Extended scripts/verify_v0_release_readiness.py with release-required checks for M0 product lock, M1 current-environment smoke, docs/WORKING recorded milestone state, and M6 review docs. Added focused tests for missing milestone state and regenerated v0 readiness evidence. No runtime/backend/schema/training/export/UI behavior changed.",
-    "check": "Passed json.tool, py_compile, focused pytest, v0 release readiness verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
-    "done": "Milestone evidence matrix audit is complete. Current v0 release readiness remains NOT_GO with only real_trained_adapter_no_fake_endpoint as the release blocker; unexpected_blockers is empty."
+    "plan": "Open scoped image-lineage preflight gate after observing existing fixture MIB Docker images could be tagged to satisfy docker_image_available without proving they match the submitted real adapter.",
+    "audit": "Read current WORKING.md, v0 readiness audit, M6 prereq audit, runner, adapter intake verifier, endpoint capture tool, Dockerfile, and Docker export tests. Docker daemon contains old MIB export images, but mib-export:test is absent; simply tagging a fixture image would not prove it matches the submitted adapter.",
+    "build": "Added docker_image_adapter_matches_adapter_manifest preflight guard. When adapter manifest adapter_sha256, adapter dir, and image are available, the runner computes /app/adapter aggregate hash inside the image and compares it with the submitted adapter manifest hash. Added focused tests for matching and mismatched image lineage.",
+    "check": "Passed json.tool, py_compile, focused runner pytest, real current preflight expected NOT_READY, generated prereq JSON validation, v0 release readiness expected NOT_GO, generated readiness JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "Image lineage preflight hardening is complete. Current environment remains NOT_READY and v0 release readiness remains NOT_GO because real trained CUDA lora_adapter no-fake endpoint evidence is still absent."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-v0-milestone-evidence-matrix-audit",
-    "status": "MIB_STUDIO_V0_MILESTONE_EVIDENCE_MATRIX_AUDIT_COMPLETE_NOT_GO",
+    "gate": "mib-studio-real-adapter-image-lineage-preflight",
+    "status": "MIB_STUDIO_REAL_ADAPTER_IMAGE_LINEAGE_PREFLIGHT_COMPLETE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Release readiness audit script/tests/evidence, WORKING.md, and PABCD contract only.",
+    "approved_scope": "RC runner preflight hardening, focused tests, generated evidence, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped milestone evidence matrix audit gate after identifying that v0 release readiness verification should include M0-M5 recorded evidence as well as FE v6 and M6-RC.",
-    "audit": "Read docs/WORKING.md, M0/M6 review docs, current v0 readiness JSON, M1 smoke evidence, and available review artifacts. Found the previous verifier covered FE v6 and M6-RC but did not directly require M0 signoff, M1 smoke, M2-M5 recorded milestone state, or M6 review docs.",
-    "build": "Extended scripts/verify_v0_release_readiness.py with release-required checks for M0 product lock, M1 current-environment smoke, docs/WORKING recorded milestone state, and M6 review docs. Added focused tests for missing milestone state and regenerated v0 readiness evidence. No runtime/backend/schema/training/export/UI behavior changed.",
-    "check": "Passed json.tool, py_compile, focused pytest, v0 release readiness verifier expected NOT_GO, generated JSON validation, git diff --check, and git diff --cached --check.",
-    "done": "Milestone evidence matrix audit is complete. Current v0 release readiness remains NOT_GO with only real_trained_adapter_no_fake_endpoint as the release blocker; unexpected_blockers is empty."
+    "plan": "Open scoped image-lineage preflight gate after observing existing fixture MIB Docker images could be tagged to satisfy docker_image_available without proving they match the submitted real adapter.",
+    "audit": "Read current WORKING.md, v0 readiness audit, M6 prereq audit, runner, adapter intake verifier, endpoint capture tool, Dockerfile, and Docker export tests. Docker daemon contains old MIB export images, but mib-export:test is absent; simply tagging a fixture image would not prove it matches the submitted adapter.",
+    "build": "Added docker_image_adapter_matches_adapter_manifest preflight guard. When adapter manifest adapter_sha256, adapter dir, and image are available, the runner computes /app/adapter aggregate hash inside the image and compares it with the submitted adapter manifest hash. Added focused tests for matching and mismatched image lineage.",
+    "check": "Passed json.tool, py_compile, focused runner pytest, real current preflight expected NOT_READY, generated prereq JSON validation, v0 release readiness expected NOT_GO, generated readiness JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "Image lineage preflight hardening is complete. Current environment remains NOT_READY and v0 release readiness remains NOT_GO because real trained CUDA lora_adapter no-fake endpoint evidence is still absent."
   }
 }

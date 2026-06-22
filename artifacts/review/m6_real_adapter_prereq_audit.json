@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-22T00:13:31.830312+00:00",
+  "date": "2026-06-22T01:09:37.874797+00:00",
   "decision": "NOT_READY",
   "errors": [
     "adapter_dir_present: missing adapter directory: /tmp/mib-real-adapter/adapter",
@@ -133,6 +133,17 @@
       "id": "docker_image_available",
       "ok": false,
       "returncode": 1
+    },
+    {
+      "detail": "skipped until adapter manifest hash, adapter dir, and docker image are available",
+      "id": "docker_image_adapter_matches_adapter_manifest",
+      "ok": true,
+      "skipped": true,
+      "skipped_prereq_ids": [
+        "adapter_manifest_sha256_unavailable",
+        "adapter_dir_present",
+        "docker_image_available"
+      ]
     },
     {
       "command": [

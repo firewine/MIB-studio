@@ -90,6 +90,114 @@ def command_check(check_id: str, command: list[str], *, timeout: int, runner: Ru
     )
 
 
+def canonical_json(value: object) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def sha256_text(value: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def is_sha256(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+
+
+def adapter_manifest_sha(path: str) -> str | None:
+    candidate = Path(path)
+    if not candidate.is_file():
+        return None
+    try:
+        data = json.loads(candidate.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    value = data.get("adapter_sha256") if isinstance(data, dict) else None
+    return value if is_sha256(value) else None
+
+
+IMAGE_ADAPTER_HASH_SCRIPT = r"""
+import hashlib
+import json
+from pathlib import Path
+
+root = Path("/app")
+adapter = root / "adapter"
+rows = []
+for path in sorted(item for item in adapter.rglob("*") if item.is_file()):
+    rows.append(
+        {
+            "path": str(path.relative_to(root)),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "size_bytes": path.stat().st_size,
+        }
+    )
+print(json.dumps({"adapter_sha256": hashlib.sha256(json.dumps(rows, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(), "files": rows}, sort_keys=True))
+""".strip()
+
+
+def docker_image_adapter_lineage_check(args: argparse.Namespace, *, image_available: bool, runner: Runner) -> dict[str, Any]:
+    expected_sha = adapter_manifest_sha(args.adapter_manifest)
+    skipped: list[str] = []
+    if not expected_sha:
+        skipped.append("adapter_manifest_sha256_unavailable")
+    if not Path(args.adapter_dir).is_dir():
+        skipped.append("adapter_dir_present")
+    if not image_available:
+        skipped.append("docker_image_available")
+    if skipped:
+        return check_row(
+            "docker_image_adapter_matches_adapter_manifest",
+            True,
+            "skipped until adapter manifest hash, adapter dir, and docker image are available",
+            skipped=True,
+            skipped_prereq_ids=skipped,
+        )
+
+    command = ["docker", "run", "--rm", "--entrypoint", "python", args.image, "-c", IMAGE_ADAPTER_HASH_SCRIPT]
+    try:
+        result = runner(command, 60)
+    except Exception as exc:
+        return check_row(
+            "docker_image_adapter_matches_adapter_manifest",
+            False,
+            str(exc),
+            command=command,
+            returncode=None,
+            expected_adapter_sha256=expected_sha,
+        )
+    if result.returncode != 0:
+        return check_row(
+            "docker_image_adapter_matches_adapter_manifest",
+            False,
+            clip((result.stderr or result.stdout or "").strip(), limit=1000),
+            command=command,
+            returncode=result.returncode,
+            expected_adapter_sha256=expected_sha,
+        )
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return check_row(
+            "docker_image_adapter_matches_adapter_manifest",
+            False,
+            f"invalid image adapter hash JSON: {exc}",
+            command=command,
+            returncode=result.returncode,
+            expected_adapter_sha256=expected_sha,
+        )
+    actual_sha = payload.get("adapter_sha256") if isinstance(payload, dict) else None
+    return check_row(
+        "docker_image_adapter_matches_adapter_manifest",
+        actual_sha == expected_sha,
+        "ok" if actual_sha == expected_sha else "Docker image adapter hash does not match submitted adapter manifest",
+        command=command,
+        returncode=result.returncode,
+        expected_adapter_sha256=expected_sha,
+        image_adapter_sha256=actual_sha,
+    )
+
+
 def preflight_checks(args: argparse.Namespace, *, runner: Runner, full: bool) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     token = bearer_token(args)
@@ -133,7 +241,9 @@ def preflight_checks(args: argparse.Namespace, *, runner: Runner, full: bool) ->
             ),
         ]
     )
-    checks.append(command_check("docker_image_available", ["docker", "image", "inspect", args.image], timeout=30, runner=runner))
+    image_check = command_check("docker_image_available", ["docker", "image", "inspect", args.image], timeout=30, runner=runner)
+    checks.append(image_check)
+    checks.append(docker_image_adapter_lineage_check(args, image_available=bool(image_check["ok"]), runner=runner))
     checks.append(command_check("host_cuda_visible", ["nvidia-smi"], timeout=30, runner=runner))
     return checks
 

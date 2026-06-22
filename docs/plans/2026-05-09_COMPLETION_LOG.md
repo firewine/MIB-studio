@@ -29,3 +29,4 @@
 - `.venv`와 `/tmp/corepack`을 사용하는 strict bootstrap m1-smoke 명령을 재실행해 toolchain mismatch 없이 통과함을 확인했다.
 - current HEAD `6dac1ef` 기준 v0 release blocker recertification을 다시 실행해 unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다.
 - dataset job service의 benchmark validation 로직을 전용 모듈로 분리해 `dataset_job_service.py` code-shape soft warning을 해소했다.
+- current HEAD `d68ebb8` 기준 v0 release blocker recertification을 다시 실행해 unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다.

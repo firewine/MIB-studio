@@ -41,12 +41,12 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: DATASET_JOB_BENCHMARK_VALIDATION_EXTRACTION
+phase_id: V0_CURRENT_HEAD_D68EBB8_BLOCKER_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: dataset_job_service_soft_warning_resolved_not_go_release
-gate_id: mib-studio-dataset-job-benchmark-validation-extraction
+phase_status: current_head_d68ebb8_recertified_not_go_release
+gate_id: mib-studio-v0-current-head-d68ebb8-blocker-recertification
 mode: development
-product_code_changed: true
+product_code_changed: false
 verification_tooling_changed: false
 release_claimed_go: false
 
@@ -57,6 +57,58 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-v0-current-head-d68ebb8-blocker-recertification
+objective: refresh current-head v0 release blocker diagnostics after benchmark validation refactor
+
+files:
+  recertification_outputs:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_blocker_recertification.json
+  handoff_outputs:
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+source_head: d68ebb8
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_readiness_decision: NOT_GO
+  v0_release_ready: false
+  v0_unexpected_blockers: []
+  sole_v0_blocker: real_trained_adapter_no_fake_endpoint
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  handoff_decision: WAITING_FOR_REAL_ADAPTER_INPUTS
+
+current_missing_inputs:
+  - real adapter candidate
+  - digest-pinned CUDA/Python Docker base image
+  - strict pinned Phi model cache files
+  - CUDA visibility on the execution host
+  - Docker daemon and required Docker images
+  - no-fake live endpoint JSON/Markdown evidence
+  - accepted M6 RC evidence verification
+
+operator_next_step:
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  meaning: run this on the external CUDA host; it verifies the operator packet before invoking the lower-level training handoff
+
+summary:
+  - current HEAD d68ebb8 was recertified after benchmark validation refactor
+  - release readiness still has no unexpected blockers
+  - current NOT_GO remains expected and evidence-driven
+  - no product code, verifier criteria, M6 review GO docs, model weights, adapter files, Docker images, endpoint transcripts, or evidence bundles were changed
+```
 
 ```yaml
 gate: mib-studio-dataset-job-benchmark-validation-extraction

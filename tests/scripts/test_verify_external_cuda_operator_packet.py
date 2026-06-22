@@ -169,7 +169,13 @@ def test_verifier_accepts_required_file_blobs_at_packet_commit(tmp_path: Path) -
     write_text(tmp_path, verifier.VERIFIED_LAUNCHER_HANDOFF, "verified_launcher\n")
     write_text(tmp_path, verifier.PRIMARY_HANDOFF, "training_handoff_shell\n")
     write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
-    run_git(tmp_path, "add", verifier.VERIFIED_LAUNCHER_HANDOFF, verifier.PRIMARY_HANDOFF, "scripts/prepare_strict_model_cache.py")
+    run_git(
+        tmp_path,
+        "add",
+        verifier.VERIFIED_LAUNCHER_HANDOFF,
+        verifier.PRIMARY_HANDOFF,
+        "scripts/prepare_strict_model_cache.py",
+    )
     run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "packet files")
     git_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
     rows = [
@@ -183,6 +189,36 @@ def test_verifier_accepts_required_file_blobs_at_packet_commit(tmp_path: Path) -
 
     assert report["decision"] == verifier.GO_DECISION
     assert "required_committed_file_commit_blobs" not in report["blockers"]
+
+
+def test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit(tmp_path: Path) -> None:
+    run_git(tmp_path, "init")
+    write_text(tmp_path, verifier.VERIFIED_LAUNCHER_HANDOFF, "verified_launcher\n")
+    write_text(tmp_path, verifier.PRIMARY_HANDOFF, "training_handoff_shell\n")
+    write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
+    run_git(tmp_path, "add", verifier.VERIFIED_LAUNCHER_HANDOFF, verifier.PRIMARY_HANDOFF, "scripts/prepare_strict_model_cache.py")
+    run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "packet files")
+    packet_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
+    write_text(tmp_path, "docs/closeout.md", "closeout\n")
+    run_git(tmp_path, "add", "docs/closeout.md")
+    run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "closeout")
+    current_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
+    rows = [
+        committed_row(tmp_path, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
+        committed_row(tmp_path, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
+    ]
+    packet_path = minimal_packet(tmp_path, git_head=packet_head, rows=rows)
+
+    report = verifier.verify_packet(tmp_path, packet_path)
+
+    assert current_head != packet_head
+    assert report["decision"] == verifier.GO_DECISION
+    assert report["warnings"] == []
+    commit_blob_check = next(
+        row for row in report["checks"] if row["id"] == "required_committed_file_commit_blobs"
+    )
+    assert commit_blob_check["detail"] == f"verified 3 required file blobs at {packet_head}"
 
 
 def test_verifier_rejects_required_file_missing_at_packet_commit(tmp_path: Path) -> None:

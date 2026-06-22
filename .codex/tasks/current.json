@@ -1,16 +1,16 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Refresh the external CUDA operator packet source commit to 65dfd1a so packet verification has no current-checkout mismatch after the verified-launcher required-file phase.",
+  "goal": "Stabilize external CUDA operator packet verification so a commit-pinned packet does not warn merely because the current checkout advanced after the packet handoff source commit.",
   "phase": "done",
-  "gate": "mib-studio-external-cuda-packet-source-refresh-65dfd1a",
+  "gate": "mib-studio-external-cuda-packet-stable-head-warning",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "65dfd1a",
+  "head": "bf74454",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet.md",
+    "scripts/verify_external_cuda_operator_packet.py",
+    "tests/scripts/test_verify_external_cuda_operator_packet.py",
     "artifacts/review/external_cuda_operator_packet_verification.json",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
@@ -21,8 +21,6 @@
     "services",
     "packages",
     "schemas",
-    "scripts",
-    "tests",
     "docs/foundation",
     "docs/specs",
     "docs/mockup",
@@ -33,49 +31,53 @@
   ],
   "blocked_scope": [
     "Product runtime/API/UI/DB/schema behavior changes",
-    "Source code or test code changes",
     "Changing model catalog pins, hashes, or release acceptance policy",
     "Downloading or committing model weights, adapters, Docker images, endpoint transcripts, copied evidence bundles, or GO release evidence",
     "Editing M6 review docs to GO",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may only refresh current operator packet artifacts to source commit 65dfd1a, update LLM context/working state, completion log, and PABCD.",
+  "allowed_edit_paths_scope_note": "This gate may only update external CUDA operator packet verifier warning policy, its focused tests, refreshed packet verification evidence, LLM context/working state, completion log, and PABCD contract.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "scripts/build_external_cuda_operator_packet.py",
-    "scripts/verify_external_cuda_operator_packet.py",
+    "artifacts/review/external_cuda_operator_packet.json",
+    "artifacts/review/external_cuda_operator_packet.md",
     "artifacts/review/verified_external_cuda_training_launcher.sh",
     "artifacts/review/real_adapter_cuda_training_handoff.sh"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 65dfd1a",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/verify_external_cuda_operator_packet.py",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "rg -n -- \"handoff_source_commit: 65dfd1a|packet_handoff_source_commit.*65dfd1a|verified 17 required file blobs at 65dfd1a|warnings\\\": \\[\\]|verified_external_cuda_training_launcher.sh|release_claimed_go|real_trained_adapter_no_fake_endpoint\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c \"import json; data=json.load(open('artifacts/review/external_cuda_operator_packet_verification.json', encoding='utf-8')); assert data['warnings'] == []\"",
+    "rg -n -- \"packet_handoff_source_commit.*65dfd1a|verified 17 required file blobs at 65dfd1a|test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit|real_trained_adapter_no_fake_endpoint\" scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Operator packet git.head is 65dfd1a.",
-    "Packet verification remains GO for packet integrity only and records 17 required file hashes and commit blobs at 65dfd1a.",
-    "Packet verification warnings are empty after refresh from current checkout.",
+    "Verifier still validates packet.git.head resolves to a commit.",
+    "Verifier still validates required committed file hashes in the current checkout and required file blobs at packet.git.head.",
+    "Verifier does not warn only because current HEAD advanced after the packet handoff source commit.",
+    "Refreshed packet verification warnings are empty at current HEAD bf74454.",
     "Docs state that v0/M6 remain NOT_GO until real trained adapter no-fake endpoint evidence exists."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 65dfd1a",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/verify_external_cuda_operator_packet.py",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "rg -n -- \"handoff_source_commit: 65dfd1a|packet_handoff_source_commit.*65dfd1a|verified 17 required file blobs at 65dfd1a|warnings\\\": \\[\\]|verified_external_cuda_training_launcher.sh|release_claimed_go|real_trained_adapter_no_fake_endpoint\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c \"import json; data=json.load(open('artifacts/review/external_cuda_operator_packet_verification.json', encoding='utf-8')); assert data['warnings'] == []\"",
+    "rg -n -- \"packet_handoff_source_commit.*65dfd1a|verified 17 required file blobs at 65dfd1a|test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit|real_trained_adapter_no_fake_endpoint\" scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
-    "git diff --check"
+    "git diff --check",
+    "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
@@ -83,27 +85,27 @@
     "M6-RC and v0 release remain NOT_GO."
   ],
   "phase_notes": {
-    "plan": "Regenerate the external CUDA operator packet at the latest committed verified-launcher required-file source commit 65dfd1a.",
-    "audit": "The current packet still pins f2227bf, so verifier reruns from current HEAD report a checkout/source mismatch warning.",
-    "build": "Refresh packet JSON/Markdown/verification artifacts and LLM docs only.",
-    "check": "Run JSON checks, packet build/verify, search evidence, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this packet source refresh phase."
+    "plan": "Keep the external CUDA packet commit-pinned to the handoff source while removing the structurally recurring warning caused by subsequent closeout commits.",
+    "audit": "Current verifier returns GO but warns that checkout HEAD bf74454 differs from packet handoff source commit 65dfd1a; required commit blobs are already verified at 65dfd1a.",
+    "build": "Update verifier warning policy and focused tests, then refresh packet verification evidence and LLM handoff docs.",
+    "check": "Run JSON checks, focused verifier tests, py_compile, packet verification, warning-empty assertion, evidence search, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this warning-policy stabilization phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-external-cuda-packet-source-refresh-65dfd1a",
+    "gate": "mib-studio-external-cuda-packet-stable-head-warning",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Refresh external CUDA operator packet artifacts to source commit 65dfd1a, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD only.",
-    "blocked_scope": "No product runtime/API/UI/DB/schema changes, no source/test code changes, no catalog pin changes, no release acceptance weakening, no M6 GO docs, no model/adapter/Docker/evidence bundle commits, no release GO claim.",
+    "approved_scope": "Stabilize external CUDA operator packet verifier warning policy, update focused tests, refreshed verification artifact, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD only.",
+    "blocked_scope": "No product runtime/API/UI/DB/schema changes, no catalog pin changes, no release acceptance weakening, no M6 GO docs, no model/adapter/Docker/evidence bundle commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Regenerate the external CUDA operator packet at the latest committed verified-launcher required-file source commit 65dfd1a.",
-    "audit": "The current packet still pins f2227bf, so verifier reruns from current HEAD report a checkout/source mismatch warning.",
-    "build": "Refresh packet JSON/Markdown/verification artifacts and LLM docs only.",
-    "check": "Run JSON checks, packet build/verify, search evidence, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this packet source refresh phase."
+    "plan": "Keep the external CUDA packet commit-pinned to the handoff source while removing the structurally recurring warning caused by subsequent closeout commits.",
+    "audit": "Current verifier returns GO but warns that checkout HEAD bf74454 differs from packet handoff source commit 65dfd1a; required commit blobs are already verified at 65dfd1a.",
+    "build": "Update verifier warning policy and focused tests, then refresh packet verification evidence and LLM handoff docs.",
+    "check": "Run JSON checks, focused verifier tests, py_compile, packet verification, warning-empty assertion, evidence search, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this warning-policy stabilization phase."
   }
 }

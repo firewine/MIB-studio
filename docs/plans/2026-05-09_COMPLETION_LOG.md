@@ -13,3 +13,4 @@
 - 외부 CUDA operator packet verifier가 packet.git.head의 실제 commit blob까지 검증하도록 강화하고 handoff source commit을 strict cache CLI가 포함된 `51b2d97`로 갱신했다.
 - 외부 CUDA operator packet의 필수 커밋 파일에 verified launcher shell을 포함해 recertification 첫 진입점도 source-pinned 검증 대상에 넣었다.
 - 외부 CUDA operator packet source commit을 `65dfd1a`로 갱신해 최신 verified-launcher required-file 계약에서 warning 없이 검증되도록 했다.
+- 외부 CUDA operator packet verifier가 후속 closeout commit 때문에 current HEAD가 packet.git.head보다 앞서도 commit blob 검증이 통과하면 warning을 내지 않도록 안정화했다.

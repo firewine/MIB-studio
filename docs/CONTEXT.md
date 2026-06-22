@@ -522,6 +522,7 @@ validated:
   - packet contract and no-GO claims
   - 17 required committed file sha256/size values
   - 17 required committed file blobs at handoff source commit 65dfd1a
+  - packet.git.head resolves even when current checkout is a later closeout commit
   - 6 package readiness checks
   - training/RC/local-closeout command order
   - forbidden committed artifact labels

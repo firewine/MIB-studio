@@ -58,14 +58,14 @@
       "path": null
     },
     {
-      "detail": "ok",
+      "detail": "ok; packet handoff source commit is allowed to trail the current checkout when commit blobs verify",
       "id": "packet_git_head_resolves",
       "missing_markers": [],
       "ok": true,
       "path": null
     }
   ],
-  "date": "2026-06-22T15:39:59.266654+00:00",
+  "date": "2026-06-22T15:48:50.115384+00:00",
   "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
   "decision_matches_expected": true,
   "expected_decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",

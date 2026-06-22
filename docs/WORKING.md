@@ -41,12 +41,13 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_EXTERNAL_CUDA_PACKET_SOURCE_REFRESH_65DFD1A
+phase_id: V0_EXTERNAL_CUDA_PACKET_STABLE_HEAD_WARNING
 milestone: Final_Program_Development_Closeout
-phase_status: v0_external_cuda_packet_source_refresh_65dfd1a_not_go_release
-gate_id: mib-studio-external-cuda-packet-source-refresh-65dfd1a
+phase_status: v0_external_cuda_packet_stable_head_warning_not_go_release
+gate_id: mib-studio-external-cuda-packet-stable-head-warning
 mode: implement
 product_code_changed: false
+verification_tooling_changed: true
 release_claimed_go: false
 
 current_decision:
@@ -56,6 +57,37 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-packet-stable-head-warning
+objective: keep commit-pinned external CUDA packet verification warning-free after later closeout commits
+
+files:
+  packet_verifier: scripts/verify_external_cuda_operator_packet.py
+  packet_verifier_tests: tests/scripts/test_verify_external_cuda_operator_packet.py
+  operator_packet_verification:
+    - artifacts/review/external_cuda_operator_packet_verification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+operator_packet_verification:
+  schema_version: mib_external_cuda_operator_packet_verification.v1
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  packet_handoff_source_commit: 65dfd1a
+  required_committed_files_count: 17
+  commit_blob_check_detail: verified 17 required file blobs at 65dfd1a
+  verification_warnings: []
+  current_checkout_after_packet_head_allowed_when_commit_blobs_verify: true
+
+summary:
+  - verifier still requires packet.git.head to resolve and still validates required file blobs at the packet handoff source commit
+  - verifier no longer warns merely because the current checkout has advanced after the packet handoff source commit
+  - refreshed packet verification is warning-free at current HEAD while packet remains pinned to 65dfd1a
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-packet-source-refresh-65dfd1a
@@ -702,6 +734,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  External_CUDA_Operator_Packet_Stable_Head_Warning: true
   External_CUDA_Operator_Packet_Verified_Launcher_Required_File: true
   External_CUDA_Operator_Packet_Source_Commit_Guard: true
   Strict_Model_Cache_Preparation_Handoff: true
@@ -735,8 +768,17 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_external_cuda_packet_source_refresh_65dfd1a_not_go_release
+status: v0_external_cuda_packet_stable_head_warning_not_go_release
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q
+  - python3 -m py_compile scripts/verify_external_cuda_operator_packet.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json
+  - python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -c "import json; data=json.load(open('artifacts/review/external_cuda_operator_packet_verification.json', encoding='utf-8')); assert data['warnings'] == []"
+  - rg -n -- "packet_handoff_source_commit.*65dfd1a|verified 17 required file blobs at 65dfd1a|test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit|real_trained_adapter_no_fake_endpoint" scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
+  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+  - git diff --check
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 65dfd1a
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json
@@ -992,8 +1034,11 @@ is artifacts/review/external_cuda_operator_packet_verification.json; it verifies
 17 required committed file hashes including artifacts/review/verified_external_cuda_training_launcher.sh and scripts/prepare_strict_model_cache.py,
 17 required committed file blobs at handoff source commit 65dfd1a,
 6 package readiness checks, command order,
-forbidden artifact labels, and no forbidden tracked artifacts. This is packet
-integrity GO only, not M6-RC or v0 release GO.
+forbidden artifact labels, and no forbidden tracked artifacts. The verifier
+allows the current checkout to be a later closeout commit than packet.git.head
+when packet.git.head resolves and required committed file blobs verify at that
+pinned handoff commit. This is packet integrity GO only, not M6-RC or v0 release
+GO.
 The generated CUDA training handoff now runs
 scripts/prepare_strict_model_cache.py --allow-download before
 preflight_cuda_training. The strict model cache CLI defaults to no-download

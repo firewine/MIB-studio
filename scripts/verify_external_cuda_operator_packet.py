@@ -307,11 +307,11 @@ def check_git_head_resolves(root: Path, packet: dict[str, Any]) -> tuple[dict[st
         # as a verifier warning rather than weakening the packet-content checks.
         return check_row("packet_git_head_resolves", True, "skipped or unavailable outside full git checkout"), stderr or "git head could not be resolved"
 
-    warning = None
-    current_code, current_head, _ = run_git(root, "rev-parse", "--short", "HEAD")
-    if current_code == 0 and current_head and current_head != packet_head:
-        warning = f"current checkout head {current_head} differs from packet handoff source commit {packet_head}"
-    return check_row("packet_git_head_resolves", True, "ok"), warning
+    return check_row(
+        "packet_git_head_resolves",
+        True,
+        "ok; packet handoff source commit is allowed to trail the current checkout when commit blobs verify",
+    ), None
 
 
 def verify_packet(root: Path, packet_json: Path) -> dict[str, Any]:

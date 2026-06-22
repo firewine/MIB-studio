@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: FE_V6_ROUTE_CONTRACT_PERSISTENCE
+phase_id: FE_V6_TRAIN_WORKFLOW_UNLOCK
 milestone: Final_Program_Development_Closeout
-phase_status: fe_v6_route_contract_persistence_verified_not_go_release
-gate_id: mib-studio-fe-v6-route-contract-persistence
+phase_status: fe_v6_train_workflow_unlocked_not_go_release
+gate_id: mib-studio-fe-v6-train-workflow-unlock
 mode: implement
 product_code_changed: true
 verification_tooling_changed: false
@@ -57,6 +57,55 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-fe-v6-train-workflow-unlock
+objective: unlock the desktop FE v6 Train workflow route using existing project training job and model-run APIs
+
+files:
+  frontend_model:
+    - apps/desktop/src/lib/appModel.mjs
+    - apps/desktop/src/lib/appModel.test.mjs
+  frontend_api_client:
+    - apps/desktop/src/lib/apiClient.mjs
+    - apps/desktop/src/lib/apiClient.test.mjs
+  desktop_shell:
+    - apps/desktop/src/main.mjs
+  browser_mock_and_e2e:
+    - apps/desktop/e2e/mockApi.mjs
+    - apps/desktop/e2e/m1_happy_path.test.mjs
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+train_workflow_contract:
+  route: /projects/{id}/training
+  required_frontend_gates:
+    - approved dataset
+    - Hardware Doctor training_enabled result
+  backend_apis_used:
+    - submitProjectJob: POST /projects/{id}/jobs
+    - listModelRuns: GET /projects/{id}/model-runs
+  train_request_fields:
+    - type: train
+    - preset_id
+    - dataset_id
+    - base_model: google/gemma-2b-it
+    - backend
+    - training_preset: balanced
+    - seed: 123
+
+verification:
+  desktop_model_and_api_client: passed
+  desktop_e2e_m1_happy_path_with_train: passed
+  release_claimed_go: false
+
+summary:
+  - desktop route parsing and workflow stepper now expose /projects/{id}/training after dataset approval and Hardware Doctor readiness
+  - Train page displays the submission contract, gate status, queued job notice, and model-run table while delegating execution to the existing daemon/worker API path
+  - mock browser happy path now builds and approves a dataset, runs Hardware Doctor, submits a train job, sees model_run_1, and opens job_train_1
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-fe-v6-route-contract-persistence

@@ -56,6 +56,8 @@ export function parseAppRoute(pathname) {
   if (projectDefine) return { name: "projectDefine", projectId: projectDefine[1] };
   const datasetNew = pathname.match(/^\/projects\/([^/]+)\/datasets\/new$/);
   if (datasetNew) return { name: "datasetNew", projectId: datasetNew[1] };
+  const projectTraining = pathname.match(/^\/projects\/([^/]+)\/training$/);
+  if (projectTraining) return { name: "projectTraining", projectId: projectTraining[1] };
   const projectDashboard = pathname.match(/^\/projects\/([^/]+)$/);
   if (projectDashboard) return { name: "projectDashboard", projectId: projectDashboard[1] };
   const datasetDetail = pathname.match(/^\/datasets\/([^/]+)$/);
@@ -161,12 +163,13 @@ export function createSeedExamples(routes, count = 20) {
 export function workflowSteps(project, currentPath, datasetReady, hardwareReady) {
   const projectPath = project ? `/projects/${project.id}` : "/projects";
   const projectId = project?.id || "";
+  const trainState = project ? (datasetReady && hardwareReady ? "ready" : "locked") : "locked";
   return [
     step("project", "Project", projectPath, project ? "done" : "current"),
     step("define", "Define", project ? `/projects/${projectId}/define` : "/projects/new", project ? "ready" : "locked", "Create a project first."),
     step("data", "Data", project ? `/projects/${projectId}/datasets/new` : "/projects/new", project ? (datasetReady ? "done" : "ready") : "locked", "Project route contract required."),
     step("hardware", "Hardware", "/hardware", hardwareReady ? "done" : "ready"),
-    step("train", "Train", project ? `/projects/${projectId}/training` : "/projects/new", "locked", "Training unlocks in M3."),
+    step("train", "Train", project ? `/projects/${projectId}/training` : "/projects/new", trainState, "Approve a dataset and run Hardware Doctor first."),
     step("benchmark", "Benchmark", project ? `/projects/${projectId}/benchmarks/new` : "/projects/new", "locked", "Benchmark unlocks in M4."),
     step("package", "Package", project ? `/projects/${projectId}/packages` : "/projects/new", "locked", "Packaging unlocks in M5."),
     step("export", "Export", project ? `/projects/${projectId}/export` : "/projects/new", "locked", "Export unlocks in M6."),

@@ -5,7 +5,7 @@ doc_type: llm_bootstrap_context
 audience: llm_agents_only
 purpose: load_before_planning_or_editing
 version: v0.3
-updated: 2026-06-22
+updated: 2026-06-23
 canonical_ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
 active_state: docs/WORKING.md
 ```
@@ -55,6 +55,7 @@ M0_Product_Lock: GO
 M1_to_M5_Local_Evidence: verified
 FE_V6_Mockup_Verified: true
 FE_V6_Route_Contract_Persistence_Verified: true
+FE_V6_Train_Workflow_Unlocked: true
 M6_RC_Signoff: NOT_GO
 V0_Release_Readiness: NOT_GO
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
@@ -182,6 +183,23 @@ ui:
     required_behavior:
       - project API and desktop save/reload preserve the edited v6 route contract fields
       - dataset route_snapshot_json preserves the same fields for downstream traceability
+  train_workflow_v6:
+    route: /projects/{id}/training
+    uses_existing_apis:
+      - POST /projects/{id}/jobs with type=train
+      - GET /projects/{id}/model-runs
+    required_frontend_gates:
+      - approved dataset
+      - Hardware Doctor training_enabled result
+    owns:
+      - route navigation
+      - submission request display
+      - queued job/model-run status display
+    does_not_own:
+      - training execution
+      - worker scheduling
+      - adapter artifact creation
+      - release evidence
 
 daemon:
   must:
@@ -410,9 +428,13 @@ route-contract mockup and evidence:
 
 ```yaml
 FE_V6_Mockup_Verified: true
+FE_V6_Train_Workflow_Unlocked: true
 canonical_mockup: docs/mockup/mib_fe_mockup_v6_routes_contract.html
 evidence: artifacts/review/fe_v6_evidence.md
 verifier_check: fe_v6_applied
+train_workflow_evidence:
+  - apps/desktop/e2e/m1_happy_path.test.mjs covers dataset approval, Hardware Doctor, Train submit, queued model run, and job monitor in mock/browser smoke
+release_impact: no_release_go_claim
 ```
 
 The remaining release path is evidence-driven, not a normal M1-M6 feature

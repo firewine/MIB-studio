@@ -25,6 +25,7 @@ const state = {
   selectedProject: null,
   datasets: [],
   dataset: null,
+  modelRuns: [],
   hardware: null,
   lastJob: null,
   credentials: [],
@@ -90,6 +91,9 @@ async function loadRouteData() {
   state.selectedProject = "projectId" in route ? state.projects.find((project) => project.id === route.projectId) || null : state.projects[0] || null;
   if (state.selectedProject) {
     state.datasets = (await state.api.request("listDatasets", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
+    if (["projectDashboard", "projectTraining"].includes(route.name)) {
+      state.modelRuns = (await state.api.request("listModelRuns", { params: { id: state.selectedProject.id } }).catch(() => ({ items: [] }))).items || [];
+    }
   }
   if (route.name === "projectDefine" && state.selectedProject) state.routes = routesFromProject(state.selectedProject);
   if (route.name === "datasetNew" && state.selectedProject) state.examples = createSeedExamples(routesFromProject(state.selectedProject));
@@ -138,6 +142,7 @@ async function onClick(event) {
     if (action === "save-credential") await saveCredential();
     if (action === "delete-credential") await deleteCredential();
     if (action === "scan-hardware") await scanHardware();
+    if (action === "start-train") await startTrain();
     if (action === "poll-job") await pollJob();
     if (action === "select-palette") selectPalette(target.dataset.palette);
     if (action === "insert-block") insertBlock(target.dataset.blockLabel);
@@ -220,6 +225,51 @@ async function approveDataset() {
   });
   state.notice = "Dataset approved.";
   state.dataset = await state.api.request("getDataset", { params: { id: state.dataset.id } });
+  state.datasets = state.datasets.map((dataset) => (dataset.id === state.dataset.id ? { ...dataset, status: "APPROVED", frozen_at: state.dataset.frozen_at } : dataset));
+}
+
+async function startTrain() {
+  if (!state.selectedProject) return;
+  const dataset = approvedDataset();
+  if (!dataset) {
+    state.notice = "Training requires an approved dataset.";
+    return;
+  }
+  if (!state.hardware?.training_enabled) {
+    state.notice = "Training requires a G1/G2 Hardware Doctor result.";
+    return;
+  }
+  const backend = trainingBackend();
+  state.lastJob = await state.api.request("submitProjectJob", {
+    params: { id: state.selectedProject.id },
+    body: {
+      type: "train",
+      params: {
+        preset_id: state.selectedProject.preset_id || "router.basic.v1",
+        dataset_id: dataset.id,
+        base_model: "google/gemma-2b-it",
+        backend,
+        training_preset: "balanced",
+        seed: 123,
+      },
+    },
+    idempotencyKey: idempotencyKey(`train-${dataset.id}`),
+  });
+  state.modelRuns = (await state.api.request("listModelRuns", { params: { id: state.selectedProject.id } }).catch(() => ({ items: state.modelRuns }))).items || [];
+  state.notice = `Training job accepted: ${state.lastJob.status}.`;
+}
+
+function approvedDataset() {
+  return state.datasets.find((dataset) => dataset.status === "APPROVED" || dataset.frozen_at) || null;
+}
+
+function trainingBackend() {
+  const recommended = state.hardware?.backend_recommendation;
+  if (recommended === "cuda" || recommended === "mlx") return recommended;
+  const allowed = state.hardware?.allowed_backends || [];
+  if (allowed.includes("cuda")) return "cuda";
+  if (allowed.includes("mlx")) return "mlx";
+  return "cuda";
 }
 
 async function previewTeacherPacket() {
@@ -387,7 +437,7 @@ function render() {
 
 function sidebar() {
   const project = state.selectedProject;
-  const steps = workflowSteps(project, state.path, state.datasets.length > 0, Boolean(state.hardware));
+  const steps = workflowSteps(project, state.path, Boolean(approvedDataset()), Boolean(state.hardware?.training_enabled));
   return `<aside class="sidebar">
     <div class="brand"><div class="brand-mark">MIB</div><div><strong>MIB Studio</strong><span>MicroAgent Inventor Blocks</span></div></div>
     <section class="project-switcher"><small>Project</small><strong>${escapeHtml(project?.name || "No project")}</strong><span>${project ? `${project.routes.length} routes - router` : `${state.projects.length} saved`}</span><div class="switcher-actions"><button class="icon-button" title="Refresh" data-action="refresh">R</button><button class="icon-button" title="Create" data-nav="/projects/new">+</button></div></section>
@@ -410,6 +460,7 @@ function page(route) {
   if (route.name === "projectDefine") return definePage();
   if (route.name === "datasetNew") return examplesPage();
   if (route.name === "datasetDetail") return datasetPage();
+  if (route.name === "projectTraining") return trainingPage();
   if (route.name === "hardware") return hardwarePage();
   if (route.name === "job") return jobPage(route.jobId);
   if (route.name === "settings") return settingsPage();
@@ -434,7 +485,7 @@ function createProjectPage() {
 
 function dashboardPage() {
   const project = state.selectedProject;
-  return pageShell("Workbench", project?.name || "Project dashboard", "Restart-safe summary for the route contract, examples, hardware preflight, and later locked workflow steps.", `<button class="button" data-action="refresh">Refresh</button>`, `<div class="metric-grid">${metric("route contract", `${project?.routes.length || 0} routes`, "ok")}${metric("datasets", `${state.datasets.length} saved`, state.datasets.length ? "ok" : "warn")}${metric("archived", project?.archived_at ? "read-only" : "active", "ok")}</div><div class="action-grid"><button class="action-tile" data-nav="/projects/${project?.id}/define"><strong>Define routes</strong><span>Open the v6 route contract builder.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/datasets/new"><strong>Build examples</strong><span>Create the first approved-ready dataset.</span></button></div>`);
+  return pageShell("Workbench", project?.name || "Project dashboard", "Restart-safe summary for the route contract, examples, hardware preflight, and later locked workflow steps.", `<button class="button" data-action="refresh">Refresh</button>`, `<div class="metric-grid">${metric("route contract", `${project?.routes.length || 0} routes`, "ok")}${metric("datasets", `${state.datasets.length} saved`, state.datasets.length ? "ok" : "warn")}${metric("train runs", `${state.modelRuns.length} queued`, state.modelRuns.length ? "ok" : "blue")}</div><div class="action-grid"><button class="action-tile" data-nav="/projects/${project?.id}/define"><strong>Define routes</strong><span>Open the v6 route contract builder.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/datasets/new"><strong>Build examples</strong><span>Create the first approved-ready dataset.</span></button><button class="action-tile" data-nav="/projects/${project?.id}/training"><strong>Train</strong><span>Submit a LoRA job after dataset approval and Hardware Doctor.</span></button></div>`);
 }
 
 function definePage() {
@@ -457,7 +508,41 @@ function datasetPage() {
 
 function hardwarePage() {
   const profile = state.hardware;
-  return pageShell("Hardware", "Hardware Doctor", "Run a local dry-run scan and gate training access with G0, G1, or G2 hardware status.", `<button class="button" data-action="refresh">Refresh</button><button class="button primary" data-action="scan-hardware">Run dry-run</button>`, `${notice()}<div class="metric-grid">${metric("gate", profile?.capability_gate || "unknown", profile?.training_enabled ? "ok" : "warn")}${metric("backend", profile?.backend_recommendation || "scan required", "blue")}${metric("memory", profile ? `${profile.vram_gb || profile.unified_ram_gb || profile.ram_gb}GB` : "unknown", "ok")}</div><section class="surface"><h2>Training preflight</h2>${profile ? `<p>${escapeHtml(profile.training_disabled_reason_message)}</p><button class="button primary" ${profile.training_enabled ? "" : "disabled"}>Start train</button>` : statePanel("empty", "No scan yet", "Run a dry-run scan to create the first HardwareProfile.")}</section>`);
+  return pageShell("Hardware", "Hardware Doctor", "Run a local dry-run scan and gate training access with G0, G1, or G2 hardware status.", `<button class="button" data-action="refresh">Refresh</button><button class="button primary" data-action="scan-hardware">Run dry-run</button>`, `${notice()}<div class="metric-grid">${metric("gate", profile?.capability_gate || "unknown", profile?.training_enabled ? "ok" : "warn")}${metric("backend", profile?.backend_recommendation || "scan required", "blue")}${metric("memory", profile ? `${profile.vram_gb || profile.unified_ram_gb || profile.ram_gb}GB` : "unknown", "ok")}</div><section class="surface"><h2>Training preflight</h2>${profile ? `<p>${escapeHtml(profile.training_disabled_reason_message)}</p><button class="button primary" ${profile.training_enabled && state.selectedProject ? `data-nav="/projects/${state.selectedProject.id}/training"` : "disabled"}>Open Train</button>` : statePanel("empty", "No scan yet", "Run a dry-run scan to create the first HardwareProfile.")}</section>`);
+}
+
+function trainingPage() {
+  const dataset = approvedDataset();
+  const hardwareReady = Boolean(state.hardware?.training_enabled);
+  const canStart = Boolean(state.selectedProject && dataset && hardwareReady);
+  const backend = trainingBackend();
+  const action = `<button class="button primary" data-action="start-train" ${canStart ? "" : "disabled"}>Start train</button>`;
+  const gatePanel = `<div class="metric-grid">${metric("dataset", dataset?.id || "approval required", dataset ? "ok" : "warn")}${metric("hardware", state.hardware?.capability_gate || "scan required", hardwareReady ? "ok" : "warn")}${metric("backend", hardwareReady ? backend : "locked", hardwareReady ? "blue" : "warn")}${metric("model runs", String(state.modelRuns.length), state.modelRuns.length ? "ok" : "blue")}</div>`;
+  const request = {
+    type: "train",
+    params: {
+      preset_id: state.selectedProject?.preset_id || "router.basic.v1",
+      dataset_id: dataset?.id || null,
+      base_model: "google/gemma-2b-it",
+      backend,
+      training_preset: "balanced",
+      seed: 123,
+    },
+  };
+  return pageShell(
+    "Train",
+    "Train workflow",
+    "Submit a queued LoRA training job through the local daemon after dataset approval and Hardware Doctor readiness.",
+    action,
+    `${notice()}${gatePanel}<div class="two-column"><section class="surface"><h2>Submission contract</h2><pre class="codebox">${escapeHtml(JSON.stringify(request, null, 2))}</pre></section><section class="surface"><h2>Gate status</h2><div class="compact-list"><div class="check-line"><span class="check ${dataset ? "ok" : "bad"}">${dataset ? "ok" : "!"}</span>Approved dataset</div><div class="check-line"><span class="check ${hardwareReady ? "ok" : "bad"}">${hardwareReady ? "ok" : "!"}</span>${escapeHtml(state.hardware?.training_disabled_reason_message || "Hardware Doctor scan required.")}</div></div></section></div>${modelRunsHtml()}`,
+  );
+}
+
+function modelRunsHtml() {
+  if (!state.modelRuns.length) return statePanel("empty", "No model runs yet", "Start train to create the first queued model run.");
+  return `<div class="table-surface"><table><thead><tr><th>Model run</th><th>Status</th><th>Backend</th><th>Seed</th><th>Adapter</th></tr></thead><tbody>${state.modelRuns
+    .map((run) => `<tr><td class="mono">${escapeHtml(run.id)}</td><td><span class="pill ${run.status === "SUCCEEDED" ? "ok" : "blue"}">${escapeHtml(run.status)}</span></td><td>${escapeHtml(run.backend)} / ${escapeHtml(run.method)}</td><td>${escapeHtml(run.seed)}</td><td>${escapeHtml(run.adapter_path || "pending")}</td></tr>`)
+    .join("")}</tbody></table></div>`;
 }
 
 function jobPage(jobId) {
@@ -520,6 +605,7 @@ function breadcrumb(route) {
   if (route.name === "projectDefine") return "projects / define / Route contract";
   if (route.name === "datasetNew") return "projects / datasets / new";
   if (route.name === "datasetDetail") return "datasets / detail";
+  if (route.name === "projectTraining") return "projects / training";
   if (route.name === "hardware") return "hardware / doctor";
   if (route.name === "job") return "jobs / monitor";
   return "settings";

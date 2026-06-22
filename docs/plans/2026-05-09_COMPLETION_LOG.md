@@ -17,3 +17,7 @@
 - 외부 CUDA operator packet의 primary handoff를 verified launcher로 바꿔 운영자가 packet verifier를 우회해 training handoff를 직접 실행하지 않도록 했다.
 - 외부 CUDA operator packet의 첫 실행 지침을 수정해 `packet.git.head`를 checkout 대상이 아니라 required file blob 검증용 source commit으로 명확히 했다.
 - FE v6 route contract의 `task_type`, `requires_calculation`, `requires_human_review`, `is_default`, `examples`가 project 저장/재로딩과 dataset route snapshot에 보존되도록 했다.
+
+## 2026-06-23
+
+- FE v6 Train workflow route를 열어 approved dataset과 Hardware Doctor readiness 이후 기존 training job/model-run API로 queued train job을 제출하고 확인할 수 있게 했다.

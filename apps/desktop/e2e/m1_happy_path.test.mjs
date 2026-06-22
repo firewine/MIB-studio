@@ -9,22 +9,25 @@ import { startMockApi } from "./mockApi.mjs";
 
 const chromePath = process.env.CHROME_BIN || "/usr/bin/google-chrome";
 
-test("M1 desktop shell happy path reaches project, dataset, hardware, and job monitor", async () => {
-  const staticServer = await startStaticServer({ rootDir: "apps/desktop", port: 5173 });
-  const mockApi = await startMockApi({ port: 8910 });
+test("M1 desktop shell happy path reaches project, dataset, hardware, train, and job monitor", async () => {
+  const staticPort = 5173;
+  const apiPort = 8910;
+  const cdpPort = 9223;
+  const staticServer = await startStaticServer({ rootDir: "apps/desktop", port: staticPort });
+  const mockApi = await startMockApi({ port: apiPort });
   const userDataDir = mkdtempSync(join(tmpdir(), "mib-chrome-"));
   const chrome = spawn(chromePath, [
     "--headless=new",
     "--disable-gpu",
     "--no-sandbox",
-    "--remote-debugging-port=9223",
+    `--remote-debugging-port=${cdpPort}`,
     `--user-data-dir=${userDataDir}`,
     "about:blank",
   ]);
   let client;
 
   try {
-    client = await openPage("http://127.0.0.1:5173/projects");
+    client = await openPage(`http://127.0.0.1:${staticPort}/projects`, cdpPort, apiPort);
     await waitFor(client, 'document.body.innerText.includes("No projects yet")');
     await click(client, '[data-nav="/projects/new"]');
     await waitFor(client, 'document.body.innerText.includes("Create route contract project")');
@@ -44,24 +47,40 @@ test("M1 desktop shell happy path reaches project, dataset, hardware, and job mo
     await waitFor(client, 'document.body.innerText.includes("Hardware Doctor")');
     await click(client, '[data-action="scan-hardware"]');
     await waitFor(client, 'document.body.innerText.includes("G2") && document.body.innerText.includes("SUCCEEDED")');
-    await navigate(client, "http://127.0.0.1:5173/jobs/job_hw_1");
+    await navigate(client, `http://127.0.0.1:${staticPort}/projects/proj_1/training`);
+    await waitFor(client, 'document.body.innerText.includes("Train workflow") && document.body.innerText.includes("Start train")');
+    await click(client, '[data-action="start-train"]');
+    await waitFor(client, 'document.body.innerText.includes("Training job accepted: QUEUED") && document.body.innerText.includes("model_run_1")');
+    await navigate(client, `http://127.0.0.1:${staticPort}/jobs/job_train_1`);
     await waitFor(client, 'document.body.innerText.includes("Job monitor")');
     const text = await evaluate(client, "document.body.innerText");
-    assert.match(text, /SUCCEEDED|EVENT_GAP/);
+    assert.match(text, /QUEUED|EVENT_GAP/);
   } finally {
     client?.close();
-    chrome.kill("SIGTERM");
-    await waitForProcessExit(chrome);
+    if (chrome.exitCode === null && !chrome.signalCode) chrome.kill("SIGTERM");
+    if (!(await waitForProcessExit(chrome, 3000)) && chrome.exitCode === null && !chrome.signalCode) {
+      chrome.kill("SIGKILL");
+      await waitForProcessExit(chrome, 3000);
+    }
     staticServer.close();
     mockApi.server.close();
-    rmSync(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    try {
+      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 200 });
+    } catch (error) {
+      if (!["EBUSY", "ENOTEMPTY"].includes(error.code)) throw error;
+    }
   }
 });
 
-async function openPage(url) {
-  await waitForHttp("http://127.0.0.1:9223/json/version");
-  const target = await fetch(`http://127.0.0.1:9223/json/new?${encodeURIComponent(url)}`, { method: "PUT" }).then((response) => response.json());
-  return connectCdp(target.webSocketDebuggerUrl);
+async function openPage(url, port, apiPort) {
+  await waitForHttp(`http://127.0.0.1:${port}/json/version`);
+  const target = await fetch(`http://127.0.0.1:${port}/json/new?about%3Ablank`, { method: "PUT" }).then((response) => response.json());
+  const client = await connectCdp(target.webSocketDebuggerUrl);
+  await client.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `window.MIB_BOOTSTRAP = { baseUrl: "http://127.0.0.1:${apiPort}", token: "test-token" };`,
+  });
+  await client.send("Page.navigate", { url });
+  return client;
 }
 
 function connectCdp(wsUrl) {
@@ -106,7 +125,8 @@ async function waitFor(client, expression, timeoutMs = 5000) {
     if (await evaluate(client, expression)) return;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`Timed out waiting for ${expression}`);
+  const text = await evaluate(client, "document.body.innerText");
+  throw new Error(`Timed out waiting for ${expression}\n${text}`);
 }
 
 async function evaluate(client, expression) {
@@ -127,13 +147,13 @@ async function waitForHttp(url, timeoutMs = 5000) {
   throw new Error(`Timed out waiting for ${url}`);
 }
 
-function waitForProcessExit(child) {
-  if (child.exitCode !== null || child.signalCode) return Promise.resolve();
+function waitForProcessExit(child, timeoutMs = 1000) {
+  if (child.exitCode !== null || child.signalCode) return Promise.resolve(true);
   return new Promise((resolve) => {
-    const timer = setTimeout(resolve, 1000);
+    const timer = setTimeout(() => resolve(false), timeoutMs);
     child.once("exit", () => {
       clearTimeout(timer);
-      resolve();
+      resolve(true);
     });
   });
 }

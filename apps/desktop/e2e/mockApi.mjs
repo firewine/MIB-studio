@@ -4,6 +4,7 @@ export function startMockApi({ port = 8910 } = {}) {
   const state = {
     projects: [],
     datasets: [],
+    modelRuns: [],
     hardware: null,
     job: null,
     credentials: [],
@@ -63,11 +64,23 @@ async function route(request, response, url, state) {
     state.datasetWithExamples = { ...dataset, examples: body.examples.map((item, index) => exampleRead(item, index)), next_cursor: null };
     return json(response, 201, dataset);
   }
+  const modelRunsMatch = url.pathname.match(/^\/projects\/([^/]+)\/model-runs$/);
+  if (modelRunsMatch && request.method === "GET") return json(response, 200, { items: state.modelRuns, next_cursor: null });
+  const projectJobsMatch = url.pathname.match(/^\/projects\/([^/]+)\/jobs$/);
+  if (projectJobsMatch && request.method === "POST") {
+    const body = await readJson(request);
+    if (body.type !== "train") return json(response, 409, { error_code: "MILESTONE_LOCKED", message: "Only train is unlocked in this mock.", details: {}, trace_id: "mock" });
+    state.job = trainJobAccepted(projectJobsMatch[1], body);
+    state.modelRuns = [modelRunRead(projectJobsMatch[1], body, state.job.job_id)];
+    return json(response, 202, state.job);
+  }
   const datasetMatch = url.pathname.match(/^\/datasets\/([^/]+)$/);
   if (datasetMatch && request.method === "GET") return json(response, 200, state.datasetWithExamples);
   if (datasetMatch && request.method === "PATCH") {
     state.datasetWithExamples.status = "APPROVED";
+    state.datasetWithExamples.frozen_at = now();
     state.datasets[0].status = "APPROVED";
+    state.datasets[0].frozen_at = now();
     state.datasetWithExamples.examples = state.datasetWithExamples.examples.map((example) => ({ ...example, approved: true, review_status: "APPROVED" }));
     return json(response, 200, state.datasets[0]);
   }
@@ -96,7 +109,7 @@ async function route(request, response, url, state) {
     return json(response, 202, state.job);
   }
   const jobMatch = url.pathname.match(/^\/jobs\/([^/]+)$/);
-  if (jobMatch) return json(response, 200, { id: jobMatch[1], job_id: jobMatch[1], project_id: null, type: "hardware_scan", status: "SUCCEEDED", resource_class: "cpu_shared", priority: 0, params_json: {}, progress_json: {}, attempt_count: 0, events_url: `/jobs/${jobMatch[1]}/events`, created_at: now(), started_at: now(), ended_at: now() });
+  if (jobMatch && state.job?.job_id === jobMatch[1]) return json(response, 200, jobRead(state.job));
   json(response, 404, { error_code: "NOT_FOUND", message: url.pathname, details: {}, trace_id: "mock" });
 }
 
@@ -137,6 +150,62 @@ function teacherPacketRead(state, projectId, body) {
     },
     expires_at: "2026-06-21T00:30:00.000Z",
     approved_at: null,
+  };
+}
+
+function trainJobAccepted(projectId, body) {
+  return {
+    job_id: "job_train_1",
+    project_id: projectId,
+    status: "QUEUED",
+    type: "train",
+    events_url: "/jobs/job_train_1/events",
+    created_resource_type: "model_run",
+    created_resource_id: "model_run_1",
+    idempotency_replayed: false,
+    params_json: body.params,
+  };
+}
+
+function modelRunRead(projectId, body, jobId) {
+  return {
+    id: "model_run_1",
+    job_id: jobId,
+    project_id: projectId,
+    dataset_id: body.params.dataset_id,
+    base_model: body.params.base_model,
+    backend: body.params.backend,
+    method: body.params.backend === "mlx" ? "mlx_lora" : "qlora",
+    adapter_path: null,
+    status: "QUEUED",
+    adapter_sha256: null,
+    artifact_manifest_sha256: null,
+    seed: body.params.seed,
+    config_hash: "d".repeat(64),
+    best_checkpoint_id: null,
+    resumable: false,
+    started_at: null,
+    ended_at: null,
+    created_at: now(),
+  };
+}
+
+function jobRead(job) {
+  return {
+    id: job.job_id,
+    job_id: job.job_id,
+    project_id: job.project_id || null,
+    type: job.type,
+    status: job.status,
+    resource_class: job.type === "train" ? "gpu_exclusive" : "cpu_shared",
+    priority: 0,
+    params_json: job.params_json || {},
+    progress_json: {},
+    attempt_count: 0,
+    events_url: `/jobs/${job.job_id}/events`,
+    created_at: now(),
+    started_at: job.status === "QUEUED" ? null : now(),
+    ended_at: job.status === "QUEUED" ? null : now(),
   };
 }
 

@@ -211,7 +211,12 @@ def base_commands(args: argparse.Namespace, candidate_scan: dict[str, Any]) -> l
             [args.python, "-c", m6_doc_go_check],
             note="Stops until docs/reviews/M6 signoff and CTO decision are updated to GO after reviewing live endpoint evidence.",
         ),
-        command_row("rc_gate_m6_go", gate_common, env=token_env, note="Runs the full M6-RC gate after M6 review docs are GO."),
+        command_row(
+            "rc_gate_m6_go",
+            gate_common + ["--m6-verification-only"],
+            env=token_env,
+            note="Runs only M6 GO verification against the existing live endpoint evidence after M6 review docs are GO.",
+        ),
         command_row(
             "evidence_bundle_assembly",
             bundle_argv,

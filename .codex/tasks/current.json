@@ -1,12 +1,12 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Fix the real-adapter M6-RC closeout sequence by adding an endpoint-evidence-only runner mode and updating the CUDA handoff so operators can capture live no-fake endpoint evidence first, then update M6 review docs to GO, and only then run M6 GO verification, evidence bundle assembly, and v0 readiness. This removes the current sequencing gap without claiming M6-RC/v0 GO from local artifacts.",
+  "goal": "Add a safe M6-verification-only resume mode for the real-adapter RC runner so operators can capture live no-fake endpoint evidence once, update M6 review docs to GO after review, and then run only the M6 GO verifier against that existing endpoint evidence before bundle assembly and v0 readiness. This reduces repeated endpoint capture during closeout without weakening endpoint, M6, bundle, or v0 acceptance policy.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-endpoint-first-closeout",
+  "gate": "mib-studio-real-adapter-m6-verification-resume",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "8335d89",
+  "head": "b82d64d",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "scripts/run_m6_real_adapter_rc_gate.py",
@@ -66,7 +66,7 @@
     "Creating or committing model weights, adapters, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may add endpoint-evidence-only orchestration to run_m6_real_adapter_rc_gate.py, update the generated real-adapter CUDA handoff command sequence and focused tests, refresh current NOT_GO verification artifacts, and update WORKING.md plus this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may add a M6-verification-only resume mode to run_m6_real_adapter_rc_gate.py, update the generated real-adapter CUDA handoff command sequence and focused tests, refresh current NOT_GO verification artifacts, and update WORKING.md plus this PABCD contract only.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
@@ -84,7 +84,7 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py -q",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md --shell-output artifacts/review/real_adapter_cuda_handoff.sh",
     "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
-    "rg -n -- \"endpoint-evidence-only|GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED|m6_review_docs_go_update_required|rc_gate_m6_go\" scripts/run_m6_real_adapter_rc_gate.py scripts/build_real_adapter_handoff.py tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md",
+    "rg -n -- \"m6-verification-only|m6_verification_only|NOT_GO_EXISTING_ENDPOINT_EVIDENCE|rc_gate_m6_go\" scripts/run_m6_real_adapter_rc_gate.py scripts/build_real_adapter_handoff.py tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
     "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
@@ -94,9 +94,9 @@
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Endpoint-evidence-only mode runs adapter intake and live endpoint capture but does not run M6 GO verification or claim M6-RC GO",
-    "Handoff command sequence now captures endpoint evidence before the required M6 review-doc GO update and only then runs M6 GO verification",
-    "Evidence bundle assembly remains after M6 GO verification and before v0 readiness recheck",
+    "M6-verification-only mode refuses to run unless a prior endpoint-evidence-only summary and live endpoint evidence are present",
+    "M6-verification-only mode runs only the M6 verifier, preserves prior adapter_intake and endpoint_capture step evidence, and claims M6-RC GO only if the M6 verifier returns GO",
+    "Generated handoff now captures endpoint evidence first, stops for M6 review docs GO, then resumes with --m6-verification-only before bundle assembly",
     "Current local M6/v0 readiness remains NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker"
   ],
   "executed_verification_commands": [
@@ -105,7 +105,7 @@
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py -q",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md --shell-output artifacts/review/real_adapter_cuda_handoff.sh",
     "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
-    "rg -n -- \"endpoint-evidence-only|GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED|m6_review_docs_go_update_required|rc_gate_m6_go\" scripts/run_m6_real_adapter_rc_gate.py scripts/build_real_adapter_handoff.py tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md",
+    "rg -n -- \"m6-verification-only|m6_verification_only|NOT_GO_EXISTING_ENDPOINT_EVIDENCE|rc_gate_m6_go\" scripts/run_m6_real_adapter_rc_gate.py scripts/build_real_adapter_handoff.py tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json",
     "python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
@@ -120,27 +120,27 @@
     "This gate does not edit docs/reviews/M6 to GO and does not claim release readiness."
   ],
   "phase_notes": {
-    "plan": "Open a scoped closeout-sequence gate for endpoint-first real-adapter evidence collection.",
-    "audit": "Confirmed the current direct runner jumps from endpoint capture to M6 GO verification, while GO verification now requires M6 review docs to already be GO.",
-    "build": "Added --endpoint-evidence-only to run_m6_real_adapter_rc_gate.py and updated the generated CUDA handoff sequence to capture endpoint evidence before the M6 review-doc GO marker check and full M6 GO gate.",
+    "plan": "Open a scoped closeout-resume gate for M6 verification from existing live endpoint evidence.",
+    "audit": "Confirmed endpoint-first handoff captures live evidence, then currently reruns endpoint capture during full M6 gate after docs GO.",
+    "build": "Added --m6-verification-only to require prior endpoint-only evidence continuity and then run only verify_m6_rc_evidence.py; updated the generated CUDA handoff to use this mode after the M6 review-doc GO marker check.",
     "check": "Focused runner/handoff tests passed, handoff artifacts regenerated, current M6/v0 readiness remained expected NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker, and M1 smoke bootstrap passed in .venv.",
     "done": "Phase verified. Stage, commit, and push are approved by the user phase policy; release readiness remains NOT_GO until real trained adapter no-fake endpoint evidence exists."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-endpoint-first-closeout",
-    "status": "MIB_STUDIO_REAL_ADAPTER_ENDPOINT_FIRST_CLOSEOUT_VERIFIED_NOT_GO",
+    "gate": "mib-studio-real-adapter-m6-verification-resume",
+    "status": "MIB_STUDIO_REAL_ADAPTER_M6_VERIFICATION_RESUME_VERIFIED_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": true,
-    "approved_scope": "Endpoint-first real-adapter RC runner mode, generated CUDA handoff sequence, focused tests, refreshed NOT_GO artifacts, WORKING.md, and PABCD contract only.",
+    "approved_scope": "M6-verification-only real-adapter RC runner mode, generated CUDA handoff sequence, focused tests, refreshed NOT_GO artifacts, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product runtime/API/UI/DB/schema/training changes, no verifier acceptance weakening, no M6 review doc GO edit, no Docker/CUDA execution, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open a scoped closeout-sequence gate for endpoint-first real-adapter evidence collection.",
-    "audit": "Confirmed the current direct runner jumps from endpoint capture to M6 GO verification, while GO verification now requires M6 review docs to already be GO.",
-    "build": "Added --endpoint-evidence-only to run_m6_real_adapter_rc_gate.py and updated the generated CUDA handoff sequence to capture endpoint evidence before the M6 review-doc GO marker check and full M6 GO gate.",
+    "plan": "Open a scoped closeout-resume gate for M6 verification from existing live endpoint evidence.",
+    "audit": "Confirmed endpoint-first handoff captures live evidence, then currently reruns endpoint capture during full M6 gate after docs GO.",
+    "build": "Added --m6-verification-only to require prior endpoint-only evidence continuity and then run only verify_m6_rc_evidence.py; updated the generated CUDA handoff to use this mode after the M6 review-doc GO marker check.",
     "check": "Focused runner/handoff tests passed, handoff artifacts regenerated, current M6/v0 readiness remained expected NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker, and M1 smoke bootstrap passed in .venv.",
     "done": "Phase verified. Stage, commit, and push are approved by the user phase policy; release readiness remains NOT_GO until real trained adapter no-fake endpoint evidence exists."
   }

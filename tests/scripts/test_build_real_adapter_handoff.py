@@ -111,6 +111,8 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert "--endpoint-evidence-only" in endpoint_step["argv"]
     docs_step = next(row for row in report["command_sequence"] if row["id"] == "m6_review_docs_go_update_required")
     assert "docs/reviews/M6/SIGNOFF_MATRIX.md" in " ".join(docs_step["argv"])
+    m6_step = next(row for row in report["command_sequence"] if row["id"] == "rc_gate_m6_go")
+    assert "--m6-verification-only" in m6_step["argv"]
     bundle_step = next(row for row in report["command_sequence"] if row["id"] == "evidence_bundle_assembly")
     assert "scripts/build_real_adapter_evidence_bundle.py" in bundle_step["argv"]
     assert "--bundle-dir" in bundle_step["argv"]

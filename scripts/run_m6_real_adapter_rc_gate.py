@@ -252,7 +252,13 @@ def failed_preflight_messages(checks: list[dict[str, Any]]) -> list[str]:
     return [f"{row['id']}: {row['detail']}" for row in checks if not row["ok"]]
 
 
-def build_steps(args: argparse.Namespace, *, python_exe: str | None = None, include_m6_verification: bool = True) -> list[Step]:
+def build_steps(
+    args: argparse.Namespace,
+    *,
+    python_exe: str | None = None,
+    include_intake_endpoint: bool = True,
+    include_m6_verification: bool = True,
+) -> list[Step]:
     python = python_exe or sys.executable
     scripts_dir = Path(__file__).resolve().parent
     intake = [
@@ -306,10 +312,14 @@ def build_steps(args: argparse.Namespace, *, python_exe: str | None = None, incl
         "--json-output",
         args.m6_json_output,
     ]
-    steps = [
-        Step("adapter_intake", intake, args.step_timeout_seconds),
-        Step("endpoint_capture", endpoint, args.endpoint_timeout_seconds),
-    ]
+    steps = []
+    if include_intake_endpoint:
+        steps.extend(
+            [
+                Step("adapter_intake", intake, args.step_timeout_seconds),
+                Step("endpoint_capture", endpoint, args.endpoint_timeout_seconds),
+            ]
+        )
     if include_m6_verification:
         steps.append(Step("m6_go_verification", m6, args.step_timeout_seconds))
     return steps
@@ -318,7 +328,12 @@ def build_steps(args: argparse.Namespace, *, python_exe: str | None = None, incl
 def base_summary(args: argparse.Namespace) -> dict[str, Any]:
     token = bearer_token(args)
     secrets = [token] if token else []
-    planned_steps = build_steps(args)
+    if bool(getattr(args, "m6_verification_only", False)):
+        planned_steps = build_steps(args, include_intake_endpoint=False)
+    elif bool(getattr(args, "endpoint_evidence_only", False)):
+        planned_steps = build_steps(args, include_m6_verification=False)
+    else:
+        planned_steps = build_steps(args)
     return {
         "schema_version": "mib_real_adapter_rc_gate_runner.v1",
         "date": now_utc(),
@@ -327,6 +342,7 @@ def base_summary(args: argparse.Namespace) -> dict[str, Any]:
         "plan_only": bool(args.plan_only),
         "preflight_only": bool(args.preflight_only),
         "endpoint_evidence_only": bool(getattr(args, "endpoint_evidence_only", False)),
+        "m6_verification_only": bool(getattr(args, "m6_verification_only", False)),
         "decision": "PENDING",
         "m6_rc_claimed_go": False,
         "inputs": {
@@ -359,6 +375,123 @@ def failed(summary: dict[str, Any], *, status: str, decision: str, error: str) -
     return summary
 
 
+def expected_inputs(args: argparse.Namespace) -> dict[str, str]:
+    return {
+        "adapter_dir": args.adapter_dir,
+        "adapter_manifest": args.adapter_manifest,
+        "base_model": args.base_model,
+        "image": args.image,
+        "agent_id": args.agent_id,
+        "model_cache_dir": args.model_cache_dir,
+        "adapter_intake_json_output": args.adapter_intake_json_output,
+        "endpoint_output": args.endpoint_output,
+        "endpoint_json_output": args.endpoint_json_output,
+        "m6_json_output": args.m6_json_output,
+    }
+
+
+def existing_endpoint_evidence(args: argparse.Namespace) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    previous_steps: list[dict[str, Any]] = []
+    gate_path = Path(args.json_output)
+    if not gate_path.is_file():
+        return [check_row("previous_endpoint_only_gate_summary", False, f"missing previous endpoint-only gate summary: {gate_path}")], []
+
+    try:
+        previous = read_json(gate_path)
+    except Exception as exc:
+        return [check_row("previous_endpoint_only_gate_summary", False, str(exc))], []
+
+    status_ok = previous.get("status") == "GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED"
+    decision_ok = previous.get("decision") == "ENDPOINT_EVIDENCE_READY"
+    claim_ok = previous.get("m6_rc_claimed_go") is False
+    checks.append(
+        check_row(
+            "previous_endpoint_only_gate_summary",
+            status_ok and decision_ok and claim_ok,
+            "ok" if status_ok and decision_ok and claim_ok else "previous gate summary is not endpoint-evidence-only ready",
+            status=previous.get("status"),
+            decision=previous.get("decision"),
+            m6_rc_claimed_go=previous.get("m6_rc_claimed_go"),
+        )
+    )
+
+    mode_ok = previous.get("endpoint_evidence_only") is True and previous.get("m6_verification_only") is False
+    checks.append(
+        check_row(
+            "previous_endpoint_only_mode",
+            mode_ok,
+            "ok" if mode_ok else "previous gate summary was not produced by endpoint-evidence-only mode",
+            endpoint_evidence_only=previous.get("endpoint_evidence_only"),
+            m6_verification_only=previous.get("m6_verification_only"),
+        )
+    )
+
+    previous_inputs = previous.get("inputs", {})
+    expected = expected_inputs(args)
+    mismatched = [
+        key
+        for key, value in expected.items()
+        if not isinstance(previous_inputs, dict) or previous_inputs.get(key) != value
+    ]
+    checks.append(
+        check_row(
+            "previous_endpoint_only_inputs_match",
+            not mismatched,
+            "ok" if not mismatched else "previous endpoint-only inputs do not match current M6 verification inputs",
+            mismatched_inputs=mismatched,
+        )
+    )
+
+    steps = previous.get("steps")
+    if isinstance(steps, list) and all(isinstance(row, dict) for row in steps):
+        previous_steps = steps
+    step_ids = [row.get("id") for row in previous_steps]
+    steps_ok = step_ids == ["adapter_intake", "endpoint_capture"] and all(row.get("returncode") == 0 for row in previous_steps)
+    checks.append(
+        check_row(
+            "previous_endpoint_only_steps_ok",
+            steps_ok,
+            "ok" if steps_ok else "previous endpoint-only summary must contain adapter_intake and endpoint_capture returncode 0",
+            step_ids=step_ids,
+        )
+    )
+
+    try:
+        intake = read_json(args.adapter_intake_json_output)
+        intake_ok = intake.get("status") == "GO_REAL_ADAPTER_ARTIFACT_INTAKE"
+    except Exception as exc:
+        intake_ok = False
+        intake = {"error": str(exc)}
+    checks.append(
+        check_row(
+            "existing_adapter_intake_go",
+            intake_ok,
+            "ok" if intake_ok else "existing adapter intake report is not GO",
+            path=args.adapter_intake_json_output,
+            status=intake.get("status"),
+        )
+    )
+
+    try:
+        endpoint = read_json(args.endpoint_json_output)
+        endpoint_ok = endpoint.get("source") == "live_docker_capture" and endpoint.get("self_test") is False
+    except Exception as exc:
+        endpoint_ok = False
+        endpoint = {"error": str(exc)}
+    checks.append(
+        check_row(
+            "existing_endpoint_evidence_live",
+            endpoint_ok,
+            "ok" if endpoint_ok else "existing endpoint evidence is not a live Docker capture",
+            path=args.endpoint_json_output,
+            source=endpoint.get("source"),
+            self_test=endpoint.get("self_test"),
+        )
+    )
+    return checks, previous_steps
+
+
 def step_result_row(step: Step, result: subprocess.CompletedProcess[str], secrets: Sequence[str]) -> dict[str, Any]:
     return {
         "id": step.id,
@@ -373,6 +506,30 @@ def run_gate(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> di
     token = bearer_token(args)
     secrets = [token] if token else []
     summary = base_summary(args)
+    if bool(getattr(args, "m6_verification_only", False)):
+        checks, previous_steps = existing_endpoint_evidence(args)
+        summary["preflight"] = checks
+        errors = failed_preflight_messages(checks)
+        if errors:
+            summary["errors"].extend(errors)
+            summary["status"] = "NOT_GO_EXISTING_ENDPOINT_EVIDENCE"
+            summary["decision"] = "NOT_GO"
+            summary["m6_rc_claimed_go"] = False
+            return summary
+        summary["steps"] = previous_steps
+        m6_step = build_steps(args, include_intake_endpoint=False)[0]
+        result = runner(m6_step.command, m6_step.timeout)
+        summary["steps"].append(step_result_row(m6_step, result, secrets))
+        if result.returncode != 0:
+            return failed(summary, status="NOT_GO_STEP_FAILED", decision="NOT_GO", error=f"{m6_step.id} failed")
+        m6_report = read_json(args.m6_json_output)
+        if m6_report.get("verification_ok") is not True or m6_report.get("decision") != "GO":
+            return failed(summary, status="NOT_GO_M6_VERIFICATION", decision="NOT_GO", error="M6 verifier did not return GO")
+        summary["status"] = "GO_M6_REAL_ADAPTER_RC_GATE"
+        summary["decision"] = "GO"
+        summary["m6_rc_claimed_go"] = True
+        return summary
+
     checks = preflight_checks(args, runner=runner, full=not args.plan_only)
     summary["preflight"] = checks
     errors = failed_preflight_messages(checks)
@@ -438,6 +595,11 @@ def parse_args() -> argparse.Namespace:
         "--endpoint-evidence-only",
         action="store_true",
         help="Run adapter intake and live endpoint capture only; do not run M6 GO verification or claim M6-RC GO.",
+    )
+    mode.add_argument(
+        "--m6-verification-only",
+        action="store_true",
+        help="Resume after endpoint-evidence-only and M6 doc review; run only M6 GO verification against existing endpoint evidence.",
     )
     parser.add_argument("--adapter-dir", required=True)
     parser.add_argument("--adapter-manifest", required=True)

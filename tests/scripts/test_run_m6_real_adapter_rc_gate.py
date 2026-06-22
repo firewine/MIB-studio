@@ -27,6 +27,7 @@ def args_for(
     plan_only: bool = False,
     preflight_only: bool = False,
     endpoint_evidence_only: bool = False,
+    m6_verification_only: bool = False,
 ) -> SimpleNamespace:
     adapter_dir = tmp_path / "run" / "adapter"
     adapter_dir.mkdir(parents=True)
@@ -59,6 +60,7 @@ def args_for(
         plan_only=plan_only,
         preflight_only=preflight_only,
         endpoint_evidence_only=endpoint_evidence_only,
+        m6_verification_only=m6_verification_only,
     )
 
 
@@ -68,6 +70,45 @@ def write_json(path: str, payload: dict[str, object]) -> None:
 
 def write_manifest_with_adapter_sha(args: SimpleNamespace, adapter_sha: str) -> None:
     Path(args.adapter_manifest).write_text(json.dumps({"adapter_sha256": adapter_sha}, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def write_endpoint_ready_artifacts(args: SimpleNamespace) -> None:
+    write_json(
+        args.adapter_intake_json_output,
+        {
+            "schema_version": "mib_real_adapter_artifact_intake.v1",
+            "status": "GO_REAL_ADAPTER_ARTIFACT_INTAKE",
+            "adapter_sha256": "a" * 64,
+            "artifact_manifest_sha256": "b" * 64,
+            "errors": [],
+        },
+    )
+    Path(args.endpoint_output).write_text("live endpoint evidence\n", encoding="utf-8")
+    write_json(
+        args.endpoint_json_output,
+        {
+            "schema_version": "mib_real_adapter_endpoint_evidence.v1",
+            "source": "live_docker_capture",
+            "self_test": False,
+            "decision": "GO_REAL_TRAINED_ADAPTER_ENDPOINT",
+        },
+    )
+    prior_args = SimpleNamespace(**vars(args))
+    prior_args.endpoint_evidence_only = True
+    prior_args.m6_verification_only = False
+    prior = gate.base_summary(prior_args)
+    prior.update(
+        {
+            "status": "GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED",
+            "decision": "ENDPOINT_EVIDENCE_READY",
+            "m6_rc_claimed_go": False,
+            "steps": [
+                {"id": "adapter_intake", "returncode": 0, "command": ["<redacted>"], "stdout_tail": "ok", "stderr_tail": ""},
+                {"id": "endpoint_capture", "returncode": 0, "command": ["<redacted>"], "stdout_tail": "ok", "stderr_tail": ""},
+            ],
+        }
+    )
+    write_json(args.json_output, prior)
 
 
 def test_gate_runner_chains_intake_capture_and_m6_go(tmp_path: Path) -> None:
@@ -188,6 +229,54 @@ def test_gate_runner_endpoint_evidence_only_stops_before_m6_go_without_claiming_
         "verify_real_adapter_artifact.py",
         "capture_real_adapter_endpoint_evidence.py",
     ]
+
+
+def test_gate_runner_m6_verification_only_uses_existing_endpoint_evidence(tmp_path: Path) -> None:
+    args = args_for(tmp_path, m6_verification_only=True)
+    write_endpoint_ready_artifacts(args)
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        script = command[1] if len(command) > 1 else ""
+        if "verify_m6_rc_evidence.py" in script:
+            write_json(
+                args.m6_json_output,
+                {
+                    "schema_version": "mib_m6_rc_evidence_verification.v1",
+                    "decision": "GO",
+                    "verification_ok": True,
+                    "blockers": [],
+                    "unexpected_blockers": [],
+                },
+            )
+            return subprocess.CompletedProcess(command, 0, stdout="m6 ok", stderr="")
+        raise AssertionError(f"m6-verification-only must not run non-M6 command: {command}")
+
+    summary = gate.run_gate(args, runner=runner)
+
+    assert summary["status"] == "GO_M6_REAL_ADAPTER_RC_GATE"
+    assert summary["decision"] == "GO"
+    assert summary["m6_rc_claimed_go"] is True
+    assert [row["id"] for row in summary["steps"]] == ["adapter_intake", "endpoint_capture", "m6_go_verification"]
+    assert [Path(command[1]).name for command in commands] == ["verify_m6_rc_evidence.py"]
+    assert summary["preflight"][0]["id"] == "previous_endpoint_only_gate_summary"
+    assert all(row["ok"] for row in summary["preflight"])
+
+
+def test_gate_runner_m6_verification_only_refuses_missing_endpoint_summary(tmp_path: Path) -> None:
+    args = args_for(tmp_path, m6_verification_only=True)
+
+    def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        raise AssertionError("m6-verification-only must not execute without previous endpoint evidence")
+
+    summary = gate.run_gate(args, runner=runner)
+
+    assert summary["status"] == "NOT_GO_EXISTING_ENDPOINT_EVIDENCE"
+    assert summary["decision"] == "NOT_GO"
+    assert summary["m6_rc_claimed_go"] is False
+    assert summary["steps"] == []
+    assert any(row["id"] == "previous_endpoint_only_gate_summary" and row["ok"] is False for row in summary["preflight"])
 
 
 def test_gate_runner_preflight_only_reports_not_ready_without_executing_steps(tmp_path: Path) -> None:

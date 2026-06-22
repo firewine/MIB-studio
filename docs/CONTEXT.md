@@ -456,9 +456,11 @@ release_blocker_recertification: artifacts/review/v0_release_blocker_recertifica
 cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.json
 external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.json
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
+external_cuda_operator_transfer_manifest_builder: scripts/build_external_cuda_operator_transfer_manifest.py
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
 external_cuda_operator_packet_source_commit: 7e6c545
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
+external_cuda_operator_packet_refresh_reason: current tooling adds the transfer manifest builder to the packet/verifier required-file contract; existing packet artifact still records the previous 17-file set until the follow-up packet refresh phase
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
 cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
@@ -609,6 +611,29 @@ shell_guarded_prereqs:
 purpose: fail fast on CUDA host package/setup mistakes before real adapter training and endpoint evidence capture
 ```
 
+Current external CUDA operator transfer manifest tooling:
+
+```yaml
+builder: scripts/build_external_cuda_operator_transfer_manifest.py
+schema_version: mib_external_cuda_operator_transfer_manifest.v1
+ready_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+not_ready_status: NOT_READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+release_claimed_go: false
+m6_rc_claimed_go: false
+transfer_model: full_repository_checkout_required
+full_checkout_required: true
+partial_file_archive_allowed: false
+ready_only_when:
+  - packet verification decision is GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  - packet verification warnings are empty
+  - packet and verification do not claim release GO or M6-RC GO
+  - packet.git.head matches packet_handoff_source_commit in the verification artifact
+  - primary external handoff is artifacts/review/verified_external_cuda_training_launcher.sh
+  - packet-required current checkout files exist
+operator_message: use a full repository checkout on the external CUDA host; do not use a partial selected-file archive
+release_impact: no_release_go_claim
+```
+
 Current external CUDA operator packet:
 
 ```yaml
@@ -623,9 +648,12 @@ primary_external_handoff: artifacts/review/verified_external_cuda_training_launc
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 required_committed_files_count: 17
+required_committed_files_count_after_follow_up_refresh: 18
 required_committed_files_include:
   - artifacts/review/verified_external_cuda_training_launcher.sh
   - scripts/prepare_strict_model_cache.py
+pending_required_committed_files_after_current_phase:
+  - scripts/build_external_cuda_operator_transfer_manifest.py
 training_handoff_command_order_include:
   - prepare_strict_model_cache
 operator_sequence_rule:
@@ -661,7 +689,7 @@ validated:
   - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
 warning: none
 meaning: packet integrity is GO; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
-current_phase_note: packet has been refreshed after cuda base image recertification changes; keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
+current_phase_note: packet artifact is GO for the previous 17-file source set, but the current tooling phase adds a new required support file; refresh the packet in the follow-up phase before handing it to an operator
 ```
 
 Current verified external CUDA training launcher:

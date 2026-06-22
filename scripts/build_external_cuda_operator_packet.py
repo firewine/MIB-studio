@@ -26,6 +26,7 @@ REQUIRED_COMMITTED_FILES = {
     "recertification_summary": "artifacts/review/v0_release_blocker_recertification.json",
     "router_training_dataset": "examples/fixtures/router_20.jsonl",
     "strict_model_cache_preparation": "scripts/prepare_strict_model_cache.py",
+    "operator_transfer_manifest_builder": "scripts/build_external_cuda_operator_transfer_manifest.py",
     "training_handoff_generator": "scripts/prepare_cuda_lora_training_run.py",
     "cuda_training_preflight": "scripts/check_cuda_lora_training_prereqs.py",
     "cuda_base_image_resolver": "scripts/resolve_cuda_base_image.py",

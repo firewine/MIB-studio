@@ -116,6 +116,7 @@ def test_packet_is_commit_pinned_and_names_primary_handoff(tmp_path: Path) -> No
     assert any(row["path"] == "artifacts/review/verified_external_cuda_training_launcher.sh" for row in result["required_committed_files"])
     assert any(row["path"] == "artifacts/review/real_adapter_cuda_training_handoff.sh" for row in result["required_committed_files"])
     assert any(row["path"] == "scripts/prepare_strict_model_cache.py" for row in result["required_committed_files"])
+    assert any(row["path"] == "scripts/build_external_cuda_operator_transfer_manifest.py" for row in result["required_committed_files"])
     assert "Keep this packet file from the current checkout" in result["operator_sequence"][0]
     assert "packet.git.head is the required committed file source commit unitsha" in result["operator_sequence"][0]
     assert "Clone or update the repository" not in result["operator_sequence"][0]

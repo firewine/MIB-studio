@@ -41,16 +41,16 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: POST_CUDA_BASE_IMAGE_EXTERNAL_CUDA_PACKET_REFRESH
+phase_id: EXTERNAL_CUDA_OPERATOR_TRANSFER_MANIFEST_TOOLING
 milestone: Final_Program_Development_Closeout
-phase_status: external_cuda_operator_packet_verification_restored_after_cuda_base_image_recert
-gate_id: mib-studio-post-cuda-base-image-external-cuda-packet-refresh
+phase_status: tooling_verified_pending_commit_and_follow_up_packet_refresh
+gate_id: mib-studio-external-cuda-transfer-manifest-tooling
 mode: development
 product_code_changed: false
-verification_tooling_changed: false
-verification_artifacts_refreshed: true
-external_operator_packet_refreshed: true
-external_operator_packet_refresh_required_after_phase_commit: false
+verification_tooling_changed: true
+verification_artifacts_refreshed: false
+external_operator_packet_refreshed: false
+external_operator_packet_refresh_required_after_phase_commit: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
@@ -63,6 +63,79 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-transfer-manifest-tooling
+objective: add a full-checkout transfer/readiness manifest builder for external CUDA operators without claiming release GO
+
+source_head: a61cbd3
+packet_artifact_source_head_before_phase: 7e6c545
+
+files:
+  tooling:
+    - scripts/build_external_cuda_operator_transfer_manifest.py
+    - scripts/build_external_cuda_operator_packet.py
+    - scripts/verify_external_cuda_operator_packet.py
+  tests:
+    - tests/scripts/test_build_external_cuda_operator_transfer_manifest.py
+    - tests/scripts/test_build_external_cuda_operator_packet.py
+    - tests/scripts/test_verify_external_cuda_operator_packet.py
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+transfer_manifest_builder:
+  schema_version: mib_external_cuda_operator_transfer_manifest.v1
+  ready_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  not_ready_status: NOT_READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  transfer_model: full_repository_checkout_required
+  full_checkout_required: true
+  partial_file_archive_allowed: false
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  ready_conditions:
+    - packet verification decision is GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+    - packet verification_ok and operator_packet_ready are true
+    - packet verification warnings are empty
+    - forbidden tracked artifacts list is empty
+    - packet and verification do not claim release GO or M6-RC GO
+    - packet.git.head matches packet_handoff_source_commit
+    - primary handoff is artifacts/review/verified_external_cuda_training_launcher.sh
+    - packet-required checkout files exist
+
+packet_contract_change:
+  new_required_committed_file_after_follow_up_refresh: scripts/build_external_cuda_operator_transfer_manifest.py
+  existing_packet_artifact_required_file_count: 17
+  expected_required_file_count_after_follow_up_refresh: 18
+  current_phase_regenerates_packet_artifacts: false
+  follow_up_packet_refresh_required: true
+
+verification:
+  focused_tests: "15 passed in 0.14s"
+  py_compile: passed
+  live_transfer_manifest_generation: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  live_transfer_manifest_json: /tmp/mib-external-cuda-operator-transfer-manifest.json
+  live_transfer_manifest_blockers: []
+  diff_check: passed
+  cached_diff_check: passed
+  strict_m1_smoke_after_toolchain_fix: already_passed_at_head_a61cbd3_before_this_tooling_phase
+
+scope:
+  product_code_changed: false
+  release_criteria_changed: false
+  docs_reviews_M6_changed: false
+  real_adapter_evidence_created: false
+  model_cache_files_committed: false
+  docker_image_layers_committed: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-post-cuda-base-image-external-cuda-packet-refresh
@@ -2659,6 +2732,7 @@ prepare_strict_toolchain_before_strict_checks:
     --json-output /tmp/mib-strict-toolchain-preparation.json
 
 external_cuda_host_flow:
+  - before operator handoff, run scripts/build_external_cuda_operator_transfer_manifest.py and require READY_EXTERNAL_CUDA_OPERATOR_TRANSFER from a full repository checkout
   - run bash artifacts/review/verified_external_cuda_training_launcher.sh on a CUDA host
   - allow the training handoff to run scripts/prepare_strict_model_cache.py with --allow-download before CUDA preflight
   - run artifacts/review/real_adapter_docker_image_handoff.sh after a real adapter exists
@@ -2720,9 +2794,13 @@ external evidence bundles. Keep the packet file from the current checkout;
 packet.git.head is the required committed file source commit for verifier blob
 checks, not an instruction to checkout an older commit before using the packet.
 The packet has already been regenerated after the cuda-base-image
-recertification commit, so external CUDA operators should keep this current
-checkout packet and verify it before running the training handoff.
+recertification commit, but the current transfer-manifest tooling phase adds
+scripts/build_external_cuda_operator_transfer_manifest.py to the packet/verifier
+required-file contract. Refresh the packet in the follow-up phase before handing
+it to an external operator.
 Before running that handoff, use
+scripts/build_external_cuda_operator_transfer_manifest.py from a full repository
+checkout and require READY_EXTERNAL_CUDA_OPERATOR_TRANSFER. Then run
 scripts/verify_external_cuda_operator_packet.py with
 artifacts/review/external_cuda_operator_packet.json and require
 GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION. The current verification artifact

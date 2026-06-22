@@ -46,3 +46,4 @@
 - host Docker recertification 이후 외부 CUDA operator packet을 source commit `63d72ab` 기준으로 다시 갱신해 verifier가 17개 required file hash와 17개 commit blob을 warning 없이 GO로 확인하도록 복구했다.
 - PyTorch CUDA runtime base image를 digest-pinned `MIB_DOCKER_BASE_IMAGE_WITH_DIGEST`로 해소하고 recertification에서 `docker_base_image_env_digest`/`docker_base_image_available` blocker를 제거했으며, CUDA visibility/real adapter endpoint evidence가 없어 v0 release는 계속 NOT_GO임을 확인했다.
 - CUDA base-image recertification 이후 외부 CUDA operator packet을 source commit `7e6c545` 기준으로 다시 갱신해 verifier가 17개 required file hash와 17개 commit blob을 warning 없이 GO로 확인하도록 복구했다.
+- 외부 CUDA operator가 부분 파일 묶음이 아니라 전체 repository checkout에서 handoff를 실행해야 함을 검증하는 transfer manifest builder를 추가하고, 다음 packet refresh에서 이 스크립트를 required committed file에 포함하도록 packet builder/verifier 계약을 갱신했다.

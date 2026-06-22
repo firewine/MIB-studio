@@ -60,6 +60,7 @@ REQUIRED_COMMITTED_FILE_PATHS = {
     PRIMARY_HANDOFF,
     TRAINING_HANDOFF,
     "scripts/prepare_strict_model_cache.py",
+    "scripts/build_external_cuda_operator_transfer_manifest.py",
 }
 
 FORBIDDEN_TRACKED_EXACT = {

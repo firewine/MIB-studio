@@ -73,6 +73,7 @@ def write_packet(root: Path, *, release_claimed_go: bool = False, bad_hash: bool
         required_row(root, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
         required_row(root, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         required_row(root, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
+        required_row(root, "operator_transfer_manifest_builder", "scripts/build_external_cuda_operator_transfer_manifest.py"),
         required_row(root, "training_handoff_json", "artifacts/review/real_adapter_cuda_training_handoff.json"),
         required_row(root, "rc_handoff_shell", "artifacts/review/real_adapter_cuda_handoff.sh"),
     ]
@@ -169,6 +170,7 @@ def test_verifier_rejects_packet_missing_verified_launcher_required_file(tmp_pat
     rows = [
         required_row(tmp_path, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         required_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
+        required_row(tmp_path, "operator_transfer_manifest_builder", "scripts/build_external_cuda_operator_transfer_manifest.py"),
     ]
     packet_path = minimal_packet(tmp_path, git_head="unitsha", rows=rows)
 
@@ -185,12 +187,14 @@ def test_verifier_accepts_required_file_blobs_at_packet_commit(tmp_path: Path) -
     write_text(tmp_path, verifier.VERIFIED_LAUNCHER_HANDOFF, "verified_launcher\n")
     write_text(tmp_path, verifier.TRAINING_HANDOFF, "training_handoff_shell\n")
     write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
+    write_text(tmp_path, "scripts/build_external_cuda_operator_transfer_manifest.py", "transfer_manifest_builder\n")
     run_git(
         tmp_path,
         "add",
         verifier.VERIFIED_LAUNCHER_HANDOFF,
         verifier.TRAINING_HANDOFF,
         "scripts/prepare_strict_model_cache.py",
+        "scripts/build_external_cuda_operator_transfer_manifest.py",
     )
     run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "packet files")
     git_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
@@ -198,6 +202,7 @@ def test_verifier_accepts_required_file_blobs_at_packet_commit(tmp_path: Path) -
         committed_row(tmp_path, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
         committed_row(tmp_path, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
+        committed_row(tmp_path, "operator_transfer_manifest_builder", "scripts/build_external_cuda_operator_transfer_manifest.py"),
     ]
     packet_path = minimal_packet(tmp_path, git_head=git_head, rows=rows)
 
@@ -212,12 +217,14 @@ def test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit(tmp
     write_text(tmp_path, verifier.VERIFIED_LAUNCHER_HANDOFF, "verified_launcher\n")
     write_text(tmp_path, verifier.TRAINING_HANDOFF, "training_handoff_shell\n")
     write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
+    write_text(tmp_path, "scripts/build_external_cuda_operator_transfer_manifest.py", "transfer_manifest_builder\n")
     run_git(
         tmp_path,
         "add",
         verifier.VERIFIED_LAUNCHER_HANDOFF,
         verifier.TRAINING_HANDOFF,
         "scripts/prepare_strict_model_cache.py",
+        "scripts/build_external_cuda_operator_transfer_manifest.py",
     )
     run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "packet files")
     packet_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
@@ -229,6 +236,7 @@ def test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit(tmp
         committed_row(tmp_path, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
         committed_row(tmp_path, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
+        committed_row(tmp_path, "operator_transfer_manifest_builder", "scripts/build_external_cuda_operator_transfer_manifest.py"),
     ]
     packet_path = minimal_packet(tmp_path, git_head=packet_head, rows=rows)
 
@@ -240,7 +248,7 @@ def test_verifier_does_not_warn_when_current_checkout_is_after_packet_commit(tmp
     commit_blob_check = next(
         row for row in report["checks"] if row["id"] == "required_committed_file_commit_blobs"
     )
-    assert commit_blob_check["detail"] == f"verified 3 required file blobs at {packet_head}"
+    assert commit_blob_check["detail"] == f"verified 4 required file blobs at {packet_head}"
 
 
 def test_verifier_rejects_required_file_missing_at_packet_commit(tmp_path: Path) -> None:
@@ -251,10 +259,12 @@ def test_verifier_rejects_required_file_missing_at_packet_commit(tmp_path: Path)
     run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "before strict cache")
     stale_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
     write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
+    write_text(tmp_path, "scripts/build_external_cuda_operator_transfer_manifest.py", "transfer_manifest_builder\n")
     rows = [
         committed_row(tmp_path, "verified_training_launcher", verifier.VERIFIED_LAUNCHER_HANDOFF),
         committed_row(tmp_path, "training_handoff_shell", verifier.TRAINING_HANDOFF),
         committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
+        committed_row(tmp_path, "operator_transfer_manifest_builder", "scripts/build_external_cuda_operator_transfer_manifest.py"),
     ]
     packet_path = minimal_packet(tmp_path, git_head=stale_head, rows=rows)
 

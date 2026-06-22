@@ -48,6 +48,10 @@ The archive must be metadata-bearing and include:
 - real_adapter_evidence_bundle_verification.json
 Missing or mismatched metadata returns archive_metadata_not_verified and
 prevents promotion.
+This same release workstation checkout must also contain accepted GO updates to:
+- docs/reviews/M6/SIGNOFF_MATRIX.md
+- docs/reviews/M6/CTO_DECISION.md
+If those local docs are not GO, v0 readiness returns m6_review_docs_not_current.
 Expected success status: GO_V0_RELEASE_CLOSEOUT.
 
 # local_closeout_after_bundle_transfer: ./.venv/bin/python scripts/run_v0_release_closeout_from_bundle.py --bundle-archive artifacts/review/real_adapter_evidence_bundle.tar.gz --expected-bundle-decision GO --expected-readiness-decision GO

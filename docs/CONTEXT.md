@@ -409,6 +409,7 @@ required_before_release_go:
   - accepted review of that endpoint evidence
   - M6 review docs changed to GO only after the evidence is accepted
   - GO_REAL_ADAPTER_EVIDENCE_BUNDLE promoted into artifacts/review
+  - accepted M6 GO review docs present in the same release workstation checkout before local bundle closeout
   - v0 release readiness decision GO
 ```
 
@@ -434,6 +435,11 @@ local_closeout_command: >
   --bundle-archive <copied_real_adapter_evidence_bundle.tar.gz>
   --expected-bundle-decision GO
   --expected-readiness-decision GO
+same_release_workstation_checkout_required: true
+requires_local_m6_review_docs_go:
+  - docs/reviews/M6/SIGNOFF_MATRIX.md
+  - docs/reviews/M6/CTO_DECISION.md
+missing_local_m6_review_docs_go_status: m6_review_docs_not_current
 expected_success_status: GO_V0_RELEASE_CLOSEOUT
 ```
 

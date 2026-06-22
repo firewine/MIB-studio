@@ -257,8 +257,10 @@ def post_transfer_closeout_commands(args: argparse.Namespace) -> list[dict[str, 
                 "Run in this repository after copying the real adapter evidence bundle archive "
                 "back from the CUDA host. The archive must be metadata-bearing and produced by "
                 "build_real_adapter_evidence_bundle.py; missing or mismatched archive metadata "
-                "returns archive_metadata_not_verified and prevents promotion. Expected success "
-                "status: GO_V0_RELEASE_CLOSEOUT."
+                "returns archive_metadata_not_verified and prevents promotion. The same release "
+                "workstation checkout must also contain the accepted GO updates to docs/reviews/M6; "
+                "otherwise v0 readiness returns m6_review_docs_not_current. Expected success status: "
+                "GO_V0_RELEASE_CLOSEOUT."
             ),
         )
     ]
@@ -348,6 +350,16 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
             "missing_or_mismatched_metadata_status": "archive_metadata_not_verified",
             "expected_success_status": "GO_V0_RELEASE_CLOSEOUT",
         },
+        "local_closeout_prerequisites": {
+            "same_release_workstation_checkout": True,
+            "local_closeout_requires_m6_review_docs_go": True,
+            "m6_review_doc_paths": [
+                "docs/reviews/M6/SIGNOFF_MATRIX.md",
+                "docs/reviews/M6/CTO_DECISION.md",
+            ],
+            "missing_m6_review_docs_go_status": "m6_review_docs_not_current",
+            "bundle_archive_alone_is_sufficient": False,
+        },
         "required_operator_inputs": required_inputs(prereq),
         "command_sequence": base_commands(args, candidate_scan),
         "post_transfer_closeout_commands": post_transfer_closeout_commands(args),
@@ -360,7 +372,8 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
             "Capture endpoint evidence before updating M6 review docs to GO; the generated shell stops before M6 GO verification until those docs contain final GO markers.",
             "Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and metadata-bearing portable archive, then require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.",
             "The archive must include real_adapter_evidence_bundle_manifest.json and real_adapter_evidence_bundle_verification.json; local closeout rejects missing or mismatched metadata with archive_metadata_not_verified.",
-            "After transferring the metadata-bearing bundle archive back to the release workstation, run run_v0_release_closeout_from_bundle.py and require GO_V0_RELEASE_CLOSEOUT.",
+            "After transferring the metadata-bearing bundle archive back to the release workstation, ensure the same checkout also contains accepted GO updates to docs/reviews/M6/SIGNOFF_MATRIX.md and docs/reviews/M6/CTO_DECISION.md; otherwise v0 readiness returns m6_review_docs_not_current.",
+            "After the metadata-bearing archive and accepted M6 GO review docs are present in the same release workstation checkout, run run_v0_release_closeout_from_bundle.py and require GO_V0_RELEASE_CLOSEOUT.",
             "M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.",
         ],
     }
@@ -369,6 +382,7 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
 def render_markdown(report: dict[str, Any]) -> str:
     state = report["current_state"]
     archive_contract = report["bundle_archive_contract"]
+    local_prereqs = report["local_closeout_prerequisites"]
     inputs = "\n".join(
         f"| `{row['id']}` | {row['status']} | {row['requirement']} |" for row in report["required_operator_inputs"]
     )
@@ -437,13 +451,23 @@ missing_or_mismatched_metadata_status: {archive_contract["missing_or_mismatched_
 expected_success_status: {archive_contract["expected_success_status"]}
 ```
 
+## Local Closeout Prerequisites
+
+```yaml
+same_release_workstation_checkout: true
+local_closeout_requires_m6_review_docs_go: true
+m6_review_doc_paths: {json.dumps(local_prereqs["m6_review_doc_paths"])}
+missing_m6_review_docs_go_status: {local_prereqs["missing_m6_review_docs_go_status"]}
+bundle_archive_alone_is_sufficient: false
+```
+
 ## Command Sequence
 
 {commands}
 
 ## Local Closeout After Metadata-Bearing Bundle Transfer
 
-Copy the metadata-bearing `artifacts/review/real_adapter_evidence_bundle.tar.gz` from the CUDA host back into this repository, then run:
+Copy the metadata-bearing `artifacts/review/real_adapter_evidence_bundle.tar.gz` from the CUDA host back into this repository. Before running closeout, ensure this same release workstation checkout also contains the accepted GO updates to `docs/reviews/M6/SIGNOFF_MATRIX.md` and `docs/reviews/M6/CTO_DECISION.md`; otherwise v0 readiness returns `m6_review_docs_not_current`. Then run:
 
 {closeout_commands}
 """
@@ -492,6 +516,10 @@ The archive must be metadata-bearing and include:
 - real_adapter_evidence_bundle_verification.json
 Missing or mismatched metadata returns archive_metadata_not_verified and
 prevents promotion.
+This same release workstation checkout must also contain accepted GO updates to:
+- docs/reviews/M6/SIGNOFF_MATRIX.md
+- docs/reviews/M6/CTO_DECISION.md
+If those local docs are not GO, v0 readiness returns m6_review_docs_not_current.
 Expected success status: GO_V0_RELEASE_CLOSEOUT.
 
 {closeout_commands}

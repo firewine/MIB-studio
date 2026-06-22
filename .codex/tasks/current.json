@@ -1,12 +1,12 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Align the generated real-adapter CUDA handoff with the new bundle archive metadata guard so operators know local closeout requires a metadata-bearing archive.",
+  "goal": "Make the real-adapter CUDA handoff state that local v0 closeout requires accepted M6 GO review docs to be present in the same release workstation checkout before running bundle closeout.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-handoff-archive-metadata-contract",
+  "gate": "mib-studio-real-adapter-local-closeout-m6-doc-prereq",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "2e7fca8",
+  "head": "aaac0f5",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "scripts/build_real_adapter_handoff.py",
@@ -20,6 +20,7 @@
     "artifacts/review/real_adapter_cuda_handoff.md",
     "artifacts/review/real_adapter_cuda_handoff.sh",
     "artifacts/review/v0_release_blocker_recertification.json",
+    "docs/CONTEXT.md",
     "docs/WORKING.md"
   ],
   "blocked_path_prefixes": [
@@ -42,15 +43,14 @@
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may update the CUDA handoff generator so generated handoff artifacts explicitly describe the required metadata-bearing evidence bundle archive, plus focused tests and current NOT_GO regenerated artifacts.",
+  "allowed_edit_paths_scope_note": "This gate may update generated CUDA handoff local-closeout prerequisite text/contract, focused tests, current NOT_GO regenerated artifacts, and LLM working context only.",
   "reference_only_paths": [
-    "docs/CONTEXT.md",
-    "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/build_real_adapter_evidence_bundle.py",
-    "scripts/promote_real_adapter_evidence_bundle.py",
+    "docs/reviews/M6/SIGNOFF_MATRIX.md",
+    "docs/reviews/M6/CTO_DECISION.md",
     "scripts/run_v0_release_closeout_from_bundle.py",
-    "scripts/run_v0_release_blocker_recertification.py"
+    "scripts/verify_v0_release_readiness.py",
+    "scripts/build_real_adapter_evidence_bundle.py"
   ],
   "run_required_commands": true,
   "required_commands": [
@@ -59,14 +59,14 @@
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
     "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
     "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"bundle_archive_contract|metadata-bearing|real_adapter_evidence_bundle_manifest.json|real_adapter_evidence_bundle_verification.json|archive_metadata_not_verified|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"local_closeout_requires_m6_review_docs_go|same release workstation checkout|m6_review_docs_not_current|docs/reviews/M6|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Generated CUDA handoff JSON includes a bundle_archive_contract with required metadata files and closeout failure behavior.",
-    "Generated markdown and shell handoff explicitly tell operators the copied archive must be metadata-bearing and produced by build_real_adapter_evidence_bundle.py.",
-    "Focused handoff tests cover the archive metadata contract in JSON/Markdown/Shell.",
+    "Generated CUDA handoff JSON includes a local closeout prerequisite requiring accepted M6 GO review docs in the same release checkout.",
+    "Generated markdown and shell tell operators that copying the metadata-bearing archive is insufficient unless docs/reviews/M6 GO approval is present in the local release checkout.",
+    "Focused handoff tests cover the M6 review-doc prerequisite in JSON/Markdown/Shell.",
     "Current v0 readiness remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker.",
     "No release GO is claimed from current local artifacts."
   ],
@@ -76,37 +76,37 @@
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
     "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
     "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"bundle_archive_contract|metadata-bearing|real_adapter_evidence_bundle_manifest.json|real_adapter_evidence_bundle_verification.json|archive_metadata_not_verified|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"local_closeout_requires_m6_review_docs_go|same release workstation checkout|m6_review_docs_not_current|docs/reviews/M6|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
     "The current host still lacks real trained adapter no-fake Docker endpoint evidence.",
-    "This gate only aligns operator handoff text/metadata with existing closeout enforcement; it does not create release evidence."
+    "This gate only clarifies local closeout prerequisites; it does not approve or edit M6 review docs."
   ],
   "phase_notes": {
-    "plan": "Add bundle archive metadata contract fields and operator text to the generated CUDA handoff.",
-    "audit": "Closeout now rejects archives without build_real_adapter_evidence_bundle metadata, but generated handoff text only says to copy the tarball and run closeout.",
-    "build": "Patch build_real_adapter_handoff.py and focused tests, then regenerate current NOT_GO handoff artifacts through the existing recertification runner.",
-    "check": "Run focused handoff tests, current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this handoff alignment phase."
+    "plan": "Add a same-checkout M6 GO review-doc prerequisite to the generated CUDA handoff local closeout contract.",
+    "audit": "run_v0_release_closeout_from_bundle.py already fails with m6_review_docs_not_current when local docs/reviews/M6 are not GO, but the handoff currently overemphasizes copying only the metadata-bearing archive.",
+    "build": "Patch build_real_adapter_handoff.py, focused tests, docs/CONTEXT.md, docs/WORKING.md, then regenerate current NOT_GO handoff artifacts through recertification.",
+    "check": "Run focused handoff tests, host-access current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this closeout-prerequisite clarification phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-handoff-archive-metadata-contract",
+    "gate": "mib-studio-real-adapter-local-closeout-m6-doc-prereq",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Generated CUDA handoff archive metadata contract, focused handoff tests, regenerated current NOT_GO handoff artifacts, WORKING state, and PABCD only.",
+    "approved_scope": "Generated CUDA handoff local closeout M6 review-doc prerequisite, focused handoff tests, regenerated current NOT_GO handoff artifacts, LLM context/working state, and PABCD only.",
     "blocked_scope": "No product behavior changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Add bundle archive metadata contract fields and operator text to the generated CUDA handoff.",
-    "audit": "Closeout now rejects archives without build_real_adapter_evidence_bundle metadata, but generated handoff text only says to copy the tarball and run closeout.",
-    "build": "Patch build_real_adapter_handoff.py and focused tests, then regenerate current NOT_GO handoff artifacts through the existing recertification runner.",
-    "check": "Run focused handoff tests, current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this handoff alignment phase."
+    "plan": "Add a same-checkout M6 GO review-doc prerequisite to the generated CUDA handoff local closeout contract.",
+    "audit": "run_v0_release_closeout_from_bundle.py already fails with m6_review_docs_not_current when local docs/reviews/M6 are not GO, but the handoff currently overemphasizes copying only the metadata-bearing archive.",
+    "build": "Patch build_real_adapter_handoff.py, focused tests, docs/CONTEXT.md, docs/WORKING.md, then regenerate current NOT_GO handoff artifacts through recertification.",
+    "check": "Run focused handoff tests, host-access current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this closeout-prerequisite clarification phase."
   }
 }

@@ -106,6 +106,16 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
         "missing_or_mismatched_metadata_status": "archive_metadata_not_verified",
         "expected_success_status": "GO_V0_RELEASE_CLOSEOUT",
     }
+    assert report["local_closeout_prerequisites"] == {
+        "same_release_workstation_checkout": True,
+        "local_closeout_requires_m6_review_docs_go": True,
+        "m6_review_doc_paths": [
+            "docs/reviews/M6/SIGNOFF_MATRIX.md",
+            "docs/reviews/M6/CTO_DECISION.md",
+        ],
+        "missing_m6_review_docs_go_status": "m6_review_docs_not_current",
+        "bundle_archive_alone_is_sufficient": False,
+    }
     assert [row["id"] for row in report["post_transfer_closeout_commands"]] == ["local_closeout_after_bundle_transfer"]
     assert report["current_state"]["missing_prereq_ids"] == [
         "adapter_dir_present",
@@ -146,10 +156,17 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert "real_adapter_evidence_bundle_manifest.json" in markdown
     assert "real_adapter_evidence_bundle_verification.json" in markdown
     assert "archive_metadata_not_verified" in markdown
+    assert "Local Closeout Prerequisites" in markdown
+    assert "same_release_workstation_checkout" in markdown
+    assert "local_closeout_requires_m6_review_docs_go" in markdown
+    assert "m6_review_docs_not_current" in markdown
     assert "Local Closeout After Metadata-Bearing Bundle Transfer" in markdown
     assert "scripts/run_v0_release_closeout_from_bundle.py" in markdown
     assert "GO_V0_RELEASE_CLOSEOUT" in markdown
     assert "Capture endpoint evidence before updating M6 review docs to GO" in markdown
+    assert "same release workstation checkout" in markdown
+    assert "docs/reviews/M6/SIGNOFF_MATRIX.md" in markdown
+    assert "docs/reviews/M6/CTO_DECISION.md" in markdown
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "set a real MIB_RUNTIME_BEARER_TOKEN" in shell
     assert 'MIB_RUNTIME_BEARER_TOKEN="${MIB_RUNTIME_BEARER_TOKEN}"' in shell
@@ -158,6 +175,10 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert "real_adapter_evidence_bundle_manifest.json" in shell
     assert "real_adapter_evidence_bundle_verification.json" in shell
     assert "archive_metadata_not_verified" in shell
+    assert "same release workstation checkout" in shell
+    assert "docs/reviews/M6/SIGNOFF_MATRIX.md" in shell
+    assert "docs/reviews/M6/CTO_DECISION.md" in shell
+    assert "m6_review_docs_not_current" in shell
     assert "scripts/run_v0_release_closeout_from_bundle.py" in shell
     assert "GO_V0_RELEASE_CLOSEOUT" in shell
     assert shell.index("== rc_gate_endpoint_evidence ==") < shell.index("== m6_review_docs_go_update_required ==")

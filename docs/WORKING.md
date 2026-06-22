@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_HANDOFF_ARCHIVE_METADATA_CONTRACT
+phase_id: REAL_ADAPTER_LOCAL_CLOSEOUT_M6_DOC_PREREQ
 milestone: Final_Program_Development_Closeout
-phase_status: real_adapter_handoff_archive_metadata_contract_verified_not_go
-gate_id: mib-studio-real-adapter-handoff-archive-metadata-contract
+phase_status: real_adapter_local_closeout_m6_doc_prereq_verified_not_go
+gate_id: mib-studio-real-adapter-local-closeout-m6-doc-prereq
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,39 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-real-adapter-local-closeout-m6-doc-prereq
+objective: make local closeout prerequisites explicit for transferred real-adapter evidence bundles
+
+files:
+  handoff_generator: scripts/build_real_adapter_handoff.py
+  handoff_tests: tests/scripts/test_build_real_adapter_handoff.py
+  generated_handoff:
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/real_adapter_cuda_handoff.sh
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+local_closeout_prerequisites:
+  same_release_workstation_checkout: true
+  local_closeout_requires_m6_review_docs_go: true
+  m6_review_doc_paths:
+    - docs/reviews/M6/SIGNOFF_MATRIX.md
+    - docs/reviews/M6/CTO_DECISION.md
+  missing_m6_review_docs_go_status: m6_review_docs_not_current
+  bundle_archive_alone_is_sufficient: false
+
+summary:
+  - generated handoff JSON now exposes local_closeout_prerequisites
+  - generated markdown and shell now state that copying the metadata-bearing archive alone is insufficient
+  - local closeout requires accepted GO updates to docs/reviews/M6 in the same release workstation checkout
+  - if those local docs are not GO, v0 readiness returns m6_review_docs_not_current
+  - current recertification remains NOT_GO with real_trained_adapter_no_fake_endpoint as the sole v0 blocker
+  - no M6-RC GO or v0 GO is claimed from current local artifacts
+```
 
 ```yaml
 gate: mib-studio-real-adapter-handoff-archive-metadata-contract
@@ -240,6 +273,7 @@ recorded_tooling_ready:
   Real_Adapter_Evidence_Bundle_Assembly: true
   Real_Adapter_CUDA_Handoff: true
   Real_Adapter_CUDA_Handoff_Archive_Metadata_Contract: true
+  Real_Adapter_Local_Closeout_M6_Doc_Prereq: true
   Real_Adapter_CUDA_Training_Handoff: true
   Real_Adapter_Docker_Image_Handoff: true
   Real_Adapter_RC_Gate_Runner_Tooling: true
@@ -254,8 +288,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: real_adapter_handoff_archive_metadata_contract_verified_not_go
+status: real_adapter_local_closeout_m6_doc_prereq_verified_not_go
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json
+  - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
+  - rg -n -- "local_closeout_requires_m6_review_docs_go|same release workstation checkout|m6_review_docs_not_current|docs/reviews/M6|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
@@ -298,6 +338,7 @@ fixed_verification_blockers:
   - strict_toolchain_setup_was_manual_and_hook_fragile
   - bundle_archive_promotion_did_not_require_builder_metadata
   - handoff_did_not_explain_metadata_bearing_archive_requirement
+  - local_closeout_handoff_did_not_explicitly_require_same_checkout_m6_go_review_docs
 
 warnings:
   - M6-RC remains NOT_GO.
@@ -374,6 +415,11 @@ local_closeout_after_bundle_transfer:
   required_archive_metadata:
     - real_adapter_evidence_bundle_manifest.json
     - real_adapter_evidence_bundle_verification.json
+  same_release_workstation_checkout_required: true
+  requires_local_m6_review_docs_go:
+    - docs/reviews/M6/SIGNOFF_MATRIX.md
+    - docs/reviews/M6/CTO_DECISION.md
+  missing_local_m6_review_docs_go_status: m6_review_docs_not_current
   missing_or_mismatched_metadata_status: archive_metadata_not_verified
   expected_success_status: GO_V0_RELEASE_CLOSEOUT
 ```
@@ -394,7 +440,10 @@ scripts/run_v0_release_closeout_from_bundle.py with expected GO bundle/readiness
 decisions and require GO_V0_RELEASE_CLOSEOUT. The archive must include
 real_adapter_evidence_bundle_manifest.json and
 real_adapter_evidence_bundle_verification.json; missing or mismatched metadata
-returns archive_metadata_not_verified and prevents promotion.
+returns archive_metadata_not_verified and prevents promotion. This same release
+workstation checkout must also contain accepted GO updates to
+docs/reviews/M6/SIGNOFF_MATRIX.md and docs/reviews/M6/CTO_DECISION.md before
+local closeout; otherwise v0 readiness returns m6_review_docs_not_current.
 The latest host-access recertification confirmed docker_daemon_available ok:true
 and mib-export:test missing as "No such image", so Docker permission denial is
 not the current release blocker.

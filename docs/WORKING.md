@@ -41,16 +41,19 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: POST_HOST_DOCKER_RECERT_EXTERNAL_CUDA_PACKET_REFRESH
+phase_id: CUDA_BASE_IMAGE_RESOLUTION_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: external_cuda_operator_packet_verification_restored_after_host_docker_recert
-gate_id: mib-studio-post-host-docker-recert-external-cuda-packet-refresh
+phase_status: digest_pinned_cuda_python_base_image_resolved_and_recertified
+gate_id: mib-studio-cuda-base-image-resolution-recertification
 mode: development
 product_code_changed: false
 verification_tooling_changed: false
 verification_artifacts_refreshed: true
-external_operator_packet_refreshed: true
+external_operator_packet_refreshed: false
+external_operator_packet_refresh_required_after_phase_commit: true
 strict_model_cache_ready: true
+cuda_base_image_resolved: true
+docker_daemon_available: true
 release_claimed_go: false
 
 current_decision:
@@ -60,6 +63,97 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-cuda-base-image-resolution-recertification
+objective: resolve a digest-pinned CUDA/Python Docker base image and rerun v0 blocker recertification without changing release acceptance rules
+
+source_head: 5e7cc94
+cuda_base_image_timestamp_utc: "2026-06-22T20:22:52.791337+00:00"
+recertification_timestamp_utc: "2026-06-22T20:23:32.702207+00:00"
+
+pre_audit:
+  docker_daemon_host_access: ok
+  prior_cuda_base_image_resolution: NOT_READY_CUDA_BASE_IMAGE
+  default_candidate: pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+
+files:
+  refreshed_artifacts:
+    - artifacts/review/real_adapter_cuda_base_image_resolution.json
+    - artifacts/review/real_adapter_cuda_base_image.env
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_readiness_audit.json
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/real_adapter_cuda_handoff.sh
+    - artifacts/review/v0_release_blocker_recertification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+cuda_base_image:
+  status: CUDA_BASE_IMAGE_RESOLVED
+  selected: pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126
+  env_file: artifacts/review/real_adapter_cuda_base_image.env
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+
+training_preflight:
+  status: NOT_READY_CUDA_LORA_TRAINING
+  docker_base_image_env_digest_ok: true
+  docker_base_image_available_ok: true
+  docker_base_image_cuda_python_runtime_ok: true
+  docker_daemon_available_ok: true
+  strict_model_cache_files_ok: true
+  blockers:
+    - cuda_visible
+
+m6_prereq:
+  status: NOT_READY_PRECHECK_FAILED
+  errors:
+    - adapter_safetensors_present
+    - adapter_config_present
+    - adapter_manifest_present
+    - docker_image_available: No such image: mib-export:test
+    - host_cuda_visible: nvidia-smi not found
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  v0_release_ready: false
+  v0_unexpected_blockers: []
+  sole_v0_blocker: real_trained_adapter_no_fake_endpoint
+  handoff_decision: WAITING_FOR_REAL_ADAPTER_INPUTS
+  blocking_reasons_removed:
+    - docker_base_image_env_digest
+    - docker_base_image_available
+
+scope:
+  product_code_changed: false
+  tests_changed: false
+  scripts_changed: false
+  release_criteria_changed: false
+  docs_reviews_M6_changed: false
+  real_adapter_evidence_created: false
+  model_cache_files_committed: false
+  docker_image_layers_committed: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+follow_up:
+  external_cuda_operator_packet_refresh_required: true
+  reason: this recertification changed source-pinned handoff and blocker artifacts after packet source commit 63d72ab
+```
 
 ```yaml
 gate: mib-studio-post-host-docker-recert-external-cuda-packet-refresh
@@ -2464,20 +2558,25 @@ release_blocker:
 local_missing_inputs:
   - /tmp/mib-real-adapter/adapter/adapter.safetensors
   - /tmp/mib-real-adapter/adapter/adapter_config.json
-  - /tmp/mib-real-adapter/adapter directory
   - /tmp/mib-real-adapter/manifest.json
-  - pinned Phi-3.5 files under /tmp/mib-strict-model-cache-phi/model_cache
   - nvidia-smi_cuda_visibility
-  - MIB_DOCKER_BASE_IMAGE_WITH_DIGEST
-  - local_digest_pinned_cuda_python_base_image
   - mib-export:test_real_adapter_image
+
+local_ready_inputs:
+  - /tmp/mib-real-adapter/adapter directory
+  - strict Phi-3.5 files under /tmp/mib-strict-model-cache-phi/model_cache
+  - MIB_DOCKER_BASE_IMAGE_WITH_DIGEST from artifacts/review/real_adapter_cuda_base_image.env
+  - local digest-pinned CUDA/Python base image:
+      ref: pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126
 ```
 
 ## 6. Next Work
 
 ```yaml
 recertify_current_state:
+  env_file: artifacts/review/real_adapter_cuda_base_image.env
   command: >
+    MIB_DOCKER_BASE_IMAGE_WITH_DIGEST=pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126
     PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python
     scripts/run_v0_release_blocker_recertification.py
     --expected-readiness-decision NOT_GO
@@ -2552,6 +2651,10 @@ adapter files, Docker image layers/archives, raw endpoint transcripts, or copied
 external evidence bundles. Keep the packet file from the current checkout;
 packet.git.head is the required committed file source commit for verifier blob
 checks, not an instruction to checkout an older commit before using the packet.
+The current cuda-base-image recertification has changed source-pinned handoff
+artifacts after that packet source commit, so regenerate the external CUDA
+operator packet at the next committed source head before sending the external
+CUDA handoff again.
 Before running that handoff, use
 scripts/verify_external_cuda_operator_packet.py with
 artifacts/review/external_cuda_operator_packet.json and require
@@ -2594,16 +2697,20 @@ the next agent can distinguish archive metadata, source bundle, M6 review-doc,
 and real endpoint evidence blockers without weakening release acceptance.
 NOT_GO recertification summaries also include blocking_reasons and
 operator_next_actions so the next agent can distinguish missing adapter files,
-CUDA visibility, Docker image/base-image, bundle, endpoint, and handoff
+CUDA visibility, Docker export image, bundle, endpoint, and handoff
 blockers without weakening release acceptance.
 The current local strict model cache blocker is cleared: the CUDA training
 preflight check for strict_model_cache_files is ok and no longer appears in the
 top-level blocker list.
 The latest current-state recertification ran with host Docker access:
 docker_daemon_available is ok and no longer appears in the top-level blocker
-list. The Docker export image mib-export:test is still missing, CUDA is still
-not visible through nvidia-smi, adapter files are still absent, and the release
-blocker is still the missing real trained adapter no-fake endpoint evidence.
+list. The digest-pinned CUDA/Python base image is now resolved as
+pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126,
+and docker_base_image_env_digest/docker_base_image_available are no longer
+top-level blockers. The Docker export image mib-export:test is still missing,
+CUDA is still not visible through nvidia-smi, adapter files are still absent,
+and the release blocker is still the missing real trained adapter no-fake
+endpoint evidence.
 
 Do not claim M6-RC GO or v0 GO from the current local artifacts. The current
 release blocker is real_trained_adapter_no_fake_endpoint. M6 review docs must

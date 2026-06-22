@@ -67,7 +67,7 @@
       "path": "artifacts/review/m6_rc_evidence_verification.json"
     }
   ],
-  "date": "2026-06-22T20:08:59.069333+00:00",
+  "date": "2026-06-22T20:23:32.651755+00:00",
   "decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
   "decision_matches_expected": true,
   "expected_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",

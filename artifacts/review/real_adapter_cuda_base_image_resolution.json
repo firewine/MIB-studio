@@ -1,7 +1,5 @@
 {
-  "blockers": [
-    "cuda_base_image_not_resolved"
-  ],
+  "blockers": [],
   "candidates": [
     {
       "candidate": "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime",
@@ -11,14 +9,35 @@
         "inspect",
         "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
       ],
-      "detail": "Error response from daemon: No such image: pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime",
-      "ok": false,
-      "returncode": 1,
-      "status": "inspect_failed"
+      "cuda_markers": [
+        "env:NVIDIA_DRIVER_CAPABILITIES",
+        "env:NVIDIA_VISIBLE_DEVICES",
+        "env:PATH",
+        "reference_contains_cuda",
+        "reference_is_pytorch_cuda"
+      ],
+      "detail": "ok",
+      "digest_reference": "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126",
+      "image_id": "sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126",
+      "ok": true,
+      "python_runtime_likely": true,
+      "python_runtime_markers": [
+        "reference_is_pytorch_runtime"
+      ],
+      "repo_digests": [
+        "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126"
+      ],
+      "repo_tags": [
+        "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+      ],
+      "returncode": 0,
+      "status": "resolved"
     }
   ],
-  "date": "2026-06-22T03:22:16.293884+00:00",
-  "env": {},
+  "date": "2026-06-22T20:22:52.791337+00:00",
+  "env": {
+    "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST": "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126"
+  },
   "gate": "mib-studio-cuda-base-image-resolution",
   "inputs": {
     "candidates": [
@@ -35,6 +54,37 @@
   ],
   "release_claimed_go": false,
   "schema_version": "mib_cuda_base_image_resolution.v1",
-  "selected": null,
-  "status": "NOT_READY_CUDA_BASE_IMAGE"
+  "selected": {
+    "candidate": "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime",
+    "command": [
+      "docker",
+      "image",
+      "inspect",
+      "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+    ],
+    "cuda_markers": [
+      "env:NVIDIA_DRIVER_CAPABILITIES",
+      "env:NVIDIA_VISIBLE_DEVICES",
+      "env:PATH",
+      "reference_contains_cuda",
+      "reference_is_pytorch_cuda"
+    ],
+    "detail": "ok",
+    "digest_reference": "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126",
+    "image_id": "sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126",
+    "ok": true,
+    "python_runtime_likely": true,
+    "python_runtime_markers": [
+      "reference_is_pytorch_runtime"
+    ],
+    "repo_digests": [
+      "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126"
+    ],
+    "repo_tags": [
+      "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+    ],
+    "returncode": 0,
+    "status": "resolved"
+  },
+  "status": "CUDA_BASE_IMAGE_RESOLVED"
 }

@@ -1,9 +1,7 @@
 {
   "blocking_reasons": [
     "no_go_adapter_candidates",
-    "docker_base_image_env_digest",
     "cuda_visible",
-    "docker_base_image_available",
     "adapter_safetensors_present",
     "adapter_config_present",
     "adapter_manifest_present",
@@ -76,7 +74,7 @@
       "output": "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
       "returncode": 0,
       "stderr_tail": "",
-      "stdout_tail": "{\"blockers\": [\"docker_base_image_env_digest\", \"cuda_visible\", \"docker_base_image_available\"], \"json_output\": \"artifacts/review/real_adapter_cuda_training_prereq_preflight.json\", \"status\": \"NOT_READY_CUDA_LORA_TRAINING\"}\n"
+      "stdout_tail": "{\"blockers\": [\"cuda_visible\"], \"json_output\": \"artifacts/review/real_adapter_cuda_training_prereq_preflight.json\", \"status\": \"NOT_READY_CUDA_LORA_TRAINING\"}\n"
     },
     {
       "command": [
@@ -196,9 +194,7 @@
     "bundle_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
     "candidate_scan_decision": "NO_GO_CANDIDATES_FOUND",
     "cuda_training_blockers": [
-      "docker_base_image_env_digest",
-      "cuda_visible",
-      "docker_base_image_available"
+      "cuda_visible"
     ],
     "cuda_training_status": "NOT_READY_CUDA_LORA_TRAINING",
     "fixture_like_candidate_count": 0,
@@ -220,7 +216,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T20:08:59.121771+00:00",
+  "date": "2026-06-22T20:23:32.702207+00:00",
   "expectation_checks": [
     {
       "actual": "NOT_READY_CUDA_LORA_TRAINING",
@@ -258,7 +254,6 @@
     "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host first; it verifies the operator packet before invoking artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Produce or transfer a real trained adapter under /tmp/mib-real-adapter before rerunning local release checks.",
     "Provide /tmp/mib-real-adapter/adapter with adapter.safetensors and adapter_config.json plus /tmp/mib-real-adapter/manifest.json.",
-    "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a digest-pinned CUDA/Python base image on the CUDA host.",
     "Build or pull the required Docker images, including the digest-pinned base image and mib-export:test.",
     "Rerun on a CUDA host where nvidia-smi is visible to the process.",
     "Run the real-adapter M6 RC gate against a live no-fake Docker endpoint and collect accepted JSON/markdown evidence.",

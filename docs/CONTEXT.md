@@ -458,15 +458,21 @@ external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.js
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
 external_cuda_operator_packet_source_commit: 63d72ab
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
+cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
+cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
-current_recertification_head: ce422a4
+current_recertification_head: 5e7cc94
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 strict_model_cache_status: READY_STRICT_MODEL_CACHE
 strict_model_cache_files_committed: false
+cuda_base_image_resolution_status: CUDA_BASE_IMAGE_RESOLVED
+resolved_cuda_python_base_image: pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126
+resolved_cuda_base_image_committed: false
 host_docker_daemon_available: true
 mib_export_test_image_available: false
 host_cuda_visible: false
@@ -537,7 +543,7 @@ Current actionable NOT_GO recertification summary:
 
 ```yaml
 summary_file: artifacts/review/v0_release_blocker_recertification.json
-current_head: ce422a4
+current_head: 5e7cc94
 top_level_fields:
   - blocking_reasons
   - operator_next_actions
@@ -550,9 +556,7 @@ v0_unexpected_blockers: []
 sole_v0_blocker: real_trained_adapter_no_fake_endpoint
 current_blocking_reasons_include:
   - no_go_adapter_candidates
-  - docker_base_image_env_digest
   - cuda_visible
-  - docker_base_image_available
   - adapter_safetensors_present
   - adapter_config_present
   - adapter_manifest_present
@@ -571,6 +575,11 @@ first_operator_action: run artifacts/review/verified_external_cuda_training_laun
 strict_model_cache_status: READY_STRICT_MODEL_CACHE
 strict_model_cache_action: keep /tmp/mib-strict-model-cache-phi/model_cache available on the active host; rerun prepare_strict_model_cache.py with --allow-download only if that host cache is missing
 strict_model_cache_files_current_preflight_ok: true
+cuda_base_image_resolution_status: CUDA_BASE_IMAGE_RESOLVED
+cuda_base_image_env_digest_current_preflight_ok: true
+cuda_base_image_available_current_preflight_ok: true
+cuda_base_image_cuda_python_runtime_current_preflight_ok: true
+resolved_cuda_python_base_image: pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126
 docker_daemon_available_current_preflight_ok: true
 mib_export_test_image_current_status: missing
 host_cuda_current_status: nvidia-smi_not_available
@@ -652,6 +661,7 @@ validated:
   - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
 warning: none
 meaning: packet integrity is GO; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
+current_phase_note: after cuda base image recertification changes are committed, regenerate this packet at the new source commit before sending the external CUDA handoff again
 ```
 
 Current verified external CUDA training launcher:

@@ -1,8 +1,6 @@
 {
   "blockers": [
-    "docker_base_image_env_digest",
-    "cuda_visible",
-    "docker_base_image_available"
+    "cuda_visible"
   ],
   "checks": [
     {
@@ -14,8 +12,8 @@
       "detail": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must be set to an image reference with @sha256:<64-hex>",
       "env_var": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",
       "id": "docker_base_image_env_digest",
-      "ok": false,
-      "value_present": false
+      "ok": true,
+      "value_present": true
     },
     {
       "detail": "ok",
@@ -79,17 +77,36 @@
         "docker",
         "image",
         "inspect",
-        "$MIB_DOCKER_BASE_IMAGE_WITH_DIGEST"
+        "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126"
       ],
-      "detail": "cannot inspect base image until MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is set",
+      "detail": "ok",
       "id": "docker_base_image_available",
-      "ok": false,
-      "returncode": null
+      "ok": true,
+      "returncode": 0
+    },
+    {
+      "command": [
+        "docker",
+        "image",
+        "inspect",
+        "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126"
+      ],
+      "cuda_markers": [
+        "env:NVIDIA_DRIVER_CAPABILITIES",
+        "env:NVIDIA_VISIBLE_DEVICES",
+        "env:PATH"
+      ],
+      "detail": "ok",
+      "id": "docker_base_image_cuda_python_runtime",
+      "ok": true,
+      "python_runtime_markers": [
+        "reference_is_pytorch_runtime"
+      ]
     }
   ],
-  "date": "2026-06-22T20:08:59.000265+00:00",
+  "date": "2026-06-22T20:23:32.585078+00:00",
   "env_requirements": {
-    "docker_base_image_digest_present": false,
+    "docker_base_image_digest_present": true,
     "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",
     "fake_backend_env": "MIB_RUNTIME_ALLOW_FAKE_BACKEND"
   },

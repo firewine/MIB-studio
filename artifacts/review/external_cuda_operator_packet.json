@@ -24,7 +24,7 @@
       "run_rc_handoff"
     ]
   },
-  "date": "2026-06-22T15:17:46.182808+00:00",
+  "date": "2026-06-22T15:27:15.766932+00:00",
   "expected_return_artifacts": [
     "artifacts/review/real_adapter_evidence_bundle.tar.gz",
     "artifacts/review/real_adapter_evidence_bundle_manifest.json",
@@ -43,7 +43,7 @@
   "git": {
     "branch": "main",
     "clean_worktree_required": true,
-    "head": "eff6486",
+    "head": "51b2d97",
     "remote_origin": "https://github.com/firewine/MIB-studio.git"
   },
   "m6_rc_claimed_go": false,
@@ -52,7 +52,7 @@
     "Do not claim M6-RC or v0 release GO until real trained adapter evidence, accepted M6 review docs, bundle verification, and v0 readiness all return GO."
   ],
   "operator_sequence": [
-    "Clone or update the repository to commit eff6486.",
+    "Clone or update the repository to commit 51b2d97.",
     "Verify the required_committed_files sha256 values before running artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Run artifacts/review/real_adapter_cuda_training_handoff.sh on the external CUDA host and require all package_readiness_checks to pass.",
     "Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.",

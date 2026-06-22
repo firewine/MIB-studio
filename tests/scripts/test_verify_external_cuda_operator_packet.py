@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -56,6 +57,17 @@ def readiness_rows() -> list[dict[str, object]]:
     ]
 
 
+def run_git(root: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
 def write_packet(root: Path, *, release_claimed_go: bool = False, bad_hash: bool = False) -> Path:
     rows = [
         required_row(root, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
@@ -84,6 +96,36 @@ def write_packet(root: Path, *, release_claimed_go: bool = False, bad_hash: bool
     return write_json(root, "artifacts/review/external_cuda_operator_packet.json", packet)
 
 
+def minimal_packet(root: Path, *, git_head: str, rows: list[dict[str, object]]) -> Path:
+    packet = {
+        "schema_version": verifier.PACKET_SCHEMA_VERSION,
+        "status": verifier.EXPECTED_STATUS,
+        "release_claimed_go": False,
+        "m6_rc_claimed_go": False,
+        "git": {"head": git_head},
+        "primary_external_handoff": verifier.PRIMARY_HANDOFF,
+        "required_committed_files": rows,
+        "package_readiness_checks": readiness_rows(),
+        "command_order": {
+            "training_handoff": verifier.REQUIRED_TRAINING_COMMANDS,
+            "rc_handoff": verifier.REQUIRED_RC_COMMANDS,
+            "post_transfer_closeout": verifier.REQUIRED_CLOSEOUT_COMMANDS,
+        },
+        "forbidden_committed_artifacts": verifier.REQUIRED_FORBIDDEN_LABELS,
+    }
+    return write_json(root, "artifacts/review/external_cuda_operator_packet.json", packet)
+
+
+def committed_row(root: Path, role: str, path: str) -> dict[str, object]:
+    file_path = root / path
+    return {
+        "role": role,
+        "path": path,
+        "sha256": sha256(file_path),
+        "size_bytes": file_path.stat().st_size,
+    }
+
+
 def test_verifier_accepts_ready_operator_packet(tmp_path: Path) -> None:
     packet_path = write_packet(tmp_path)
 
@@ -104,6 +146,46 @@ def test_verifier_rejects_required_file_hash_mismatch(tmp_path: Path) -> None:
 
     assert report["decision"] == verifier.NOT_GO_DECISION
     assert "required_committed_file_hashes" in report["blockers"]
+
+
+def test_verifier_accepts_required_file_blobs_at_packet_commit(tmp_path: Path) -> None:
+    run_git(tmp_path, "init")
+    write_text(tmp_path, verifier.PRIMARY_HANDOFF, "training_handoff_shell\n")
+    write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
+    run_git(tmp_path, "add", verifier.PRIMARY_HANDOFF, "scripts/prepare_strict_model_cache.py")
+    run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "packet files")
+    git_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
+    rows = [
+        committed_row(tmp_path, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
+    ]
+    packet_path = minimal_packet(tmp_path, git_head=git_head, rows=rows)
+
+    report = verifier.verify_packet(tmp_path, packet_path)
+
+    assert report["decision"] == verifier.GO_DECISION
+    assert "required_committed_file_commit_blobs" not in report["blockers"]
+
+
+def test_verifier_rejects_required_file_missing_at_packet_commit(tmp_path: Path) -> None:
+    run_git(tmp_path, "init")
+    write_text(tmp_path, verifier.PRIMARY_HANDOFF, "training_handoff_shell\n")
+    run_git(tmp_path, "add", verifier.PRIMARY_HANDOFF)
+    run_git(tmp_path, "-c", "user.name=MIB Test", "-c", "user.email=mib@example.invalid", "commit", "-m", "before strict cache")
+    stale_head = run_git(tmp_path, "rev-parse", "--short", "HEAD")
+    write_text(tmp_path, "scripts/prepare_strict_model_cache.py", "strict_model_cache\n")
+    rows = [
+        committed_row(tmp_path, "training_handoff_shell", verifier.PRIMARY_HANDOFF),
+        committed_row(tmp_path, "strict_model_cache_preparation", "scripts/prepare_strict_model_cache.py"),
+    ]
+    packet_path = minimal_packet(tmp_path, git_head=stale_head, rows=rows)
+
+    report = verifier.verify_packet(tmp_path, packet_path)
+
+    assert report["decision"] == verifier.NOT_GO_DECISION
+    assert "required_committed_file_commit_blobs" in report["blockers"]
+    commit_blob_check = next(row for row in report["checks"] if row["id"] == "required_committed_file_commit_blobs")
+    assert "scripts/prepare_strict_model_cache.py:missing_at_" + stale_head in commit_blob_check["missing_markers"]
 
 
 def test_verifier_rejects_packet_go_claim(tmp_path: Path) -> None:

@@ -93,6 +93,12 @@ def run_git(root: Path, *args: str) -> tuple[int, str, str]:
     return result.returncode, result.stdout.strip(), result.stderr.strip()
 
 
+def run_git_bytes(root: Path, *args: str) -> tuple[int, bytes, str]:
+    result = subprocess.run(["git", *args], cwd=root, check=False, capture_output=True, timeout=30)
+    stderr = result.stderr.decode("utf-8", errors="replace").strip()
+    return result.returncode, result.stdout, stderr
+
+
 def check_row(check_id: str, ok: bool, detail: str, *, missing_markers: list[str] | None = None, path: str | None = None) -> dict[str, Any]:
     return {
         "id": check_id,
@@ -164,6 +170,60 @@ def check_required_files(root: Path, packet: dict[str, Any]) -> dict[str, Any]:
         "required_committed_file_hashes",
         not failures,
         f"verified {len(paths)} required file hashes" if not failures else "required file hash verification failed",
+        missing_markers=failures,
+    )
+
+
+def check_required_file_commit_blobs(root: Path, packet: dict[str, Any]) -> dict[str, Any]:
+    rows = packet.get("required_committed_files")
+    if not isinstance(rows, list):
+        return check_row("required_committed_file_commit_blobs", False, "expected required_committed_files list", missing_markers=["required_committed_files"])
+
+    git_info = packet.get("git") if isinstance(packet.get("git"), dict) else {}
+    packet_head = git_info.get("head") if isinstance(git_info, dict) else None
+    if not isinstance(packet_head, str) or not packet_head:
+        return check_row("required_committed_file_commit_blobs", False, "packet git head missing", missing_markers=["git.head"])
+
+    returncode, _, _ = run_git(root, "cat-file", "-e", f"{packet_head}^{{commit}}")
+    if returncode != 0:
+        return check_row(
+            "required_committed_file_commit_blobs",
+            True,
+            "skipped or unavailable outside full git checkout",
+        )
+
+    failures: list[str] = []
+    checked = 0
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            failures.append(f"row_{index}_object")
+            continue
+        relative = row.get("path")
+        expected_sha = row.get("sha256")
+        expected_size = row.get("size_bytes")
+        if not isinstance(relative, str):
+            failures.append(f"row_{index}_path")
+            continue
+        if relative.startswith("/") or ".." in Path(relative).parts:
+            failures.append(f"{relative}:unsafe_path")
+            continue
+
+        blob_code, blob, blob_stderr = run_git_bytes(root, "show", f"{packet_head}:{relative}")
+        if blob_code != 0:
+            failures.append(f"{relative}:missing_at_{packet_head}")
+            if blob_stderr:
+                failures.append(f"{relative}:git_show_error")
+            continue
+        checked += 1
+        if expected_sha != hashlib.sha256(blob).hexdigest():
+            failures.append(f"{relative}:sha256_at_{packet_head}")
+        if expected_size != len(blob):
+            failures.append(f"{relative}:size_bytes_at_{packet_head}")
+
+    return check_row(
+        "required_committed_file_commit_blobs",
+        not failures,
+        f"verified {checked} required file blobs at {packet_head}" if not failures else "required file commit-blob verification failed",
         missing_markers=failures,
     )
 
@@ -276,6 +336,7 @@ def verify_packet(root: Path, packet_json: Path) -> dict[str, Any]:
         [
             check_packet_contract(packet),
             check_required_files(root, packet),
+            check_required_file_commit_blobs(root, packet),
             check_package_readiness(packet),
             check_command_order(packet),
             check_forbidden_policy(packet),

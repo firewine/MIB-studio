@@ -457,14 +457,14 @@ cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.json
 external_cuda_operator_packet: artifacts/review/external_cuda_operator_packet.json
 external_cuda_operator_packet_verification: artifacts/review/external_cuda_operator_packet_verification.json
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
-external_cuda_operator_packet_source_commit: 63d72ab
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
+external_cuda_operator_packet_source_commit: 7e6c545
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
 cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
-current_recertification_head: 5e7cc94
+current_recertification_head: 7e6c545
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -618,7 +618,7 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: 63d72ab
+handoff_source_commit: 7e6c545
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -651,7 +651,7 @@ m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
   - 17 required committed file sha256/size values
-  - 17 required committed file blobs at handoff source commit 63d72ab
+  - 17 required committed file blobs at handoff source commit 7e6c545
   - operator sequence keeps the packet file from the current checkout
   - primary handoff must be the verified launcher, not the lower-level training handoff
   - packet.git.head resolves even when current checkout is a later closeout commit
@@ -661,7 +661,7 @@ validated:
   - no forbidden tracked model/adapter/Docker/endpoint/bundle artifacts
 warning: none
 meaning: packet integrity is GO; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
-current_phase_note: after cuda base image recertification changes are committed, regenerate this packet at the new source commit before sending the external CUDA handoff again
+current_phase_note: packet has been refreshed after cuda base image recertification changes; keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
 ```
 
 Current verified external CUDA training launcher:

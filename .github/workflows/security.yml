@@ -47,7 +47,27 @@ jobs:
         with:
           python-version-file: .python-version
       - run: python -m pip install pip-audit==2.8.0
-      - run: pip-audit --disable-pip -r requirements-mlx.txt -r requirements-dev.txt
+      - run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path("requirements-mlx.txt")
+          target = Path("requirements-mlx.audit.txt")
+          platform_only = {"mlx", "mlx-lm"}
+          kept = []
+          for raw_line in source.read_text().splitlines():
+              line = raw_line.strip()
+              if not line or line.startswith("#"):
+                  kept.append(raw_line)
+                  continue
+              name = line.split("==", 1)[0].strip().lower()
+              if name in platform_only:
+                  print(f"Skipping platform-only MLX package in pip-audit resolver: {line}")
+                  continue
+              kept.append(raw_line)
+          target.write_text("\n".join(kept) + "\n")
+          PY
+          pip-audit -r requirements-mlx.audit.txt -r requirements-dev.txt
 
   model-manifest:
     runs-on: ubuntu-latest
@@ -75,21 +95,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - run: corepack enable
-      - run: corepack pnpm install --frozen-lockfile
-      - run: |
+      - id: node-deps
+        run: |
           node - <<'NODE'
           const fs = require('fs');
-          const { spawnSync } = require('child_process');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const deps = Object.assign({}, pkg.dependencies || {}, pkg.devDependencies || {});
-          if (Object.keys(deps).length === 0) {
-            console.log('No Node dependencies declared; skipping pnpm audit.');
-            process.exit(0);
+          const hasNodeDeps = Object.keys(deps).length > 0;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `has_node_deps=${hasNodeDeps}\n`);
+          if (!hasNodeDeps) {
+            console.log('No Node dependencies declared; pnpm install/audit will be skipped.');
           }
-          const result = spawnSync('corepack', ['pnpm', 'audit', '--audit-level', 'high'], { stdio: 'inherit' });
-          process.exit(result.status === null ? 1 : result.status);
           NODE
+      - if: steps.node-deps.outputs.has_node_deps == 'true'
+        run: |
+          npm install -g pnpm@9.15.0
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level high
       - run: |
           mkdir -p artifacts/security
           node - <<'NODE'

@@ -27,3 +27,4 @@
 - FE v6 Export workflow 이후 current HEAD 기준 v0 release blocker recertification을 다시 실행해 unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다.
 - FE desktop shell의 Package/Playground/Export view 렌더링을 workflowViews.mjs로 분리해 main.mjs 900+ God File soft warning을 해소했다.
 - `.venv`와 `/tmp/corepack`을 사용하는 strict bootstrap m1-smoke 명령을 재실행해 toolchain mismatch 없이 통과함을 확인했다.
+- current HEAD `6dac1ef` 기준 v0 release blocker recertification을 다시 실행해 unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다.

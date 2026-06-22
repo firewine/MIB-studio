@@ -41,29 +41,76 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CURRENT_HEAD_V0_RECERTIFICATION_AFTER_FE_V6_ORDER
+phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_B3EFBA2_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-current-head-v0-recertification-after-fe-v6-order
+gate_id: mib-studio-external-cuda-operator-packet-refresh-after-b3efba2-recertification
 mode: development
 product_code_changed: false
 frontend_code_changed: false
 verification_tooling_changed: false
 verification_artifacts_refreshed: true
-external_operator_packet_refreshed: already_ready
-external_operator_packet_refresh_required_after_phase_commit: true
+external_operator_packet_refreshed: true
+external_operator_packet_refresh_required_after_phase_commit: false
+operator_packet_ready: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
 release_claimed_go: false
 
 current_decision:
+  external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   v0_release_ready: false
   expected_local_decision: NOT_GO
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-operator-packet-refresh-after-b3efba2-recertification
+objective: refresh source-pinned external CUDA operator packet after b3efba2 recertification
+
+source_head: b3efba2
+
+packet:
+  status: PREPARED_NOT_RUN
+  source_commit: b3efba2
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  required_committed_files: 18
+
+packet_verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  operator_packet_ready: true
+  verification_ok: true
+  required_file_hashes: verified 18 required file hashes
+  required_commit_blobs: verified 18 required file blobs at b3efba2
+  forbidden_tracked_artifacts: []
+  warnings: []
+
+strict_model_cache:
+  status: READY_STRICT_MODEL_CACHE
+  no_download: true
+  json_output: /tmp/mib-b3efba2-strict-model-cache-preparation.json
+
+transfer_manifest:
+  status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  json_output: /tmp/mib-b3efba2-external-cuda-operator-transfer-manifest.json
+  transfer_model: full_repository_checkout_required
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+operator_next_step:
+  run: bash artifacts/review/verified_external_cuda_training_launcher.sh
+  host: external CUDA host with full repository checkout, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, and real adapter output paths
+  note: packet verification GO is an operator handoff readiness result, not M6-RC GO or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-current-head-v0-recertification-after-fe-v6-order

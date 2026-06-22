@@ -1,21 +1,18 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Add a one-command v0 release blocker recertification runner that refreshes the current real-adapter candidate scan, CUDA training prereq preflight, M6 real-adapter prereq audit, evidence bundle verification, v0 readiness, and CUDA handoff artifacts without weakening release policy or claiming GO.",
+  "goal": "Refresh the current v0 release blocker evidence using the existing recertification runner with host Docker access, so Docker-related blockers reflect the real host state rather than sandbox permission denial, without changing release policy or claiming GO.",
   "phase": "done",
-  "gate": "mib-studio-v0-release-blocker-recertification-runner",
+  "gate": "mib-studio-host-access-release-blocker-recertification",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "fe211e8",
+  "head": "70e0c55",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/run_v0_release_blocker_recertification.py",
-    "tests/scripts/test_run_v0_release_blocker_recertification.py",
     "artifacts/review/real_adapter_candidate_scan.json",
     "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
     "artifacts/review/m6_real_adapter_prereq_audit.json",
     "artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "artifacts/review/real_adapter_evidence_bundle_manifest.json",
     "artifacts/review/real_adapter_cuda_handoff.json",
     "artifacts/review/real_adapter_cuda_handoff.md",
     "artifacts/review/real_adapter_cuda_handoff.sh",
@@ -43,44 +40,43 @@
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may add a local recertification orchestration script, focused tests, refreshed current NOT_GO review artifacts, WORKING.md, and this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may refresh current NOT_GO review artifacts by running the existing recertification runner with host Docker access, update WORKING.md, and update this PABCD contract only.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
-    "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/find_real_adapter_candidates.py",
+    "scripts/run_v0_release_blocker_recertification.py",
     "scripts/check_cuda_lora_training_prereqs.py",
     "scripts/run_m6_real_adapter_rc_gate.py",
-    "scripts/build_real_adapter_evidence_bundle.py",
-    "scripts/verify_v0_release_readiness.py",
-    "scripts/build_real_adapter_handoff.py"
+    "scripts/verify_v0_release_readiness.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_v0_release_blocker_recertification.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
+    "docker ps",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
     "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "rg -n -- \"run_v0_release_blocker_recertification|V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|NOT_READY_CUDA_LORA_TRAINING|NOT_READY_PRECHECK_FAILED|WAITING_FOR_REAL_ADAPTER_INPUTS\" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py docs/WORKING.md artifacts/review/v0_release_blocker_recertification.json",
+    "rg -n -- \"docker_daemon_available|No such image|permission denied|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|mib-export:test\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/real_adapter_cuda_training_prereq_preflight.json artifacts/review/m6_real_adapter_prereq_audit.json artifacts/review/v0_release_readiness_audit.json docs/WORKING.md",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "One command refreshes candidate scan, CUDA training preflight, M6 prereq audit, bundle verification, v0 readiness, and CUDA handoff artifacts",
-    "Recertification summary refuses release GO unless v0 readiness is GO and reports NOT_GO current blocker state",
-    "Focused tests cover successful current NOT_GO recertification and refusal when an expected child command fails",
-    "Current local v0 readiness remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker"
+    "Host Docker daemon is reachable during the recertification run",
+    "Docker-related blockers reflect actual missing image/base-image state rather than sandbox permission denial",
+    "Current v0 readiness remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker",
+    "No release GO is claimed"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_v0_release_blocker_recertification.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
+    "docker ps",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
     "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "rg -n -- \"run_v0_release_blocker_recertification|V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|NOT_READY_CUDA_LORA_TRAINING|NOT_READY_PRECHECK_FAILED|WAITING_FOR_REAL_ADAPTER_INPUTS\" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py docs/WORKING.md artifacts/review/v0_release_blocker_recertification.json",
+    "rg -n -- \"docker_daemon_available|No such image|permission denied|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|mib-export:test\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/real_adapter_cuda_training_prereq_preflight.json artifacts/review/m6_real_adapter_prereq_audit.json artifacts/review/v0_release_readiness_audit.json docs/WORKING.md",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
@@ -88,30 +84,30 @@
   "failed_verification_commands": [],
   "warnings": [
     "M6-RC and v0 remain NOT_GO until real trained CUDA adapter no-fake Docker endpoint evidence exists.",
-    "This gate only orchestrates existing strict checks; it does not edit release review docs or verifier acceptance criteria."
+    "This gate only refreshes evidence using existing strict checks; it does not edit release review docs or verifier acceptance criteria."
   ],
   "phase_notes": {
-    "plan": "Add one-command recertification for the current release blocker evidence chain.",
-    "audit": "Existing strict checks are present but must be run as a manual multi-command sequence to refresh coherent current NOT_GO evidence.",
-    "build": "Created a runner that executes existing strict scripts, writes a summary, and regenerates candidate scan, CUDA preflight, M6 preflight, bundle verification, readiness, and handoff artifacts without claiming GO.",
-    "check": "JSON contract, py_compile, focused pytest, recertification run, summary/readiness json.tool, rg evidence, m1-smoke bootstrap, git diff --check, and git diff --cached --check passed.",
-    "done": "Phase verified. Current recertification is NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION with real_trained_adapter_no_fake_endpoint as the sole v0 release blocker."
+    "plan": "Refresh release-blocker evidence with host Docker access.",
+    "audit": "The last recertification was valid but recorded sandbox permission denial for Docker image checks; docker ps shows host Docker is reachable.",
+    "build": "Run the existing recertification runner with host Docker access and update current NOT_GO artifacts.",
+    "check": "Host-access recertification and bootstrap verification passed; Docker daemon is reachable, mib-export:test is missing, and v0 remains expected NOT_GO.",
+    "done": "Ready to stage, run git diff --cached --check, commit, and push this verified evidence refresh."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-v0-release-blocker-recertification-runner",
-    "status": "MIB_STUDIO_V0_RELEASE_BLOCKER_RECERTIFICATION_RUNNER_VERIFIED_NOT_GO",
+    "gate": "mib-studio-host-access-release-blocker-recertification",
+    "status": "MIB_STUDIO_HOST_ACCESS_RELEASE_BLOCKER_RECERTIFICATION_VERIFIED_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Local recertification runner, focused tests, refreshed current NOT_GO review artifacts, WORKING.md, and PABCD contract only.",
+    "approved_scope": "Host-access refresh of current NOT_GO release-blocker artifacts, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product code changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Add one-command recertification for the current release blocker evidence chain.",
-    "audit": "Existing strict checks are present but must be run as a manual multi-command sequence to refresh coherent current NOT_GO evidence.",
-    "build": "Created a runner that executes existing strict scripts, writes a summary, and regenerates candidate scan, CUDA preflight, M6 preflight, bundle verification, readiness, and handoff artifacts without claiming GO.",
-    "check": "JSON contract, py_compile, focused pytest, recertification run, summary/readiness json.tool, rg evidence, m1-smoke bootstrap, git diff --check, and git diff --cached --check passed.",
-    "done": "Phase verified. Current recertification is NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION with real_trained_adapter_no_fake_endpoint as the sole v0 release blocker."
+    "plan": "Refresh release-blocker evidence with host Docker access.",
+    "audit": "The last recertification was valid but recorded sandbox permission denial for Docker image checks; docker ps shows host Docker is reachable.",
+    "build": "Run the existing recertification runner with host Docker access and update current NOT_GO artifacts.",
+    "check": "Host-access recertification and bootstrap verification passed; Docker daemon is reachable, mib-export:test is missing, and v0 remains expected NOT_GO.",
+    "done": "Ready to stage, run git diff --cached --check, commit, and push this verified evidence refresh."
   }
 }

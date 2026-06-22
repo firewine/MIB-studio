@@ -37,10 +37,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_RELEASE_BLOCKER_RECERTIFICATION_RUNNER
+phase_id: HOST_ACCESS_RELEASE_BLOCKER_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: v0_release_blocker_recertification_runner_verified_not_go
-gate_id: mib-studio-v0-release-blocker-recertification-runner
+phase_status: host_access_release_blocker_recertification_verified_not_go
+gate_id: mib-studio-host-access-release-blocker-recertification
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -54,8 +54,8 @@ current_decision:
 ## 2. Latest Work
 
 ```yaml
-gate: mib-studio-v0-release-blocker-recertification-runner
-objective: refresh all current release-blocker evidence with one command
+gate: mib-studio-host-access-release-blocker-recertification
+objective: refresh current release-blocker evidence with host Docker access
 
 files:
   runner: scripts/run_v0_release_blocker_recertification.py
@@ -85,11 +85,14 @@ runner_contract:
   release_claimed_go: false
 
 summary:
-  - one command now refreshes candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle verification, v0 readiness, and the CUDA handoff artifacts
+  - host Docker daemon access is confirmed by docker ps and docker_daemon_available ok:true in the CUDA preflight artifact
+  - host-access recertification refreshes candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle verification, v0 readiness, and CUDA handoff artifacts
+  - Docker-related evidence now records actual missing image/base-image state instead of sandbox permission denial
+  - mib-export:test is currently missing on the host: Error response from daemon: No such image: mib-export:test
   - the current local state remains NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
   - FE v6 remains verified through docs/mockup/mib_fe_mockup_v6_routes_contract.html and artifacts/review/fe_v6_evidence.md
   - current scan found 2 fixture-like candidates and 0 GO candidates
-  - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING
+  - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING with blockers docker_base_image_env_digest, cuda_visible, and docker_base_image_available
   - current M6 real-adapter preflight is NOT_READY_PRECHECK_FAILED
   - current real-adapter bundle verification is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
   - current handoff decision is WAITING_FOR_REAL_ADAPTER_INPUTS
@@ -130,15 +133,16 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_release_blocker_recertification_runner_verified_not_go
+status: host_access_release_blocker_recertification_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_v0_release_blocker_recertification.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q
+  - docker ps
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
   - python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+  - python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
-  - rg -n -- "run_v0_release_blocker_recertification|V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|NOT_READY_CUDA_LORA_TRAINING|NOT_READY_PRECHECK_FAILED|WAITING_FOR_REAL_ADAPTER_INPUTS" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py docs/WORKING.md artifacts/review/v0_release_blocker_recertification.json
+  - rg -n -- "docker_daemon_available|No such image|permission denied|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|mib-export:test" artifacts/review/v0_release_blocker_recertification.json artifacts/review/real_adapter_cuda_training_prereq_preflight.json artifacts/review/m6_real_adapter_prereq_audit.json artifacts/review/v0_release_readiness_audit.json docs/WORKING.md
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
   - git diff --check
   - git diff --cached --check
@@ -172,8 +176,9 @@ local_missing_inputs:
   - /tmp/mib-real-adapter/adapter/adapter_config.json
   - /tmp/mib-real-adapter/manifest.json
   - nvidia-smi_cuda_visibility
+  - MIB_DOCKER_BASE_IMAGE_WITH_DIGEST
   - local_digest_pinned_cuda_python_base_image
-  - docker_daemon_access_or_mib-export:test_real_adapter_image
+  - mib-export:test_real_adapter_image
 ```
 
 ## 6. Next Work
@@ -216,6 +221,9 @@ commands. The active closeout tool is
 scripts/run_v0_release_blocker_recertification.py. It refreshes the current
 candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle
 verification, v0 readiness, and CUDA handoff artifacts with one command.
+The latest host-access recertification confirmed docker_daemon_available ok:true
+and mib-export:test missing as "No such image", so Docker permission denial is
+not the current release blocker.
 
 Do not claim M6-RC GO or v0 GO from the current local artifacts. The current
 release blocker is real_trained_adapter_no_fake_endpoint. M6 review docs must

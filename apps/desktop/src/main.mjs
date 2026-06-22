@@ -517,7 +517,7 @@ function breadcrumb(route) {
   if (route.name === "projects") return "projects";
   if (route.name === "projectNew") return "projects / new";
   if (route.name === "projectDashboard") return "projects / dashboard";
-  if (route.name === "projectDefine") return "projects / define / route-contract";
+  if (route.name === "projectDefine") return "projects / define / Route contract";
   if (route.name === "datasetNew") return "projects / datasets / new";
   if (route.name === "datasetDetail") return "datasets / detail";
   if (route.name === "hardware") return "hardware / doctor";

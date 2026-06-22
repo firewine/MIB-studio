@@ -1,0 +1,83 @@
+{
+  "agent_id": "finance.router.v1",
+  "base_model": "microsoft/Phi-3.5-mini-instruct",
+  "candidate_count": 2,
+  "candidates": [
+    {
+      "adapter_dir": "/tmp/mib-phi-docker-export-_vgqfd4g/.mib-home/projects/f057829908224162825bea3e144201f0/exports/989c1bbe5246469a8a9839cf4c5340ef/docker_context/adapter",
+      "adapter_sha256": "3d13dca51a3ce5bc98101e94f82e50839d87b3e05c392f33bf7bbd2a39ce73b6",
+      "artifact_manifest_sha256": "c75f982e9ddbe15947cc240ebcc964a49e597523e9c14811a72d3256335c0f84",
+      "config": {
+        "base_model": null,
+        "peft_type": ""
+      },
+      "errors": [
+        "adapter_config.json: peft_type must be LORA",
+        "adapter_config.json: base_model_name_or_path must be one of ['google/gemma-2b-it', 'microsoft/Phi-3.5-mini-instruct']",
+        "adapter_config.json: base model None does not match expected 'microsoft/Phi-3.5-mini-instruct'",
+        "adapter_config.json: r must be a positive integer",
+        "adapter_config.json: lora_alpha must be a positive integer",
+        "adapter_config.json: target_modules must be a non-empty string list",
+        "adapter.safetensors: file is fixture-sized (12 bytes)",
+        "adapter.safetensors: invalid safetensors file: Error while deserializing header: HeaderTooLarge",
+        "manifest: trainer_backend must be llamafactory or mlx_lm",
+        "manifest: adapter_sha256 mismatch",
+        "manifest: files do not match adapter directory"
+      ],
+      "go": false,
+      "manifest_path": "/tmp/mib-phi-docker-export-_vgqfd4g/.mib-home/projects/f057829908224162825bea3e144201f0/exports/989c1bbe5246469a8a9839cf4c5340ef/docker_context/manifest.json",
+      "safetensors": {
+        "lora_key_count": 0,
+        "tensor_count": 0,
+        "tensor_elements": 0
+      },
+      "status": "NOT_GO_REAL_ADAPTER_ARTIFACT_INTAKE"
+    },
+    {
+      "adapter_dir": "/tmp/mib-phi-docker-export-_vgqfd4g/adapters/3e01f8ab82ac4bf8ba65c013825cdef7",
+      "adapter_sha256": "0aae61efd2e3c8ecb5e4900f39505f8ff65c83a85a6e56c72696a202ba93efe7",
+      "artifact_manifest_sha256": null,
+      "config": {
+        "base_model": null,
+        "peft_type": ""
+      },
+      "errors": [
+        "adapter_config.json: peft_type must be LORA",
+        "adapter_config.json: base_model_name_or_path must be one of ['google/gemma-2b-it', 'microsoft/Phi-3.5-mini-instruct']",
+        "adapter_config.json: base model None does not match expected 'microsoft/Phi-3.5-mini-instruct'",
+        "adapter_config.json: r must be a positive integer",
+        "adapter_config.json: lora_alpha must be a positive integer",
+        "adapter_config.json: target_modules must be a non-empty string list",
+        "adapter.safetensors: file is fixture-sized (12 bytes)",
+        "adapter.safetensors: invalid safetensors file: Error while deserializing header: HeaderTooLarge"
+      ],
+      "go": false,
+      "manifest_path": null,
+      "safetensors": {
+        "lora_key_count": 0,
+        "tensor_count": 0,
+        "tensor_elements": 0
+      },
+      "status": "NOT_GO_REAL_ADAPTER_ARTIFACT_INTAKE"
+    }
+  ],
+  "date": "2026-06-22T01:23:02.264780+00:00",
+  "decision": "NO_GO_CANDIDATES_FOUND",
+  "fixture_like_candidate_count": 2,
+  "go_candidate_count": 0,
+  "image": "mib-export:test",
+  "m6_rc_claimed_go": false,
+  "model_cache_dir": "/tmp/mib-strict-model-cache/model_cache",
+  "roots": [
+    "/home/firewine/MIB-studio",
+    "/tmp/mib-real-adapter",
+    "/tmp/mib-phi-docker-export-_vgqfd4g"
+  ],
+  "scan_errors": [
+    {
+      "error": "root does not exist",
+      "root": "/tmp/mib-real-adapter"
+    }
+  ],
+  "schema_version": "mib_real_adapter_candidate_scan.v1"
+}

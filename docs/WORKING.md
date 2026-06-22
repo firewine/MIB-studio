@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_IMAGE_LINEAGE_PREFLIGHT
+phase_id: REAL_ADAPTER_CANDIDATE_LOCATOR
 milestone: M6_RC_Blocker_Remediation
-phase_status: real_adapter_image_lineage_preflight_verified_not_go
+phase_status: real_adapter_candidate_locator_and_m1_smoke_verified_not_go
 active_slice: none
-gate_id: mib-studio-real-adapter-image-lineage-preflight
+gate_id: mib-studio-real-adapter-candidate-locator
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,14 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-real-adapter-image-lineage-preflight
+  gate: mib-studio-real-adapter-candidate-locator
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: harden the real-adapter RC runner so a stale or fixture Docker image cannot satisfy preflight unless its adapter hash matches the submitted adapter manifest
+  objective: add reusable scan-to-runner tooling for operator-provided real CUDA lora_adapter candidates and restore the M1 smoke route-contract sentinel
   evidence:
+    real_adapter_candidate_locator: artifacts/review/real_adapter_candidate_locator_evidence.md
+    real_adapter_candidate_scan_json: artifacts/review/real_adapter_candidate_scan.json
     real_adapter_image_lineage_preflight: artifacts/review/real_adapter_image_lineage_preflight_evidence.md
     v0_release_readiness_audit: artifacts/review/v0_release_readiness_audit_evidence.md
     v0_release_readiness_audit_json: artifacts/review/v0_release_readiness_audit.json
@@ -68,15 +70,19 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
-    - scripts/run_m6_real_adapter_rc_gate.py preflight now includes docker_image_adapter_matches_adapter_manifest
-    - when adapter manifest hash, adapter dir, and Docker image are present, preflight computes /app/adapter aggregate hash inside the image and compares it to submitted manifest adapter_sha256
-    - current preflight still reports NOT_READY_PRECHECK_FAILED and skips the new guard because real adapter artifacts and mib-export:test are missing
+    - scripts/find_real_adapter_candidates.py scans explicit roots for adapter.safetensors plus adapter_config.json directories
+    - candidate validation reuses scripts/verify_real_adapter_artifact.py real adapter intake rules
+    - GO candidates emit runnable scripts/run_m6_real_adapter_rc_gate.py commands
+    - current scan across repo, /tmp/mib-real-adapter, and /tmp/mib-phi-docker-export-_vgqfd4g found 2 fixture-like candidates and 0 GO candidates
+    - apps/desktop/src/main.mjs breadcrumb text includes the Route contract sentinel required by M1 smoke bootstrap
+    - hook-required bootstrap_dev.sh --phase m1-smoke --skip-install now passes in .venv
     - current v0 release readiness decision remains NOT_GO, release_ready false, verification_ok true, unexpected_blockers empty
     - the only current release blocker is real_trained_adapter_no_fake_endpoint
     - current missing prereqs are adapter_dir_present, adapter_safetensors_present, adapter_config_present, adapter_manifest_present, docker_image_available, and host_cuda_visible
-    - no backend, schema, training, export, runtime, UI behavior, or M6 evidence policy files changed
+    - no backend, schema, training, export, runtime behavior, or M6 evidence policy files changed
 
 important_previous_commits:
+  real_adapter_image_lineage_preflight: ff38eeb
   v0_milestone_evidence_matrix_audit: f9f2499
   desktop_e2e_route_repair: cf2fdf5
   real_adapter_prereq_audit: ac34a7e
@@ -99,15 +105,16 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: real_adapter_image_lineage_preflight_verified_not_go
+status: real_adapter_candidate_locator_and_m1_smoke_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --preflight-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output artifacts/review/m6_real_adapter_prereq_audit.json
-  - python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/find_real_adapter_candidates.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_find_real_adapter_candidates.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/find_real_adapter_candidates.py --root /home/firewine/MIB-studio --root /tmp/mib-real-adapter --root /tmp/mib-phi-docker-export-_vgqfd4g --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --expected-go-candidates 0 --json-output artifacts/review/real_adapter_candidate_scan.json
+  - python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
+  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
   - git diff --check
   - git diff --cached --check
 warnings:
@@ -115,6 +122,7 @@ warnings:
   - no real trained CUDA lora_adapter artifact was found in the repo or current /tmp artifacts
   - current host has no visible CUDA device; nvidia-smi is unavailable and torch.cuda.is_available() is false
   - previous endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
+  - bootstrap pip-audit is skipped by script policy in --skip-install environments when isolated pip upgrade cannot complete
 failed: []
 ```
 
@@ -150,6 +158,7 @@ recorded_go:
   V0_Release_Readiness_Audit: true
   V0_Milestone_Evidence_Matrix_Audit: true
   Real_Adapter_Image_Lineage_Preflight: true
+  Real_Adapter_Candidate_Locator: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -157,8 +166,8 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-real-adapter-image-lineage-preflight
-  review_bundle: artifacts/review/real_adapter_image_lineage_preflight_evidence.md
+  id: mib-studio-real-adapter-candidate-locator
+  review_bundle: artifacts/review/real_adapter_candidate_locator_evidence.md
   decision: not_go_real_trained_adapter_no_fake_endpoint
 
 active_release_blocker:
@@ -198,10 +207,14 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-real-adapter-image-lineage-preflight. The real-adapter RC runner now
-checks docker_image_adapter_matches_adapter_manifest when adapter manifest hash,
-adapter dir, and Docker image are present, preventing stale/fixture images from
-satisfying preflight by tag alone. Use
+mib-studio-real-adapter-candidate-locator. Use
+scripts/find_real_adapter_candidates.py to scan explicit roots for real adapter
+candidates; GO candidates emit scripts/run_m6_real_adapter_rc_gate.py commands.
+The current scan found 2 fixture-like candidates and 0 GO candidates.
+apps/desktop/src/main.mjs contains the Route contract sentinel required by
+COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1
+PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke
+--skip-install. Use
 scripts/verify_v0_release_readiness.py --expected-decision NOT_GO to audit the
 current final-program completion state. The current JSON report is
 artifacts/review/v0_release_readiness_audit.json: M0 signoff, M1 smoke

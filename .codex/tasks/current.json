@@ -1,20 +1,18 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Refresh the external CUDA operator packet after current-head recertification commit f31050c changed source-pinned handoff and recertification artifacts, without claiming release GO.",
+  "goal": "Audit current local/external CUDA handoff readiness after pushed packet refresh at b79322a, without changing release GO state.",
   "phase": "done",
-  "gate": "mib-studio-post-recertification-external-cuda-packet-refresh",
+  "gate": "mib-studio-external-cuda-handoff-readiness-audit",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "f31050c",
+  "head": "b79322a",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet.md",
-    "artifacts/review/external_cuda_operator_packet_verification.json",
-    "docs/CONTEXT.md",
+    "artifacts/review/external_cuda_handoff_readiness_audit.json",
+    "artifacts/review/external_cuda_handoff_readiness_audit.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
@@ -32,6 +30,9 @@
     "docs/mockup",
     "docs/handoffs",
     "docs/reviews",
+    "artifacts/review/external_cuda_operator_packet.json",
+    "artifacts/review/external_cuda_operator_packet.md",
+    "artifacts/review/external_cuda_operator_packet_verification.json",
     "artifacts/review/real_adapter/",
     "artifacts/review/real_adapter_evidence_bundle",
     "artifacts/review/strict_model_cache_preparation.json",
@@ -53,118 +54,111 @@
   ],
   "blocked_scope": [
     "Changing product runtime code, API behavior, frontend behavior, DB schema, source tests, scripts, model catalog, examples, schemas, release readiness acceptance criteria, packet verifier criteria, or no-fake endpoint checks",
+    "Regenerating source-pinned operator packet or release recertification artifacts in this readiness audit phase",
     "Generating, inventing, copying, or promoting real adapter, endpoint, benchmark, package, export, release, or external evidence into the repository",
     "Claiming M6-RC or v0 release GO",
     "Editing docs/reviews/M6 to GO",
     "Committing model weights, strict model cache files, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Refresh only the source-pinned external CUDA operator packet artifacts and LLM operational docs after recertification commit f31050c.",
+  "allowed_edit_paths_scope_note": "Record local readiness/blocker evidence for the external CUDA handoff only; do not rerun release recertification or packet generation.",
   "reference_only_paths": [
-    "/home/firewine/getbeta/docs/guides/VS_CODE_MULTI_AGENT_GATE_PROTOCOL_V4.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/build_external_cuda_operator_packet.py",
-    "scripts/verify_external_cuda_operator_packet.py",
-    "scripts/build_external_cuda_operator_transfer_manifest.py",
-    "tests/scripts/test_build_external_cuda_operator_packet.py",
-    "tests/scripts/test_verify_external_cuda_operator_packet.py",
-    "tests/scripts/test_build_external_cuda_operator_transfer_manifest.py",
     "artifacts/review/external_cuda_operator_packet.json",
-    "artifacts/review/external_cuda_operator_packet_verification.json"
+    "artifacts/review/external_cuda_operator_packet_verification.json",
+    "artifacts/review/verified_external_cuda_training_launcher.sh",
+    "artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "artifacts/review/real_adapter_cuda_handoff.sh",
+    "scripts/build_external_cuda_operator_transfer_manifest.py",
+    "scripts/verify_external_cuda_operator_packet.py",
+    "scripts/prepare_strict_model_cache.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision NOT_GO --json-output /tmp/mib-external-cuda-packet-pre-f31050c-refresh.json",
-    "python3 -m json.tool /tmp/mib-external-cuda-packet-pre-f31050c-refresh.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_transfer_manifest.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/build_external_cuda_operator_transfer_manifest.py scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head f31050c --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --json-output /tmp/mib-external-cuda-operator-transfer-manifest-post-f31050c-refresh.json --markdown-output /tmp/mib-external-cuda-operator-transfer-manifest-post-f31050c-refresh.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "python3 -m json.tool /tmp/mib-external-cuda-operator-transfer-manifest-post-f31050c-refresh.json",
-    "rg -n -- \"f31050c|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|READY_EXTERNAL_CUDA_OPERATOR_TRANSFER|verified 18 required file|build_external_cuda_operator_transfer_manifest.py|release_claimed_go|m6_rc_claimed_go|real_trained_adapter_no_fake_endpoint|forbidden_tracked_artifacts|warnings\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output /tmp/mib-external-cuda-packet-b79322a-readiness.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --json-output /tmp/mib-external-cuda-transfer-b79322a-readiness.json --markdown-output /tmp/mib-external-cuda-transfer-b79322a-readiness.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --no-download --expected-status READY_STRICT_MODEL_CACHE --json-output /tmp/mib-strict-model-cache-b79322a-readiness.json",
+    "python3 -m json.tool /tmp/mib-external-cuda-packet-b79322a-readiness.json",
+    "python3 -m json.tool /tmp/mib-external-cuda-transfer-b79322a-readiness.json",
+    "python3 -m json.tool /tmp/mib-strict-model-cache-b79322a-readiness.json",
+    "python3 -m json.tool artifacts/review/external_cuda_handoff_readiness_audit.json",
+    "bash -n artifacts/review/verified_external_cuda_training_launcher.sh",
+    "bash -n artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "bash -n artifacts/review/real_adapter_cuda_handoff.sh",
+    "rg -n -- \"b79322a|WAITING_FOR_EXTERNAL_CUDA_HOST|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|READY_EXTERNAL_CUDA_OPERATOR_TRANSFER|READY_STRICT_MODEL_CACHE|nvidia_smi_available|adapter_safetensors_present|mib_export_test_image_available|release_claimed_go|real_trained_adapter_no_fake_endpoint\" artifacts/review/external_cuda_handoff_readiness_audit.json artifacts/review/external_cuda_handoff_readiness_audit.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git status --short",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
     "PABCD contract is valid JSON and includes mode=development plus phase notes for plan, audit, build, check, and done.",
-    "Pre-refresh packet verification reports expected NOT_GO because the previous packet hashes are stale after commit f31050c changed source-pinned handoff/recertification artifacts.",
-    "Regenerated operator packet pins git.head f31050c and still claims no M6-RC or v0 release GO.",
-    "Packet verification reports GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION with verification_ok true and warnings [].",
-    "Verifier validates 18 required committed file hashes and 18 required committed file blobs at f31050c.",
-    "Post-refresh transfer manifest emits READY_EXTERNAL_CUDA_OPERATOR_TRANSFER.",
-    "No product code, source tests, scripts, release criteria, M6 review docs, real adapter evidence, model cache files, Docker artifacts, or evidence bundles are staged."
+    "Operator packet verification remains GO at current checkout.",
+    "Transfer manifest remains READY and requires a full repository checkout.",
+    "Strict model cache is READY in no-download mode.",
+    "Readiness audit records current local blockers: no nvidia-smi, no adapter.safetensors, no adapter_config.json, no /tmp/mib-real-adapter/manifest.json, no mib-export:test image, and no release GO claim.",
+    "No product code, source tests, scripts, release criteria, M6 review docs, real adapter evidence, model cache files, Docker artifacts, packet artifacts, recertification artifacts, or evidence bundles are staged."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision NOT_GO --json-output /tmp/mib-external-cuda-packet-pre-f31050c-refresh.json",
-    "python3 -m json.tool /tmp/mib-external-cuda-packet-pre-f31050c-refresh.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_transfer_manifest.py tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/build_external_cuda_operator_transfer_manifest.py scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head f31050c --json-output artifacts/review/external_cuda_operator_packet.json --markdown-output artifacts/review/external_cuda_operator_packet.md",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --json-output /tmp/mib-external-cuda-operator-transfer-manifest-post-f31050c-refresh.json --markdown-output /tmp/mib-external-cuda-operator-transfer-manifest-post-f31050c-refresh.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
-    "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "python3 -m json.tool /tmp/mib-external-cuda-operator-transfer-manifest-post-f31050c-refresh.json",
-    "rg -n -- \"f31050c|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|READY_EXTERNAL_CUDA_OPERATOR_TRANSFER|verified 18 required file|build_external_cuda_operator_transfer_manifest.py|release_claimed_go|m6_rc_claimed_go|real_trained_adapter_no_fake_endpoint|forbidden_tracked_artifacts|warnings\" artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --packet-json artifacts/review/external_cuda_operator_packet.json --expected-decision GO --json-output /tmp/mib-external-cuda-packet-b79322a-readiness.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_transfer_manifest.py --json-output /tmp/mib-external-cuda-transfer-b79322a-readiness.json --markdown-output /tmp/mib-external-cuda-transfer-b79322a-readiness.md --expected-status READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_model_cache.py --base-model microsoft/Phi-3.5-mini-instruct --backend cuda --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --no-download --expected-status READY_STRICT_MODEL_CACHE --json-output /tmp/mib-strict-model-cache-b79322a-readiness.json",
+    "python3 -m json.tool /tmp/mib-external-cuda-packet-b79322a-readiness.json",
+    "python3 -m json.tool /tmp/mib-external-cuda-transfer-b79322a-readiness.json",
+    "python3 -m json.tool /tmp/mib-strict-model-cache-b79322a-readiness.json",
+    "python3 -m json.tool artifacts/review/external_cuda_handoff_readiness_audit.json",
+    "bash -n artifacts/review/verified_external_cuda_training_launcher.sh",
+    "bash -n artifacts/review/real_adapter_cuda_training_handoff.sh",
+    "bash -n artifacts/review/real_adapter_cuda_handoff.sh",
+    "rg -n -- \"b79322a|WAITING_FOR_EXTERNAL_CUDA_HOST|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|READY_EXTERNAL_CUDA_OPERATOR_TRANSFER|READY_STRICT_MODEL_CACHE|nvidia_smi_available|adapter_safetensors_present|mib_export_test_image_available|release_claimed_go|real_trained_adapter_no_fake_endpoint\" artifacts/review/external_cuda_handoff_readiness_audit.json artifacts/review/external_cuda_handoff_readiness_audit.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git status --short",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "observed_evidence": {
-    "pre_refresh_packet": {
-      "path": "/tmp/mib-external-cuda-packet-pre-f31050c-refresh.json",
-      "decision": "NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
-      "expected_decision": "NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
-      "verification_ok": true,
-      "blocker": "required_committed_file_hashes",
-      "stale_hash_paths": [
-        "artifacts/review/real_adapter_cuda_handoff.json:sha256",
-        "artifacts/review/real_adapter_cuda_handoff.md:sha256",
-        "artifacts/review/v0_release_blocker_recertification.json:sha256"
-      ],
-      "previous_packet_handoff_source_commit": "5fc0a75"
-    },
-    "focused_tests": {
-      "packet_tests": "15 passed",
-      "py_compile": "PASS"
-    },
-    "regenerated_packet": {
-      "path": "artifacts/review/external_cuda_operator_packet.json",
-      "status": "PREPARED_NOT_RUN",
-      "git_head": "f31050c",
-      "required_committed_files": 18,
-      "includes": "scripts/build_external_cuda_operator_transfer_manifest.py",
-      "release_claimed_go": false,
-      "m6_rc_claimed_go": false
-    },
-    "packet_verification": {
-      "path": "artifacts/review/external_cuda_operator_packet_verification.json",
+    "packet_readiness": {
       "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
       "verification_ok": true,
       "operator_packet_ready": true,
       "packet_handoff_source_commit": "f31050c",
-      "required_file_hashes": "verified 18 required file hashes",
-      "required_commit_blobs": "verified 18 required file blobs at f31050c",
-      "forbidden_tracked_artifacts": [],
       "warnings": []
     },
-    "transfer_manifest_post_refresh": {
-      "path": "/tmp/mib-external-cuda-operator-transfer-manifest-post-f31050c-refresh.json",
+    "transfer_manifest": {
       "status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
-      "blockers": [],
-      "packet_handoff_source_commit": "f31050c",
+      "full_checkout_required": true,
+      "partial_file_archive_allowed": false,
+      "packet_handoff_source_commit": "f31050c"
+    },
+    "strict_model_cache": {
+      "status": "READY_STRICT_MODEL_CACHE",
+      "download_allowed": false,
+      "cache_ready": true,
+      "required_file_count": 5
+    },
+    "local_host_blockers": {
+      "nvidia_smi_available": false,
+      "adapter_safetensors_present": false,
+      "adapter_config_present": false,
+      "adapter_manifest_present": false,
+      "mib_export_test_image_available": false,
+      "runtime_bearer_token_present": false
+    },
+    "local_host_ready": {
+      "docker_daemon_available": true,
+      "docker_server_version": "29.6.0",
+      "docker_base_image_available": true,
+      "backend_config_present": true,
+      "adapter_root_present": true,
+      "adapter_dir_present": true
+    },
+    "release_state": {
       "release_claimed_go": false,
       "m6_rc_claimed_go": false,
-      "full_checkout_required": true,
-      "partial_file_archive_allowed": false
+      "v0_release_ready": false,
+      "current_release_blocker": "real_trained_adapter_no_fake_endpoint"
     },
     "scope_check": {
       "changed_paths_only_allowed": true,
@@ -176,37 +170,38 @@
       "model_cache_files_committed": false,
       "real_adapter_evidence_created": false,
       "docker_artifacts_created": false,
-      "release_claimed_go": false,
+      "packet_artifacts_changed": false,
+      "recertification_artifacts_changed": false,
       "diff_check": "PASS",
       "cached_diff_check": "PASS"
     }
   },
   "warnings": [
-    "This phase refreshes packet integrity only.",
+    "This phase is readiness evidence only.",
     "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Refresh external CUDA operator packet artifacts so source-pinned hashes match recertification commit f31050c.",
-    "audit": "After commit f31050c, the previous packet is expected to be NOT_GO because required file hashes for handoff/recertification artifacts are stale.",
-    "build": "Regenerate external_cuda_operator_packet JSON/Markdown at git head f31050c, verify it, run the transfer manifest builder, and update LLM operational docs.",
-    "check": "Run pre-refresh NOT_GO verification, focused packet tests, py_compile, packet build, packet verification, transfer manifest generation, JSON validation, evidence search, git status scope check, and diff checks.",
-    "done": "Verification passed, packet source commit f31050c is GO, transfer manifest is READY, release GO claims remain false, commits were pushed over SSH, and origin/main tracking was refreshed."
+    "plan": "Capture current local readiness and blockers for the external CUDA handoff after packet refresh closeout.",
+    "audit": "Packet and transfer manifest are pushed and GO/READY; remaining work depends on real CUDA host execution and real adapter evidence.",
+    "build": "Create a narrow readiness audit artifact and update LLM working docs/completion log.",
+    "check": "Validate JSON, packet GO, transfer READY, strict model cache READY, shell syntax, evidence search, status, and diff checks.",
+    "done": "Verification passed, readiness audit records packet GO, transfer READY, strict model cache READY, and external CUDA host blockers; release GO claims remain false."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-post-recertification-external-cuda-packet-refresh",
-    "status": "COMPLETE_PUSHED",
+    "gate": "mib-studio-external-cuda-handoff-readiness-audit",
+    "status": "COMPLETE_PENDING_COMMIT_PUSH",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Refresh external CUDA operator packet artifacts and LLM operational docs after recertification commit f31050c.",
-    "blocked_scope": "No product/runtime/test/script/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, or venv artifacts.",
-    "phase_completion_git_policy": "Completed: stage, commit, push over SSH, and refresh origin/main tracking.",
-    "plan": "Refresh external CUDA operator packet artifacts so source-pinned hashes match recertification commit f31050c.",
-    "audit": "After commit f31050c, the previous packet is expected to be NOT_GO because required file hashes for handoff/recertification artifacts are stale.",
-    "build": "Regenerate external_cuda_operator_packet JSON/Markdown at git head f31050c, verify it, run the transfer manifest builder, and update LLM operational docs.",
-    "check": "Run pre-refresh NOT_GO verification, focused packet tests, py_compile, packet build, packet verification, transfer manifest generation, JSON validation, evidence search, git status scope check, and diff checks.",
-    "done": "Verification passed, packet source commit f31050c is GO, transfer manifest is READY, release GO claims remain false, commits were pushed over SSH, and origin/main tracking was refreshed."
+    "approved_scope": "Record external CUDA handoff readiness evidence and LLM operational docs only.",
+    "blocked_scope": "No product/runtime/test/script/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, packet artifact, recertification artifact, or venv artifacts.",
+    "phase_completion_git_policy": "After verification passes, stage, commit, push over SSH if needed, and refresh origin/main tracking.",
+    "plan": "Capture current local readiness and blockers for the external CUDA handoff after packet refresh closeout.",
+    "audit": "Packet and transfer manifest are pushed and GO/READY; remaining work depends on real CUDA host execution and real adapter evidence.",
+    "build": "Create a narrow readiness audit artifact and update LLM working docs/completion log.",
+    "check": "Validate JSON, packet GO, transfer READY, strict model cache READY, shell syntax, evidence search, status, and diff checks.",
+    "done": "Verification passed, readiness audit records packet GO, transfer READY, strict model cache READY, and external CUDA host blockers; release GO claims remain false."
   }
 }

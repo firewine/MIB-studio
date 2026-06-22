@@ -1,0 +1,89 @@
+{
+  "schema_version": "mib_external_cuda_handoff_readiness_audit.v1",
+  "date": "2026-06-22T21:23:30Z",
+  "gate": "mib-studio-external-cuda-handoff-readiness-audit",
+  "status": "WAITING_FOR_EXTERNAL_CUDA_HOST",
+  "release_claimed_go": false,
+  "m6_rc_claimed_go": false,
+  "v0_release_ready": false,
+  "current_release_blocker": "real_trained_adapter_no_fake_endpoint",
+  "workspace": {
+    "root": "/home/firewine/MIB-studio",
+    "branch": "main",
+    "head": "b79322a",
+    "git_status": "clean_against_origin_main"
+  },
+  "packet_readiness": {
+    "packet_json": "artifacts/review/external_cuda_operator_packet.json",
+    "verification_json": "/tmp/mib-external-cuda-packet-b79322a-readiness.json",
+    "decision": "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+    "verification_ok": true,
+    "operator_packet_ready": true,
+    "packet_handoff_source_commit": "f31050c",
+    "required_committed_files": 18,
+    "warnings": []
+  },
+  "transfer_manifest_readiness": {
+    "json_output": "/tmp/mib-external-cuda-transfer-b79322a-readiness.json",
+    "status": "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
+    "full_checkout_required": true,
+    "partial_file_archive_allowed": false,
+    "packet_handoff_source_commit": "f31050c"
+  },
+  "strict_model_cache_readiness": {
+    "json_output": "/tmp/mib-strict-model-cache-b79322a-readiness.json",
+    "status": "READY_STRICT_MODEL_CACHE",
+    "download_allowed": false,
+    "cache_ready": true,
+    "required_file_count": 5,
+    "model_cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache"
+  },
+  "local_host_checks": {
+    "nvidia_smi_available": false,
+    "docker_daemon_available": true,
+    "docker_server_version": "29.6.0",
+    "docker_base_image_available": true,
+    "docker_base_image": "pytorch/pytorch@sha256:ac7c098a81512e719afa5d2d497f812d7db3498f340a4b819c69cb7b3b257126",
+    "mib_export_test_image_available": false,
+    "backend_config_present": true,
+    "adapter_root_present": true,
+    "adapter_dir_present": true,
+    "adapter_safetensors_present": false,
+    "adapter_config_present": false,
+    "adapter_manifest_present": false,
+    "runtime_bearer_token_present": false
+  },
+  "blocking_requirements": [
+    "nvidia_smi_available",
+    "adapter_safetensors_present",
+    "adapter_config_present",
+    "adapter_manifest_present",
+    "mib_export_test_image_available",
+    "runtime_bearer_token_present"
+  ],
+  "ready_requirements": [
+    "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION",
+    "READY_EXTERNAL_CUDA_OPERATOR_TRANSFER",
+    "READY_STRICT_MODEL_CACHE",
+    "backend_config_present",
+    "docker_daemon_available",
+    "docker_base_image_available"
+  ],
+  "next_external_cuda_host_actions": [
+    "Run from a full repository checkout at or after b79322a.",
+    "Ensure nvidia-smi succeeds on the host.",
+    "Set a real MIB_RUNTIME_BEARER_TOKEN with at least 32 characters before the RC handoff.",
+    "Run bash artifacts/review/verified_external_cuda_training_launcher.sh.",
+    "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
+    "After training, require /tmp/mib-real-adapter/adapter/adapter.safetensors, /tmp/mib-real-adapter/adapter/adapter_config.json, and /tmp/mib-real-adapter/manifest.json.",
+    "Build or provide mib-export:test with the same real adapter hash.",
+    "Capture live no-fake Docker endpoint evidence, then update docs/reviews/M6 to GO only after evidence is accepted.",
+    "Return only the metadata-bearing real_adapter_evidence_bundle archive and accepted review doc updates for local closeout."
+  ],
+  "forbidden_local_promotions": [
+    "Do not commit model weights or LoRA adapter files.",
+    "Do not commit Docker image layers or archives.",
+    "Do not commit raw endpoint transcripts or copied external evidence bundles.",
+    "Do not claim M6-RC or v0 GO from this readiness audit."
+  ]
+}

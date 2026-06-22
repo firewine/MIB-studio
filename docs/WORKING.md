@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_M6_VERIFICATION_RESUME
+phase_id: RELEASE_BLOCKER_RECERTIFICATION
 milestone: M6_RC_Blocker_Remediation
-phase_status: real_adapter_m6_verification_resume_verified_not_go
+phase_status: release_blocker_recertification_verified_not_go
 active_slice: none
-gate_id: mib-studio-real-adapter-m6-verification-resume
+gate_id: mib-studio-release-blocker-recertification
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,11 +53,11 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-real-adapter-m6-verification-resume
+  gate: mib-studio-release-blocker-recertification
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: allow M6 GO verification to resume from existing endpoint-only live evidence after M6 review docs are updated to GO
+  objective: refresh current final-release blocker evidence after M6 verification resume closeout
   evidence:
     real_adapter_cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
     real_adapter_cuda_training_prereq_preflight: artifacts/review/real_adapter_cuda_training_prereq_preflight.json
@@ -82,6 +82,12 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
+    - release_blocker_recertification refreshed artifacts/review/real_adapter_candidate_scan.json and artifacts/review/real_adapter_cuda_training_prereq_preflight.json against the current local state
+    - candidate scan remains NO_GO_CANDIDATES_FOUND with go_candidate_count 0 and fixture_like_candidate_count 2
+    - recertified_release_values: go_candidate_count: 0; release_ready: false; unexpected_blockers: []
+    - CUDA training preflight remains NOT_READY_CUDA_LORA_TRAINING; Docker daemon is available outside the sandbox, while docker_base_image_env_digest, cuda_visible, and docker_base_image_available remain blockers
+    - /tmp/mib-real-adapter currently contains backend_config.yaml and train_config.json only; /tmp/mib-real-adapter/adapter and /tmp/mib-real-adapter/manifest.json are still missing
+    - v0 release readiness remains NOT_GO with release_ready false, verification_ok true, unexpected_blockers empty, and real_trained_adapter_no_fake_endpoint as the only release blocker
     - scripts/run_m6_real_adapter_rc_gate.py now supports --m6-verification-only, which requires a prior endpoint-only gate summary plus existing live endpoint/intake evidence before running M6 GO verification
     - m6-verification-only mode refuses with NOT_GO_EXISTING_ENDPOINT_EVIDENCE when the prior endpoint-only summary, matching inputs, adapter intake, or live endpoint JSON is missing or stale
     - m6-verification-only mode preserves prior adapter_intake and endpoint_capture step evidence and appends only m6_go_verification before claiming GO_M6_REAL_ADAPTER_RC_GATE
@@ -211,9 +217,16 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: real_adapter_m6_verification_resume_verified_not_go
+status: release_blocker_recertification_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/find_real_adapter_candidates.py --root /home/firewine/MIB-studio --root /tmp/mib-real-adapter --root /tmp/mib-phi-docker-export-_vgqfd4g --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --json-output artifacts/review/real_adapter_candidate_scan.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --llamafactory-cli ./.venv/bin/llamafactory-cli --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json --expected-status NOT_READY_CUDA_LORA_TRAINING
+  - python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
+  - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
+  - rg -n -- "release_blocker_recertification|docker_base_image_env_digest|cuda_visible|docker_base_image_available|go_candidate_count: 0|release_ready: false" docs/WORKING.md
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py scripts/build_real_adapter_handoff.py
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py -q
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md --shell-output artifacts/review/real_adapter_cuda_handoff.sh
@@ -228,13 +241,14 @@ passed:
   - git diff --cached --check
 warnings:
   - M6-RC decision remains NOT_GO
+  - release_blocker_recertification does not claim M6-RC or v0 GO
   - m6-verification-only mode requires existing endpoint-only evidence and does not bypass endpoint, M6, bundle, or v0 acceptance checks
   - endpoint-evidence-only mode does not claim M6-RC GO; it exists to capture live endpoint evidence before the review-doc GO update
   - M6-RC --expected-decision GO now also requires final M6 signoff and CTO GO docs
   - no real trained CUDA lora_adapter artifact was found in the repo or current /tmp artifacts
   - current host has no visible CUDA device; nvidia-smi is unavailable and torch.cuda.is_available() is false
   - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING
-  - current preflight lacks MIB_DOCKER_BASE_IMAGE_WITH_DIGEST, nvidia-smi, and Docker base image availability
+  - current preflight lacks MIB_DOCKER_BASE_IMAGE_WITH_DIGEST, nvidia-smi, and Docker base image availability; Docker daemon is available when the preflight is run outside the sandbox
   - current CUDA base image resolver is NOT_READY_CUDA_BASE_IMAGE because the default PyTorch CUDA runtime image is not present locally
   - bootstrap_dev.sh --phase m1-smoke --skip-install passes in .venv; pip-audit remains skipped by script policy in skip-install environments when isolated pip upgrade cannot complete
   - previous endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
@@ -293,6 +307,7 @@ recorded_go:
   M6_RC_Review_Doc_Decision_Gate: true
   Real_Adapter_Endpoint_First_Closeout: true
   Real_Adapter_M6_Verification_Resume: true
+  Release_Blocker_Recertification: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -300,9 +315,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-real-adapter-m6-verification-resume
-  review_bundle: scripts/run_m6_real_adapter_rc_gate.py
-  decision: real_adapter_m6_verification_resume_verified_not_go
+  id: mib-studio-release-blocker-recertification
+  review_bundle: artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+  decision: release_blocker_recertification_verified_not_go
 
 active_release_blocker:
   id: m6-real-trained-adapter-no-fake-endpoint-evidence
@@ -316,6 +331,9 @@ active_release_blocker:
 operator_blockers:
   - real trained CUDA lora_adapter endpoint evidence is not yet present
   - no real trained CUDA lora_adapter artifact was found in repo or current /tmp artifacts
+  - /tmp/mib-real-adapter/adapter and /tmp/mib-real-adapter/manifest.json are missing
+  - MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset and the digest-pinned CUDA/Python runtime base image is not locally inspectable
+  - current host has no nvidia-smi/CUDA visibility
   - no-fake-backend endpoint transcripts are still missing after dependency packaging because no real adapter exists
   - export lineage validation cannot establish endpoint inference quality
   - Gemma remains gated without credentials, but Phi strict cache is available under /tmp/mib-strict-model-cache-phi
@@ -349,7 +367,15 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-real-adapter-m6-verification-resume. scripts/run_m6_real_adapter_rc_gate.py
+mib-studio-release-blocker-recertification. The current recertified local state is:
+candidate scan NO_GO_CANDIDATES_FOUND with go_candidate_count 0; CUDA training
+preflight NOT_READY_CUDA_LORA_TRAINING with blockers docker_base_image_env_digest,
+cuda_visible, and docker_base_image_available; v0 readiness NOT_GO with
+release_ready false and real_trained_adapter_no_fake_endpoint as the only release
+blocker. Docker daemon access is available outside the sandbox, but the current
+host has no nvidia-smi and no digest-pinned CUDA/Python base image env. The prior
+implementation gate was mib-studio-real-adapter-m6-verification-resume.
+scripts/run_m6_real_adapter_rc_gate.py
 now supports both --endpoint-evidence-only and --m6-verification-only.
 --endpoint-evidence-only runs adapter intake and live no-fake Docker endpoint
 capture, writes endpoint evidence, returns

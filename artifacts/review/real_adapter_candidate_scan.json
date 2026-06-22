@@ -61,23 +61,18 @@
       "status": "NOT_GO_REAL_ADAPTER_ARTIFACT_INTAKE"
     }
   ],
-  "date": "2026-06-22T01:23:02.264780+00:00",
+  "date": "2026-06-22T04:33:30.513279+00:00",
   "decision": "NO_GO_CANDIDATES_FOUND",
   "fixture_like_candidate_count": 2,
   "go_candidate_count": 0,
   "image": "mib-export:test",
   "m6_rc_claimed_go": false,
-  "model_cache_dir": "/tmp/mib-strict-model-cache/model_cache",
+  "model_cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache",
   "roots": [
     "/home/firewine/MIB-studio",
     "/tmp/mib-real-adapter",
     "/tmp/mib-phi-docker-export-_vgqfd4g"
   ],
-  "scan_errors": [
-    {
-      "error": "root does not exist",
-      "root": "/tmp/mib-real-adapter"
-    }
-  ],
+  "scan_errors": [],
   "schema_version": "mib_real_adapter_candidate_scan.v1"
 }

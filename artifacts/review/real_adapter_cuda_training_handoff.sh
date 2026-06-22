@@ -29,6 +29,21 @@ if [ ! -f /tmp/mib-real-adapter/backend_config.yaml ]; then
   exit 2
 fi
 
+if [ -z "${MIB_DOCKER_BASE_IMAGE_WITH_DIGEST:-}" ]; then
+  printf '\n== resolve_cuda_base_image ==\n'
+  ./.venv/bin/python scripts/resolve_cuda_base_image.py --json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --env-output artifacts/review/real_adapter_cuda_base_image.env --expected-status CUDA_BASE_IMAGE_RESOLVED --candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+  if [ ! -f artifacts/review/real_adapter_cuda_base_image.env ]; then
+    echo "Refusing to run: resolver did not write artifacts/review/real_adapter_cuda_base_image.env" >&2
+    exit 2
+  fi
+  . artifacts/review/real_adapter_cuda_base_image.env
+fi
+
+case "${MIB_DOCKER_BASE_IMAGE_WITH_DIGEST:-}" in
+  *@sha256:*) ;;
+  *) echo "Refusing to run: MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256." >&2; exit 2 ;;
+esac
+
 printf '\n== preflight_cuda_training ==\n'
 ./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --llamafactory-cli ./.venv/bin/llamafactory-cli --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json
 

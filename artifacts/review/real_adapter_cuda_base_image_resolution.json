@@ -1,0 +1,40 @@
+{
+  "blockers": [
+    "cuda_base_image_not_resolved"
+  ],
+  "candidates": [
+    {
+      "candidate": "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime",
+      "command": [
+        "docker",
+        "image",
+        "inspect",
+        "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+      ],
+      "detail": "Error response from daemon: No such image: pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime",
+      "ok": false,
+      "returncode": 1,
+      "status": "inspect_failed"
+    }
+  ],
+  "date": "2026-06-22T03:08:12.842188+00:00",
+  "env": {},
+  "gate": "mib-studio-cuda-base-image-resolution",
+  "inputs": {
+    "candidates": [
+      "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+    ],
+    "timeout": 30
+  },
+  "m6_rc_claimed_go": false,
+  "operator_rules": [
+    "Use the emitted MIB_DOCKER_BASE_IMAGE_WITH_DIGEST only for Docker build handoffs that require a digest-pinned CUDA base image.",
+    "Do not use application images or fixture images as CUDA base images.",
+    "Do not claim M6-RC or v0 GO from base-image resolution alone.",
+    "If no candidate resolves, pull or provide a CUDA/PyTorch runtime image on the CUDA host and rerun this resolver."
+  ],
+  "release_claimed_go": false,
+  "schema_version": "mib_cuda_base_image_resolution.v1",
+  "selected": null,
+  "status": "NOT_READY_CUDA_BASE_IMAGE"
+}

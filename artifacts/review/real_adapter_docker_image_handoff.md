@@ -1,7 +1,7 @@
 # Real Adapter Docker Image Handoff
 
 ```yaml
-date: 2026-06-22T02:26:08.653101+00:00
+date: 2026-06-22T03:08:24.785575+00:00
 gate: mib-studio-real-adapter-docker-image-handoff
 status: PLAN_PREPARED_NOT_RUN
 release_claimed_go: false
@@ -15,11 +15,18 @@ This artifact prepares the Docker image required by the downstream no-fake CUDA 
 ## Operator Rules
 
 - Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.
+- If MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before docker build.
 - MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256 before docker build.
 - Do not use fixture-sized or self-test adapters as release evidence.
 - Do not claim M6-RC or v0 GO until the downstream no-fake endpoint and bundle verifiers return GO.
 
 ## Command Sequence
+
+### resolve_cuda_base_image
+
+```bash
+./.venv/bin/python scripts/resolve_cuda_base_image.py --json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --env-output artifacts/review/real_adapter_cuda_base_image.env --expected-status CUDA_BASE_IMAGE_RESOLVED --candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+```
 
 ### materialize_context
 

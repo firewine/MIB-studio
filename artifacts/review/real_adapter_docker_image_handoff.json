@@ -1,6 +1,11 @@
 {
   "command_sequence": [
     {
+      "id": "resolve_cuda_base_image",
+      "note": "Run only when MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset; writes a digest-pinned CUDA base image env file.",
+      "shell": "./.venv/bin/python scripts/resolve_cuda_base_image.py --json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --env-output artifacts/review/real_adapter_cuda_base_image.env --expected-status CUDA_BASE_IMAGE_RESOLVED --candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+    },
+    {
       "id": "materialize_context",
       "note": "Copy existing runtime templates and the real adapter into a Docker build context.",
       "shell": "./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --materialize-context --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --json-output artifacts/review/real_adapter_docker_image_context.json"
@@ -16,25 +21,31 @@
       "shell": "docker image inspect mib-export:test"
     }
   ],
-  "date": "2026-06-22T02:26:08.653101+00:00",
+  "date": "2026-06-22T03:08:24.785575+00:00",
   "gate": "mib-studio-real-adapter-docker-image-handoff",
   "inputs": {
     "adapter_root": "/tmp/mib-real-adapter",
     "agent_id": "finance.router.v1",
     "base_model": "microsoft/Phi-3.5-mini-instruct",
     "context_output": "/tmp/mib-real-adapter/docker_context",
+    "cuda_base_image_candidates": [
+      "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+    ],
     "image": "mib-export:test"
   },
   "m6_rc_claimed_go": false,
   "materialized_context": {},
   "operator_rules": [
     "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
+    "If MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before docker build.",
     "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256 before docker build.",
     "Do not use fixture-sized or self-test adapters as release evidence.",
     "Do not claim M6-RC or v0 GO until the downstream no-fake endpoint and bundle verifiers return GO."
   ],
   "outputs": {
     "context_output": "/tmp/mib-real-adapter/docker_context",
+    "cuda_base_image_env": "artifacts/review/real_adapter_cuda_base_image.env",
+    "cuda_base_image_resolution_report": "artifacts/review/real_adapter_cuda_base_image_resolution.json",
     "materialize_report": "artifacts/review/real_adapter_docker_image_context.json",
     "shell_output": "artifacts/review/real_adapter_docker_image_handoff.sh"
   },

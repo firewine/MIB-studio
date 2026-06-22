@@ -63,9 +63,12 @@ def args_for(tmp_path: Path) -> SimpleNamespace:
         hardware_profile_id="gpu",
         python="./.venv/bin/python",
         llamafactory_cli="./.venv/bin/llamafactory-cli",
+        cuda_base_image_candidate=None,
         agent_id="finance.router.v1",
         image="mib-export:test",
         docker_context_output=str(tmp_path / "mib-real-adapter" / "docker_context"),
+        cuda_base_image_json_output="artifacts/review/real_adapter_cuda_base_image_resolution.json",
+        cuda_base_image_env_output="artifacts/review/real_adapter_cuda_base_image.env",
         preflight_json_output="artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
         adapter_intake_json_output="artifacts/review/real_adapter_artifact_intake.json",
         finalize_json_output="artifacts/review/real_adapter_cuda_training_finalize.json",
@@ -96,6 +99,10 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert report["backend_config_summary"]["lora_rank"] == 8
     assert "mib_router_unit_router" in dataset_info
     assert "scripts/check_cuda_lora_training_prereqs.py" in shell
+    assert "scripts/resolve_cuda_base_image.py" in shell
+    assert "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime" in shell
+    assert "artifacts/review/real_adapter_cuda_base_image.env" in shell
+    assert shell.index("== resolve_cuda_base_image ==") < shell.index("== preflight_cuda_training ==")
     assert "--llamafactory-cli ./.venv/bin/llamafactory-cli" in shell
     assert "./.venv/bin/llamafactory-cli train" in shell
     assert "scripts/verify_real_adapter_artifact.py" in shell
@@ -106,5 +113,6 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert shell.index("== verify_adapter_intake ==") < shell.index("== prepare_docker_image ==")
     assert shell.index("== prepare_docker_image ==") < shell.index("== run_rc_handoff ==")
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
+    assert "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256" in shell
     assert "lora_rank: 8" in markdown
     assert "lora_alpha: 16" in markdown

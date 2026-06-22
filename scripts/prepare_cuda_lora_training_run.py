@@ -23,6 +23,8 @@ from verify_real_adapter_artifact import verify_adapter
 
 
 LOCKED_BASE_MODELS = {"google/gemma-2b-it", "microsoft/Phi-3.5-mini-instruct"}
+DEFAULT_CUDA_BASE_IMAGE_CANDIDATE = "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+DOCKER_BASE_IMAGE_ENV = "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST"
 
 
 def now_utc() -> str:
@@ -66,12 +68,33 @@ def command_row(command_id: str, argv: list[str], *, note: str) -> dict[str, Any
     return {"id": command_id, "argv": argv, "shell": shlex.join(argv), "note": note}
 
 
+def cuda_base_image_candidates(args: argparse.Namespace) -> list[str]:
+    return list(args.cuda_base_image_candidate or [DEFAULT_CUDA_BASE_IMAGE_CANDIDATE])
+
+
+def cuda_base_image_resolver_command(args: argparse.Namespace) -> list[str]:
+    command = [
+        args.python,
+        "scripts/resolve_cuda_base_image.py",
+        "--json-output",
+        args.cuda_base_image_json_output,
+        "--env-output",
+        args.cuda_base_image_env_output,
+        "--expected-status",
+        "CUDA_BASE_IMAGE_RESOLVED",
+    ]
+    for candidate in cuda_base_image_candidates(args):
+        command.extend(["--candidate", candidate])
+    return command
+
+
 def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
     output_root = Path(args.output_root)
     output_root.mkdir(parents=True, exist_ok=True)
     trainer_input = build_trainer_input(args)
     config_path = write_llamafactory_artifacts(trainer_input, model_cache_path=Path(args.model_cache_dir), dataset_id=args.dataset_id)
     backend_config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    resolver_command = cuda_base_image_resolver_command(args)
     preflight_command = [
         args.python,
         "scripts/check_cuda_lora_training_prereqs.py",
@@ -152,6 +175,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
             "base_model": args.base_model,
             "model_cache_dir": args.model_cache_dir,
             "llamafactory_cli": args.llamafactory_cli,
+            "cuda_base_image_candidates": cuda_base_image_candidates(args),
             "output_root": args.output_root,
             "training_preset": args.training_preset,
             "seed": args.seed,
@@ -160,6 +184,8 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         "outputs": {
             "train_config": str(output_root / "train_config.json"),
             "backend_config": str(config_path),
+            "cuda_base_image_resolution_report": args.cuda_base_image_json_output,
+            "cuda_base_image_env": args.cuda_base_image_env_output,
             "preflight_report": args.preflight_json_output,
             "adapter_dir": str(output_root / "adapter"),
             "manifest": str(output_root / "manifest.json"),
@@ -179,6 +205,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
             "output_dir": backend_config.get("output_dir"),
         },
         "command_sequence": [
+            command_row("resolve_cuda_base_image", resolver_command, note=f"Run only when {DOCKER_BASE_IMAGE_ENV} is unset; writes a digest-pinned CUDA base image env file for downstream preflight and Docker build."),
             command_row("preflight_cuda_training", preflight_command, note="Fail fast unless CUDA, LLaMA-Factory, Docker base image, backend config, dataset, and strict model cache prerequisites are ready."),
             command_row("train_real_adapter", train_command, note="Run actual CUDA QLoRA training with LLaMA-Factory on the CUDA host."),
             command_row("finalize_manifest", finalize_command, note="Write manifest.json from the trained adapter directory."),
@@ -189,6 +216,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
         "operator_rules": [
             "Run on a host with NVIDIA CUDA visible to nvidia-smi.",
             "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
+            f"If {DOCKER_BASE_IMAGE_ENV} is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before preflight.",
             "Do not use fixture-sized or self-test adapters as release evidence.",
             "Do not claim M6-RC or v0 GO until the downstream real adapter handoff and verifiers return GO.",
         ],
@@ -267,9 +295,15 @@ output_dir: {summary["output_dir"]}
 
 
 def render_shell(report: dict[str, Any]) -> str:
-    commands = "\n\n".join(f"printf '\\n== {row['id']} ==\\n'\n{row['shell']}" for row in report["command_sequence"])
+    resolver = next(row for row in report["command_sequence"] if row["id"] == "resolve_cuda_base_image")
+    commands = "\n\n".join(
+        f"printf '\\n== {row['id']} ==\\n'\n{row['shell']}"
+        for row in report["command_sequence"]
+        if row["id"] != "resolve_cuda_base_image"
+    )
     output_root = shlex.quote(report["inputs"]["output_root"])
     model_cache_dir = shlex.quote(report["inputs"]["model_cache_dir"])
+    cuda_base_image_env = shlex.quote(report["outputs"]["cuda_base_image_env"])
     llamafactory_cli_raw = report["inputs"]["llamafactory_cli"]
     llamafactory_cli = shlex.quote(llamafactory_cli_raw)
     if "/" in llamafactory_cli_raw:
@@ -310,6 +344,21 @@ if [ ! -f {output_root}/backend_config.yaml ]; then
   exit 2
 fi
 
+if [ -z "${{{DOCKER_BASE_IMAGE_ENV}:-}}" ]; then
+  printf '\\n== resolve_cuda_base_image ==\\n'
+  {resolver['shell']}
+  if [ ! -f {cuda_base_image_env} ]; then
+    echo "Refusing to run: resolver did not write {cuda_base_image_env}" >&2
+    exit 2
+  fi
+  . {cuda_base_image_env}
+fi
+
+case "${{{DOCKER_BASE_IMAGE_ENV}:-}}" in
+  *@sha256:*) ;;
+  *) echo "Refusing to run: {DOCKER_BASE_IMAGE_ENV} must include @sha256." >&2; exit 2 ;;
+esac
+
 {commands}
 """
 
@@ -331,9 +380,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hardware-profile-id", default="external_cuda_host")
     parser.add_argument("--python", default="./.venv/bin/python")
     parser.add_argument("--llamafactory-cli", default="./.venv/bin/llamafactory-cli")
+    parser.add_argument("--cuda-base-image-candidate", action="append")
     parser.add_argument("--agent-id", default="finance.router.v1")
     parser.add_argument("--image", default="mib-export:test")
     parser.add_argument("--docker-context-output", default="/tmp/mib-real-adapter/docker_context")
+    parser.add_argument("--cuda-base-image-json-output", default="artifacts/review/real_adapter_cuda_base_image_resolution.json")
+    parser.add_argument("--cuda-base-image-env-output", default="artifacts/review/real_adapter_cuda_base_image.env")
     parser.add_argument("--preflight-json-output", default="artifacts/review/real_adapter_cuda_training_prereq_preflight.json")
     parser.add_argument("--adapter-intake-json-output", default="artifacts/review/real_adapter_artifact_intake.json")
     parser.add_argument("--finalize-json-output", default="artifacts/review/real_adapter_cuda_training_finalize.json")

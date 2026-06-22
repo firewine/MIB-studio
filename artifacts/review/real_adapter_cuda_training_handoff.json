@@ -11,6 +11,23 @@
     {
       "argv": [
         "./.venv/bin/python",
+        "scripts/resolve_cuda_base_image.py",
+        "--json-output",
+        "artifacts/review/real_adapter_cuda_base_image_resolution.json",
+        "--env-output",
+        "artifacts/review/real_adapter_cuda_base_image.env",
+        "--expected-status",
+        "CUDA_BASE_IMAGE_RESOLVED",
+        "--candidate",
+        "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+      ],
+      "id": "resolve_cuda_base_image",
+      "note": "Run only when MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset; writes a digest-pinned CUDA base image env file for downstream preflight and Docker build.",
+      "shell": "./.venv/bin/python scripts/resolve_cuda_base_image.py --json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --env-output artifacts/review/real_adapter_cuda_base_image.env --expected-status CUDA_BASE_IMAGE_RESOLVED --candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+    },
+    {
+      "argv": [
+        "./.venv/bin/python",
         "scripts/check_cuda_lora_training_prereqs.py",
         "--dataset-jsonl",
         "examples/fixtures/router_20.jsonl",
@@ -112,10 +129,13 @@
       "shell": "bash artifacts/review/real_adapter_cuda_handoff.sh"
     }
   ],
-  "date": "2026-06-22T02:53:23.375898+00:00",
+  "date": "2026-06-22T03:08:24.599129+00:00",
   "gate": "mib-studio-cuda-real-adapter-training-handoff",
   "inputs": {
     "base_model": "microsoft/Phi-3.5-mini-instruct",
+    "cuda_base_image_candidates": [
+      "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+    ],
     "dataset_id": "review_router_20",
     "dataset_jsonl": "examples/fixtures/router_20.jsonl",
     "dataset_sha256": "3be5cdfe2f6b655eed0e9c11c8ec23b5778bf61798b4c8fb152be67a9953bd90",
@@ -130,6 +150,7 @@
   "operator_rules": [
     "Run on a host with NVIDIA CUDA visible to nvidia-smi.",
     "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
+    "If MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before preflight.",
     "Do not use fixture-sized or self-test adapters as release evidence.",
     "Do not claim M6-RC or v0 GO until the downstream real adapter handoff and verifiers return GO."
   ],
@@ -137,6 +158,8 @@
     "adapter_dir": "/tmp/mib-real-adapter/adapter",
     "adapter_intake_report": "artifacts/review/real_adapter_artifact_intake.json",
     "backend_config": "/tmp/mib-real-adapter/backend_config.yaml",
+    "cuda_base_image_env": "artifacts/review/real_adapter_cuda_base_image.env",
+    "cuda_base_image_resolution_report": "artifacts/review/real_adapter_cuda_base_image_resolution.json",
     "docker_context": "/tmp/mib-real-adapter/docker_context",
     "docker_handoff_report": "artifacts/review/real_adapter_docker_image_handoff.json",
     "docker_handoff_shell": "artifacts/review/real_adapter_docker_image_handoff.sh",

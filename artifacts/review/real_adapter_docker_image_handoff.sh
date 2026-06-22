@@ -10,6 +10,16 @@ if [ -n "${MIB_RUNTIME_ALLOW_FAKE_BACKEND:-}" ]; then
 fi
 
 if [ -z "${MIB_DOCKER_BASE_IMAGE_WITH_DIGEST:-}" ]; then
+  printf '\n== resolve_cuda_base_image ==\n'
+  ./.venv/bin/python scripts/resolve_cuda_base_image.py --json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --env-output artifacts/review/real_adapter_cuda_base_image.env --expected-status CUDA_BASE_IMAGE_RESOLVED --candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+  if [ ! -f artifacts/review/real_adapter_cuda_base_image.env ]; then
+    echo "Refusing to run: resolver did not write artifacts/review/real_adapter_cuda_base_image.env" >&2
+    exit 2
+  fi
+  . artifacts/review/real_adapter_cuda_base_image.env
+fi
+
+if [ -z "${MIB_DOCKER_BASE_IMAGE_WITH_DIGEST:-}" ]; then
   echo "Refusing to run: MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is required." >&2
   exit 2
 fi

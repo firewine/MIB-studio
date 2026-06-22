@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: VENV_LLAMAFACTORY_CLI_HANDOFF_ALIGNMENT
+phase_id: CUDA_BASE_IMAGE_RESOLVER_HANDOFF
 milestone: M6_RC_Blocker_Remediation
-phase_status: venv_llamafactory_cli_handoff_alignment_verified_not_go
+phase_status: cuda_base_image_resolver_handoff_verified_not_go
 active_slice: none
-gate_id: mib-studio-venv-llamafactory-cli-handoff-alignment
+gate_id: mib-studio-cuda-base-image-resolver-handoff
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,13 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-venv-llamafactory-cli-handoff-alignment
+  gate: mib-studio-cuda-base-image-resolver-handoff
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: align the CUDA real-adapter training handoff with the repo venv LLaMA-Factory CLI
+  objective: add a digest-pinned CUDA/PyTorch base image resolver and wire generated real-adapter handoffs to use it when the Docker base image env var is unset
   evidence:
+    real_adapter_cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
     real_adapter_cuda_training_prereq_preflight: artifacts/review/real_adapter_cuda_training_prereq_preflight.json
     real_adapter_docker_image_handoff: artifacts/review/real_adapter_docker_image_handoff.md
     real_adapter_docker_image_handoff_json: artifacts/review/real_adapter_docker_image_handoff.json
@@ -81,6 +82,11 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
+    - scripts/resolve_cuda_base_image.py resolves locally inspectable Docker image candidates to MIB_DOCKER_BASE_IMAGE_WITH_DIGEST only when they expose a sha256 RepoDigest and CUDA markers
+    - scripts/resolve_cuda_base_image.py rejects non-CUDA images and locally built/tagged images that lack a usable RepoDigest
+    - current artifacts/review/real_adapter_cuda_base_image_resolution.json is NOT_READY_CUDA_BASE_IMAGE because pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime is not present in the current Docker daemon
+    - artifacts/review/real_adapter_cuda_training_handoff.* now include resolve_cuda_base_image before preflight; the generated shell runs it only when MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset and then sources artifacts/review/real_adapter_cuda_base_image.env
+    - artifacts/review/real_adapter_docker_image_handoff.* now include the same resolver guard before materialize_context and docker build
     - scripts/check_cuda_lora_training_prereqs.py now checks the configured LLaMA-Factory CLI path with the valid version subcommand
     - scripts/prepare_cuda_lora_training_run.py now emits the same ./.venv/bin/llamafactory-cli path for preflight and llamafactory train
     - artifacts/review/real_adapter_cuda_training_handoff.* now use ./.venv/bin/llamafactory-cli instead of relying on PATH
@@ -95,7 +101,7 @@ last_completed_work:
     - artifacts/review/real_adapter_cuda_training_prereq_preflight.json is NOT_READY_CUDA_LORA_TRAINING and does not claim M6-RC or release GO
     - scripts/prepare_cuda_lora_training_run.py now inserts preflight_cuda_training before llamafactory-cli train
     - scripts/prepare_real_adapter_docker_image.py now prepares a guarded Docker image handoff for a real adapter root without committing adapter artifacts or building an image on the current host
-    - artifacts/review/real_adapter_docker_image_handoff.sh refuses fake backend mode, requires MIB_DOCKER_BASE_IMAGE_WITH_DIGEST with @sha256, materializes a Docker context, builds mib-export:test, then runs docker image inspect
+    - artifacts/review/real_adapter_docker_image_handoff.sh refuses fake backend mode, resolves MIB_DOCKER_BASE_IMAGE_WITH_DIGEST when unset, requires @sha256, materializes a Docker context, builds mib-export:test, then runs docker image inspect
     - Docker context materialization reuses packages/agent-runtime Dockerfile, zip runtime agents, runtime loaders, schemas, strict base-model catalog metadata, and the operator-provided real adapter directory
     - focused tests validate the handoff shell guards and a materialized export manifest/context using an in-test self-test adapter only
     - scripts/prepare_cuda_lora_training_run.py now inserts prepare_docker_image after verify_adapter_intake and before artifacts/review/real_adapter_cuda_handoff.sh
@@ -132,7 +138,8 @@ last_completed_work:
     - no backend, schema, training, export, runtime behavior, or M6 evidence policy files changed
 
 important_previous_commits:
-  venv_llamafactory_cli_handoff_alignment: this_commit
+  cuda_base_image_resolver_handoff: this_commit
+  venv_llamafactory_cli_handoff_alignment: 52b0187
   phi_strict_cache_handoff_alignment: this_commit
   cuda_training_host_preflight: this_commit
   real_adapter_docker_image_handoff: this_commit
@@ -165,17 +172,20 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: venv_llamafactory_cli_handoff_alignment_verified_not_go
+status: cuda_base_image_resolver_handoff_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/check_cuda_lora_training_prereqs.py scripts/prepare_cuda_lora_training_run.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_check_cuda_lora_training_prereqs.py tests/scripts/test_prepare_cuda_lora_training_run.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/resolve_cuda_base_image.py scripts/prepare_cuda_lora_training_run.py scripts/prepare_real_adapter_docker_image.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_resolve_cuda_base_image.py tests/scripts/test_prepare_cuda_lora_training_run.py tests/scripts/test_prepare_real_adapter_docker_image.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/resolve_cuda_base_image.py --candidate pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime --json-output artifacts/review/real_adapter_cuda_base_image_resolution.json --expected-status NOT_READY_CUDA_BASE_IMAGE
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_base_image_resolution.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --dataset-jsonl examples/fixtures/router_20.jsonl --dataset-id review_router_20 --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --training-preset quick --llamafactory-cli ./.venv/bin/llamafactory-cli --json-output artifacts/review/real_adapter_cuda_training_handoff.json --markdown-output artifacts/review/real_adapter_cuda_training_handoff.md --shell-output artifacts/review/real_adapter_cuda_training_handoff.sh
   - python3 -m json.tool artifacts/review/real_adapter_cuda_training_handoff.json
   - bash -n artifacts/review/real_adapter_cuda_training_handoff.sh
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_cuda_lora_training_prereqs.py --dataset-jsonl examples/fixtures/router_20.jsonl --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --backend-config /tmp/mib-real-adapter/backend_config.yaml --image mib-export:test --llamafactory-cli ./.venv/bin/llamafactory-cli --verify-model-cache-hashes --json-output artifacts/review/real_adapter_cuda_training_prereq_preflight.json --expected-status NOT_READY_CUDA_LORA_TRAINING
-  - python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json
-  - rg -n "llamafactory_cli_available|./.venv/bin/llamafactory-cli|docker_base_image_env_digest|cuda_visible|docker_base_image_available" artifacts/review/real_adapter_cuda_training_prereq_preflight.json artifacts/review/real_adapter_cuda_training_handoff.json artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_real_adapter_docker_image.py --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --agent-id finance.router.v1 --image mib-export:test --context-output /tmp/mib-real-adapter/docker_context --json-output artifacts/review/real_adapter_docker_image_handoff.json --markdown-output artifacts/review/real_adapter_docker_image_handoff.md --shell-output artifacts/review/real_adapter_docker_image_handoff.sh
+  - python3 -m json.tool artifacts/review/real_adapter_docker_image_handoff.json
+  - bash -n artifacts/review/real_adapter_docker_image_handoff.sh
+  - rg -n "resolve_cuda_base_image|MIB_DOCKER_BASE_IMAGE_WITH_DIGEST|pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime|real_adapter_cuda_base_image_resolution" scripts/resolve_cuda_base_image.py scripts/prepare_cuda_lora_training_run.py scripts/prepare_real_adapter_docker_image.py artifacts/review/real_adapter_cuda_training_handoff.json artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh artifacts/review/real_adapter_docker_image_handoff.json artifacts/review/real_adapter_docker_image_handoff.md artifacts/review/real_adapter_docker_image_handoff.sh
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
@@ -187,6 +197,7 @@ warnings:
   - current host has no visible CUDA device; nvidia-smi is unavailable and torch.cuda.is_available() is false
   - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING
   - current preflight lacks MIB_DOCKER_BASE_IMAGE_WITH_DIGEST, nvidia-smi, and Docker base image availability
+  - current CUDA base image resolver is NOT_READY_CUDA_BASE_IMAGE because the default PyTorch CUDA runtime image is not present locally
   - previous endpoint evidence used fake backend because the temp fixture adapter is not a real trained adapter
   - bootstrap pip-audit is skipped by script policy in --skip-install environments when isolated pip upgrade cannot complete
 failed: []
@@ -235,6 +246,7 @@ recorded_go:
   CUDA_Training_Host_Preflight: true
   Phi_Strict_Cache_Handoff_Alignment: true
   Venv_LLaMAFactory_CLI_Handoff_Alignment: true
+  CUDA_Base_Image_Resolver_Handoff: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -242,9 +254,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-venv-llamafactory-cli-handoff-alignment
-  review_bundle: artifacts/review/real_adapter_cuda_training_prereq_preflight.json
-  decision: venv_llamafactory_cli_aligned_not_ready_cuda_lora_training
+  id: mib-studio-cuda-base-image-resolver-handoff
+  review_bundle: artifacts/review/real_adapter_cuda_base_image_resolution.json
+  decision: cuda_base_image_resolver_handoff_not_ready_no_local_pytorch_cuda_base
 
 active_release_blocker:
   id: m6-real-trained-adapter-no-fake-endpoint-evidence
@@ -271,7 +283,7 @@ security_deferred:
 
 ```yaml
 immediate:
-  - set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a locally inspectable CUDA base image reference containing @sha256
+  - provide or pull a local pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime image on the CUDA host, then rerun scripts/resolve_cuda_base_image.py to emit MIB_DOCKER_BASE_IMAGE_WITH_DIGEST
   - confirm nvidia-smi succeeds on the CUDA host
   - provide or train a real CUDA lora_adapter with adapter.safetensors, adapter_config.json, and manifest.json
   - run artifacts/review/real_adapter_docker_image_handoff.sh with MIB_DOCKER_BASE_IMAGE_WITH_DIGEST set to a digest-pinned CUDA runtime base image
@@ -286,22 +298,24 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-venv-llamafactory-cli-handoff-alignment. Before accepting any external
+mib-studio-cuda-base-image-resolver-handoff. Before accepting any external
 CUDA evidence bundle, run scripts/verify_real_adapter_evidence_bundle.py against
 the bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE; v0 readiness now also
 requires that bundle decision for release GO. The current local artifacts/review
 bundle is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE. Start with
 artifacts/review/real_adapter_cuda_training_handoff.sh on the CUDA host to
 produce the real trained adapter. That script refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND,
-requires nvidia-smi and ./.venv/bin/llamafactory-cli, first runs
-scripts/check_cuda_lora_training_prereqs.py, then runs llamafactory-cli train,
-finalizes manifest.json, verifies real adapter intake, runs
+requires nvidia-smi and ./.venv/bin/llamafactory-cli, resolves
+MIB_DOCKER_BASE_IMAGE_WITH_DIGEST with scripts/resolve_cuda_base_image.py when
+unset, first runs scripts/check_cuda_lora_training_prereqs.py, then runs
+llamafactory-cli train, finalizes manifest.json, verifies real adapter intake, runs
 scripts/prepare_real_adapter_docker_image.py to emit
 artifacts/review/real_adapter_docker_image_handoff.sh, then invokes
 artifacts/review/real_adapter_cuda_handoff.sh. The Docker image handoff shell
-requires MIB_DOCKER_BASE_IMAGE_WITH_DIGEST with @sha256, refuses fake backend
-mode, materializes /tmp/mib-real-adapter/docker_context, builds mib-export:test,
-and runs docker image inspect before RC endpoint capture. The downstream RC
+also resolves MIB_DOCKER_BASE_IMAGE_WITH_DIGEST when unset, requires @sha256,
+refuses fake backend mode, materializes /tmp/mib-real-adapter/docker_context,
+builds mib-export:test, and runs docker image inspect before RC endpoint capture.
+The downstream RC
 handoff script
 requires a real MIB_RUNTIME_BEARER_TOKEN, then runs candidate scan, adapter
 intake, RC preflight, live no-fake Docker endpoint capture, M6 verifier,
@@ -315,6 +329,10 @@ docker_base_image_env_digest, cuda_visible, and docker_base_image_available.
 The strict Phi model cache now passes via
 /tmp/mib-strict-model-cache-phi/model_cache, and /tmp/mib-real-adapter/backend_config.yaml
 uses that same path. LLaMA-Factory now passes via ./.venv/bin/llamafactory-cli.
+The current base image resolver report is
+artifacts/review/real_adapter_cuda_base_image_resolution.json with status
+NOT_READY_CUDA_BASE_IMAGE because pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime
+is not present in the current Docker daemon.
 The current scan found 2 fixture-like candidates and 0 GO candidates.
 apps/desktop/src/main.mjs contains the Route contract sentinel required by
 COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1

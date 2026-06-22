@@ -23,6 +23,8 @@ from verify_real_adapter_artifact import verify_adapter
 
 
 SCHEMA_VERSION = "mib_real_adapter_docker_image_handoff.v1"
+DEFAULT_CUDA_BASE_IMAGE_CANDIDATE = "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime"
+DOCKER_BASE_IMAGE_ENV = "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST"
 ZIP_TEMPLATE = REPO_ROOT / "packages" / "agent-runtime" / "templates" / "zip_runtime"
 LOADER_ROOT = REPO_ROOT / "packages" / "agent-runtime" / "loaders"
 DOCKERFILE = REPO_ROOT / "packages" / "agent-runtime" / "templates" / "docker" / "Dockerfile.cuda"
@@ -268,8 +270,29 @@ def shell_join(argv: list[str]) -> str:
     return shlex.join([str(part) for part in argv])
 
 
+def cuda_base_image_candidates(args: argparse.Namespace) -> list[str]:
+    return list(args.cuda_base_image_candidate or [DEFAULT_CUDA_BASE_IMAGE_CANDIDATE])
+
+
+def cuda_base_image_resolver_shell(args: argparse.Namespace) -> str:
+    command = [
+        args.python,
+        "scripts/resolve_cuda_base_image.py",
+        "--json-output",
+        args.cuda_base_image_json_output,
+        "--env-output",
+        args.cuda_base_image_env_output,
+        "--expected-status",
+        "CUDA_BASE_IMAGE_RESOLVED",
+    ]
+    for candidate in cuda_base_image_candidates(args):
+        command.extend(["--candidate", candidate])
+    return shell_join(command)
+
+
 def plan_report(args: argparse.Namespace, *, materialized: dict[str, Any] | None = None) -> dict[str, Any]:
     materialized = materialized or {}
+    resolver_cmd = cuda_base_image_resolver_shell(args)
     materialize_cmd = shell_join(
         [
             args.python,
@@ -306,21 +329,26 @@ def plan_report(args: argparse.Namespace, *, materialized: dict[str, Any] | None
             "agent_id": args.agent_id,
             "image": args.image,
             "context_output": args.context_output,
+            "cuda_base_image_candidates": cuda_base_image_candidates(args),
         },
         "outputs": {
             "context_output": args.context_output,
             "materialize_report": args.materialize_json_output,
+            "cuda_base_image_resolution_report": args.cuda_base_image_json_output,
+            "cuda_base_image_env": args.cuda_base_image_env_output,
             "shell_output": args.shell_output,
         },
         "materialized_context": materialized,
         "command_sequence": [
+            command_row("resolve_cuda_base_image", resolver_cmd, f"Run only when {DOCKER_BASE_IMAGE_ENV} is unset; writes a digest-pinned CUDA base image env file."),
             command_row("materialize_context", materialize_cmd, "Copy existing runtime templates and the real adapter into a Docker build context."),
             command_row("build_image", build_cmd, "Build the digest-pinned real adapter Docker image."),
             command_row("inspect_image", f"docker image inspect {args.image}", "Require the image tag before RC endpoint capture."),
         ],
         "operator_rules": [
             "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
-            "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256 before docker build.",
+            f"If {DOCKER_BASE_IMAGE_ENV} is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before docker build.",
+            f"{DOCKER_BASE_IMAGE_ENV} must include @sha256 before docker build.",
             "Do not use fixture-sized or self-test adapters as release evidence.",
             "Do not claim M6-RC or v0 GO until the downstream no-fake endpoint and bundle verifiers return GO.",
         ],
@@ -355,7 +383,13 @@ This artifact prepares the Docker image required by the downstream no-fake CUDA 
 
 
 def render_shell(report: dict[str, Any]) -> str:
-    commands = "\n\n".join(f"printf '\\n== {row['id']} ==\\n'\n{row['shell']}" for row in report["command_sequence"])
+    resolver = next(row for row in report["command_sequence"] if row["id"] == "resolve_cuda_base_image")
+    commands = "\n\n".join(
+        f"printf '\\n== {row['id']} ==\\n'\n{row['shell']}"
+        for row in report["command_sequence"]
+        if row["id"] != "resolve_cuda_base_image"
+    )
+    cuda_base_image_env = shlex.quote(report["outputs"]["cuda_base_image_env"])
     return f"""#!/usr/bin/env bash
 set -euo pipefail
 
@@ -367,14 +401,24 @@ if [ -n "${{MIB_RUNTIME_ALLOW_FAKE_BACKEND:-}}" ]; then
   exit 2
 fi
 
-if [ -z "${{MIB_DOCKER_BASE_IMAGE_WITH_DIGEST:-}}" ]; then
-  echo "Refusing to run: MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is required." >&2
+if [ -z "${{{DOCKER_BASE_IMAGE_ENV}:-}}" ]; then
+  printf '\\n== resolve_cuda_base_image ==\\n'
+  {resolver['shell']}
+  if [ ! -f {cuda_base_image_env} ]; then
+    echo "Refusing to run: resolver did not write {cuda_base_image_env}" >&2
+    exit 2
+  fi
+  . {cuda_base_image_env}
+fi
+
+if [ -z "${{{DOCKER_BASE_IMAGE_ENV}:-}}" ]; then
+  echo "Refusing to run: {DOCKER_BASE_IMAGE_ENV} is required." >&2
   exit 2
 fi
 
-case "${{MIB_DOCKER_BASE_IMAGE_WITH_DIGEST}}" in
+case "${{{DOCKER_BASE_IMAGE_ENV}}}" in
   *@sha256:*) ;;
-  *) echo "Refusing to run: MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256." >&2; exit 2 ;;
+  *) echo "Refusing to run: {DOCKER_BASE_IMAGE_ENV} must include @sha256." >&2; exit 2 ;;
 esac
 
 {commands}
@@ -390,6 +434,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--image", default="mib-export:test")
     parser.add_argument("--context-output", default="/tmp/mib-real-adapter/docker_context")
     parser.add_argument("--python", default="./.venv/bin/python")
+    parser.add_argument("--cuda-base-image-candidate", action="append")
+    parser.add_argument("--cuda-base-image-json-output", default="artifacts/review/real_adapter_cuda_base_image_resolution.json")
+    parser.add_argument("--cuda-base-image-env-output", default="artifacts/review/real_adapter_cuda_base_image.env")
     parser.add_argument("--materialize-json-output", default="artifacts/review/real_adapter_docker_image_context.json")
     parser.add_argument("--json-output", default="artifacts/review/real_adapter_docker_image_handoff.json")
     parser.add_argument("--markdown-output", default="artifacts/review/real_adapter_docker_image_handoff.md")

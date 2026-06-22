@@ -31,6 +31,9 @@ def args_for(tmp_path: Path) -> SimpleNamespace:
         image="mib-export:test",
         context_output=str(tmp_path / "docker_context"),
         python="./.venv/bin/python",
+        cuda_base_image_candidate=None,
+        cuda_base_image_json_output="artifacts/review/real_adapter_cuda_base_image_resolution.json",
+        cuda_base_image_env_output="artifacts/review/real_adapter_cuda_base_image.env",
         materialize_json_output=str(tmp_path / "docker_context_report.json"),
         json_output=str(tmp_path / "handoff.json"),
         markdown_output=str(tmp_path / "handoff.md"),
@@ -49,11 +52,14 @@ def test_plan_report_refuses_fake_backend_and_requires_digest_base_image(tmp_pat
     assert report["release_claimed_go"] is False
     assert report["m6_rc_claimed_go"] is False
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
-    assert "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is required" in shell
+    assert "scripts/resolve_cuda_base_image.py" in shell
+    assert "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime" in shell
+    assert "artifacts/review/real_adapter_cuda_base_image.env" in shell
     assert "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256" in shell
     assert "docker build --pull=false" in shell
     assert "docker image inspect mib-export:test" in shell
     assert "mib-export:test" in markdown
+    assert shell.index("== resolve_cuda_base_image ==") < shell.index("== materialize_context ==")
 
 
 def test_materialize_context_reuses_runtime_templates_and_validates_export_manifest(tmp_path: Path) -> None:

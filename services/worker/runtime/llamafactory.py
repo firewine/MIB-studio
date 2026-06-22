@@ -113,6 +113,8 @@ def backend_config(trainer_input: TrainerJobInput, *, model_cache_path: Path, da
         "template": template_for_model(trainer_input.base_model),
         "finetuning_type": "lora",
         "lora_target": "all",
+        "lora_rank": hyperparams["lora_rank"],
+        "lora_alpha": hyperparams["lora_alpha"],
         "output_dir": str(Path(trainer_input.output_dir) / "adapter"),
         "overwrite_output_dir": True,
         "cutoff_len": trainer_input.max_seq_length,

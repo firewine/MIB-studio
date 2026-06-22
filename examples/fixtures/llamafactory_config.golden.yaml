@@ -6,6 +6,8 @@ dataset_dir: <dataset_dir>
 template: gemma
 finetuning_type: lora
 lora_target: all
+lora_rank: 4
+lora_alpha: 8
 output_dir: <adapter_dir>
 overwrite_output_dir: true
 cutoff_len: 1024

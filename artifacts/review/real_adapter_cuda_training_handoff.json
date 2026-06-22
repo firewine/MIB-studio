@@ -1,0 +1,96 @@
+{
+  "backend_config_summary": {
+    "lora_alpha": 8,
+    "lora_rank": 4,
+    "lora_target": "all",
+    "output_dir": "/tmp/mib-real-adapter/adapter",
+    "quantization_bit": 4,
+    "template": "phi"
+  },
+  "command_sequence": [
+    {
+      "argv": [
+        "llamafactory-cli",
+        "train",
+        "/tmp/mib-real-adapter/backend_config.yaml"
+      ],
+      "id": "train_real_adapter",
+      "note": "Run actual CUDA QLoRA training with LLaMA-Factory on the CUDA host.",
+      "shell": "llamafactory-cli train /tmp/mib-real-adapter/backend_config.yaml"
+    },
+    {
+      "argv": [
+        "./.venv/bin/python",
+        "scripts/prepare_cuda_lora_training_run.py",
+        "--finalize-only",
+        "--base-model",
+        "microsoft/Phi-3.5-mini-instruct",
+        "--output-root",
+        "/tmp/mib-real-adapter",
+        "--json-output",
+        "artifacts/review/real_adapter_cuda_training_finalize.json"
+      ],
+      "id": "finalize_manifest",
+      "note": "Write manifest.json from the trained adapter directory.",
+      "shell": "./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --finalize-only --base-model microsoft/Phi-3.5-mini-instruct --output-root /tmp/mib-real-adapter --json-output artifacts/review/real_adapter_cuda_training_finalize.json"
+    },
+    {
+      "argv": [
+        "./.venv/bin/python",
+        "scripts/verify_real_adapter_artifact.py",
+        "--adapter-dir",
+        "/tmp/mib-real-adapter/adapter",
+        "--base-model",
+        "microsoft/Phi-3.5-mini-instruct",
+        "--manifest",
+        "/tmp/mib-real-adapter/manifest.json",
+        "--json-output",
+        "artifacts/review/real_adapter_artifact_intake.json"
+      ],
+      "id": "verify_adapter_intake",
+      "note": "Require GO_REAL_ADAPTER_ARTIFACT_INTAKE before export/endpoint evidence.",
+      "shell": "./.venv/bin/python scripts/verify_real_adapter_artifact.py --adapter-dir /tmp/mib-real-adapter/adapter --base-model microsoft/Phi-3.5-mini-instruct --manifest /tmp/mib-real-adapter/manifest.json --json-output artifacts/review/real_adapter_artifact_intake.json"
+    },
+    {
+      "argv": [
+        "bash",
+        "artifacts/review/real_adapter_cuda_handoff.sh"
+      ],
+      "id": "run_rc_handoff",
+      "note": "Run the existing guarded no-fake endpoint/M6/v0 handoff after the real adapter exists.",
+      "shell": "bash artifacts/review/real_adapter_cuda_handoff.sh"
+    }
+  ],
+  "date": "2026-06-22T02:15:02.017602+00:00",
+  "gate": "mib-studio-cuda-real-adapter-training-handoff",
+  "inputs": {
+    "base_model": "microsoft/Phi-3.5-mini-instruct",
+    "dataset_id": "review_router_20",
+    "dataset_jsonl": "examples/fixtures/router_20.jsonl",
+    "dataset_sha256": "3be5cdfe2f6b655eed0e9c11c8ec23b5778bf61798b4c8fb152be67a9953bd90",
+    "max_seq_length": 1024,
+    "model_cache_dir": "/tmp/mib-strict-model-cache/model_cache",
+    "output_root": "/tmp/mib-real-adapter",
+    "seed": 42,
+    "training_preset": "quick"
+  },
+  "m6_rc_claimed_go": false,
+  "operator_rules": [
+    "Run on a host with NVIDIA CUDA visible to nvidia-smi.",
+    "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
+    "Do not use fixture-sized or self-test adapters as release evidence.",
+    "Do not claim M6-RC or v0 GO until the downstream real adapter handoff and verifiers return GO."
+  ],
+  "outputs": {
+    "adapter_dir": "/tmp/mib-real-adapter/adapter",
+    "adapter_intake_report": "artifacts/review/real_adapter_artifact_intake.json",
+    "backend_config": "/tmp/mib-real-adapter/backend_config.yaml",
+    "finalize_report": "artifacts/review/real_adapter_cuda_training_finalize.json",
+    "manifest": "/tmp/mib-real-adapter/manifest.json",
+    "rc_handoff_shell": "artifacts/review/real_adapter_cuda_handoff.sh",
+    "train_config": "/tmp/mib-real-adapter/train_config.json"
+  },
+  "release_claimed_go": false,
+  "schema_version": "mib_cuda_lora_training_handoff.v1",
+  "status": "PREPARED_NOT_RUN"
+}

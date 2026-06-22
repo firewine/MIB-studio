@@ -1,21 +1,21 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Add a reusable real adapter candidate locator so the remaining M6-RC blocker can be closed deterministically when an operator provides or trains a real CUDA lora_adapter. The locator must scan explicit roots for adapter.safetensors plus adapter_config.json, validate candidates with the existing real adapter intake rules, emit runnable RC gate commands for GO candidates, and report the current environment as having zero GO candidates without claiming release GO. Also repair the M1 smoke bootstrap route-contract sentinel required by the current hook without changing backend, schema, training, export, or release behavior.",
+  "goal": "Add a CUDA-host real-adapter handoff generator that composes the current candidate scan, prerequisite audit, and v0 release readiness reports into one operator-executable plan for closing the remaining M6-RC blocker. The handoff must list exact required inputs and commands for candidate scan, adapter intake, preflight, live no-fake Docker endpoint gate, and readiness recheck without claiming M6-RC or v0 GO.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-candidate-locator",
+  "gate": "mib-studio-real-adapter-cuda-handoff",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "ff38eeb",
+  "head": "80ac19a",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/find_real_adapter_candidates.py",
-    "tests/scripts/test_find_real_adapter_candidates.py",
-    "apps/desktop/src/main.mjs",
+    "scripts/build_real_adapter_handoff.py",
+    "tests/scripts/test_build_real_adapter_handoff.py",
     "artifacts/review/",
     "docs/WORKING.md"
   ],
   "blocked_path_prefixes": [
+    "apps",
     "services",
     "packages",
     "schemas",
@@ -40,13 +40,12 @@
     "artifacts/security"
   ],
   "blocked_scope": [
-    "Product runtime, API, DB, schema, training, export implementation, or model behavior changes",
-    "UI flow or layout changes beyond the route-contract breadcrumb sentinel repair in apps/desktop/src/main.mjs",
+    "Product runtime, API, UI, DB, schema, training, export implementation, or model behavior changes",
     "Creating or committing model weights or adapter artifacts",
     "Claiming M6-RC or v0 release GO",
     "Weakening real adapter intake, endpoint, or release evidence acceptance"
   ],
-  "allowed_edit_paths_scope_note": "This gate may add adapter candidate locator tooling/tests/evidence, repair the M1 smoke route-contract source sentinel in apps/desktop/src/main.mjs, and update WORKING.md plus this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may add a handoff generator script/tests/current handoff evidence and update WORKING.md plus this PABCD contract only.",
   "external_runtime_paths": [
     "/tmp"
   ],
@@ -54,75 +53,74 @@
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
+    "scripts/find_real_adapter_candidates.py",
     "scripts/verify_real_adapter_artifact.py",
     "scripts/run_m6_real_adapter_rc_gate.py",
-    "scripts/bootstrap_dev.sh",
-    "tests/smoke/test_m1_smoke.py",
-    "artifacts/review/real_adapter_inference_evidence.md",
+    "scripts/capture_real_adapter_endpoint_evidence.py",
+    "scripts/verify_m6_rc_evidence.py",
+    "scripts/verify_v0_release_readiness.py",
+    "artifacts/review/real_adapter_candidate_scan.json",
+    "artifacts/review/m6_real_adapter_prereq_audit.json",
     "artifacts/review/v0_release_readiness_audit.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/find_real_adapter_candidates.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_find_real_adapter_candidates.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/find_real_adapter_candidates.py --root /home/firewine/MIB-studio --root /tmp/mib-real-adapter --root /tmp/mib-phi-docker-export-_vgqfd4g --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --expected-go-candidates 0 --json-output artifacts/review/real_adapter_candidate_scan.json",
-    "python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/build_real_adapter_handoff.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --candidate-scan artifacts/review/real_adapter_candidate_scan.json --prereq-audit artifacts/review/m6_real_adapter_prereq_audit.json --readiness-audit artifacts/review/v0_release_readiness_audit.json --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Locator identifies GO real adapter intake candidates and emits RC runner commands",
-    "Locator rejects fixture-sized or malformed adapter candidates",
-    "Current scan reports zero GO candidates without claiming release GO",
-    "M1 smoke bootstrap passes with the route-contract desktop sentinel present",
-    "v0 release readiness remains NOT_GO with only real_trained_adapter_no_fake_endpoint as blocker",
-    "No runtime/backend/schema/training/export behavior changed"
+    "Handoff summarizes current candidate scan and prereq/readiness decisions",
+    "Handoff lists required real CUDA adapter inputs and no-fake endpoint evidence invariants",
+    "Handoff emits executable command sequence for candidate scan, intake/preflight/live RC gate, and readiness recheck",
+    "Current environment remains NOT_GO with zero GO adapter candidates",
+    "No runtime/backend/schema/training/export/UI behavior changed"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/find_real_adapter_candidates.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_find_real_adapter_candidates.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/find_real_adapter_candidates.py --root /home/firewine/MIB-studio --root /tmp/mib-real-adapter --root /tmp/mib-phi-docker-export-_vgqfd4g --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --expected-go-candidates 0 --json-output artifacts/review/real_adapter_candidate_scan.json",
-    "python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/build_real_adapter_handoff.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --candidate-scan artifacts/review/real_adapter_candidate_scan.json --prereq-audit artifacts/review/m6_real_adapter_prereq_audit.json --readiness-audit artifacts/review/v0_release_readiness_audit.json --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
     "M6-RC remains NOT_GO due missing real trained adapter endpoint evidence.",
-    "This gate adds locator tooling only and does not generate a trained adapter.",
-    "M1 smoke route-contract sentinel repair is limited to apps/desktop/src/main.mjs breadcrumb text."
+    "This gate adds operator handoff tooling only and does not generate a trained adapter."
   ],
   "phase_notes": {
-    "plan": "Open scoped real adapter candidate locator gate after confirming current evidence records manual adapter search but no reusable scan-to-runner automation. Scope was expanded after the hook-required m1-smoke bootstrap failed because apps/desktop/src/main.mjs no longer contained the Route contract sentinel string.",
-    "audit": "Read current WORKING.md, v0 readiness audit, real adapter intake verifier, M6 RC runner, previous real adapter evidence, bootstrap script, M1 smoke test, and desktop route source. Current adapter evidence had no reusable scan-to-runner automation; the hook-required bootstrap failure was caused by the Route contract sentinel string living only in routeContractView.mjs while the smoke test checks main.mjs source.",
-    "build": "Added scripts/find_real_adapter_candidates.py, focused tests, current scan JSON/evidence, and restored the apps/desktop/src/main.mjs projectDefine breadcrumb to include Route contract. No backend, schema, training, export, model artifact, endpoint acceptance, or release readiness policy changed.",
-    "check": "Passed json.tool, py_compile, focused locator pytest, current candidate scan expected zero GO candidates, generated scan JSON validation, v0 release readiness expected NOT_GO, generated readiness JSON validation, hook-required bootstrap_dev.sh m1-smoke --skip-install, git diff --check, and git diff --cached --check.",
-    "done": "Real adapter candidate locator and M1 smoke sentinel repair are complete. Current scan finds zero GO real-adapter candidates and v0 release readiness remains NOT_GO because real trained CUDA lora_adapter no-fake Docker endpoint evidence is still absent."
+    "plan": "Open scoped CUDA real-adapter handoff gate after confirming current final-program blocker is limited to real_trained_adapter_no_fake_endpoint and the repo has separate candidate, intake, endpoint, M6, and v0 readiness tools but no single operator-executable handoff bundle.",
+    "audit": "Read WORKING.md, CONTEXT.md, current v0 readiness audit, M6 prereq audit, candidate scan, candidate locator, real adapter intake verifier, endpoint capture, M6 verifier, and RC gate runner. The current blocker remains real_trained_adapter_no_fake_endpoint; the current environment has zero GO adapter candidates and missing adapter files, matching Docker image, and host CUDA.",
+    "build": "Added scripts/build_real_adapter_handoff.py, focused tests, and current JSON/Markdown handoff evidence. The handoff composes candidate scan, prereq, and readiness data into required operator inputs plus commands for scan, intake, preflight, live no-fake RC gate, and GO readiness recheck.",
+    "check": "Passed json.tool, py_compile, focused handoff pytest, current handoff generation, handoff JSON validation, v0 release readiness expected NOT_GO, readiness JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "CUDA handoff tooling is complete. Current handoff decision is WAITING_FOR_REAL_ADAPTER_INPUTS and does not claim M6-RC or v0 GO; release readiness remains NOT_GO until real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-candidate-locator",
-    "status": "MIB_STUDIO_REAL_ADAPTER_CANDIDATE_LOCATOR_COMPLETE_M6_NOT_GO",
+    "gate": "mib-studio-real-adapter-cuda-handoff",
+    "status": "MIB_STUDIO_REAL_ADAPTER_CUDA_HANDOFF_COMPLETE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Real adapter candidate locator script/tests/evidence, apps/desktop/src/main.mjs route-contract sentinel repair, WORKING.md, and PABCD contract only.",
-    "blocked_scope": "No product/runtime/API/backend/schema/training/export behavior changes, no UI flow/layout changes beyond breadcrumb sentinel text, no model artifacts, no release GO claim.",
+    "approved_scope": "Real adapter CUDA handoff generator script/tests/evidence, WORKING.md, and PABCD contract only.",
+    "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped real adapter candidate locator gate after confirming current evidence records manual adapter search but no reusable scan-to-runner automation. Scope was expanded after the hook-required m1-smoke bootstrap failed because apps/desktop/src/main.mjs no longer contained the Route contract sentinel string.",
-    "audit": "Read current WORKING.md, v0 readiness audit, real adapter intake verifier, M6 RC runner, previous real adapter evidence, bootstrap script, M1 smoke test, and desktop route source. Current adapter evidence had no reusable scan-to-runner automation; the hook-required bootstrap failure was caused by the Route contract sentinel string living only in routeContractView.mjs while the smoke test checks main.mjs source.",
-    "build": "Added scripts/find_real_adapter_candidates.py, focused tests, current scan JSON/evidence, and restored the apps/desktop/src/main.mjs projectDefine breadcrumb to include Route contract. No backend, schema, training, export, model artifact, endpoint acceptance, or release readiness policy changed.",
-    "check": "Passed json.tool, py_compile, focused locator pytest, current candidate scan expected zero GO candidates, generated scan JSON validation, v0 release readiness expected NOT_GO, generated readiness JSON validation, hook-required bootstrap_dev.sh m1-smoke --skip-install, git diff --check, and git diff --cached --check.",
-    "done": "Real adapter candidate locator and M1 smoke sentinel repair are complete. Current scan finds zero GO real-adapter candidates and v0 release readiness remains NOT_GO because real trained CUDA lora_adapter no-fake Docker endpoint evidence is still absent."
+    "plan": "Open scoped CUDA real-adapter handoff gate after confirming current final-program blocker is limited to real_trained_adapter_no_fake_endpoint and the repo has separate candidate, intake, endpoint, M6, and v0 readiness tools but no single operator-executable handoff bundle.",
+    "audit": "Read WORKING.md, CONTEXT.md, current v0 readiness audit, M6 prereq audit, candidate scan, candidate locator, real adapter intake verifier, endpoint capture, M6 verifier, and RC gate runner. The current blocker remains real_trained_adapter_no_fake_endpoint; the current environment has zero GO adapter candidates and missing adapter files, matching Docker image, and host CUDA.",
+    "build": "Added scripts/build_real_adapter_handoff.py, focused tests, and current JSON/Markdown handoff evidence. The handoff composes candidate scan, prereq, and readiness data into required operator inputs plus commands for scan, intake, preflight, live no-fake RC gate, and GO readiness recheck.",
+    "check": "Passed json.tool, py_compile, focused handoff pytest, current handoff generation, handoff JSON validation, v0 release readiness expected NOT_GO, readiness JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "CUDA handoff tooling is complete. Current handoff decision is WAITING_FOR_REAL_ADAPTER_INPUTS and does not claim M6-RC or v0 GO; release readiness remains NOT_GO until real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   }
 }

@@ -111,6 +111,7 @@ def test_packet_is_commit_pinned_and_names_primary_handoff(tmp_path: Path) -> No
         "train_real_adapter",
     ]
     assert result["command_order"]["post_transfer_closeout"] == ["local_closeout_after_bundle_transfer"]
+    assert any(row["path"] == "artifacts/review/verified_external_cuda_training_launcher.sh" for row in result["required_committed_files"])
     assert any(row["path"] == "artifacts/review/real_adapter_cuda_training_handoff.sh" for row in result["required_committed_files"])
     assert any(row["path"] == "scripts/prepare_strict_model_cache.py" for row in result["required_committed_files"])
     assert "model weights" in result["forbidden_committed_artifacts"]

@@ -492,11 +492,12 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: 51b2d97
+handoff_source_commit: f2227bf
 primary_external_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
-required_committed_files_count: 16
+required_committed_files_count: 17
 required_committed_files_include:
+  - artifacts/review/verified_external_cuda_training_launcher.sh
   - scripts/prepare_strict_model_cache.py
 training_handoff_command_order_include:
   - prepare_strict_model_cache
@@ -519,8 +520,8 @@ release_claimed_go: false
 m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
-  - 16 required committed file sha256/size values
-  - 16 required committed file blobs at handoff source commit 51b2d97
+  - 17 required committed file sha256/size values
+  - 17 required committed file blobs at handoff source commit f2227bf
   - 6 package readiness checks
   - training/RC/local-closeout command order
   - forbidden committed artifact labels

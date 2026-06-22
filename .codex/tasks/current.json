@@ -1,14 +1,16 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Make the external CUDA operator packet verify that every required committed file exists at the packet handoff source commit, then refresh the packet to the latest strict-cache handoff commit.",
+  "goal": "Add the verified external CUDA launcher shell to the operator packet required committed files and verifier-required path set, then refresh packet evidence against source commit f2227bf.",
   "phase": "done",
-  "gate": "mib-studio-external-cuda-packet-source-commit-guard",
+  "gate": "mib-studio-external-cuda-packet-launcher-required-file",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "51b2d97",
+  "head": "f2227bf",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
+    "scripts/build_external_cuda_operator_packet.py",
+    "tests/scripts/test_build_external_cuda_operator_packet.py",
     "scripts/verify_external_cuda_operator_packet.py",
     "tests/scripts/test_verify_external_cuda_operator_packet.py",
     "artifacts/review/external_cuda_operator_packet.json",
@@ -33,51 +35,50 @@
   ],
   "blocked_scope": [
     "Product runtime/API/UI/DB/schema behavior changes",
-    "Changing model catalog pins, hashes, or verifier release acceptance policy",
+    "Changing model catalog pins, hashes, or release acceptance policy",
     "Downloading or committing model weights, adapters, Docker images, endpoint transcripts, copied evidence bundles, or GO release evidence",
     "Editing M6 review docs to GO",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may harden operator-packet commit-source verification, refresh current packet artifacts to source commit 51b2d97, update LLM context/working state, completion log, and PABCD only.",
+  "allowed_edit_paths_scope_note": "This gate may add artifacts/review/verified_external_cuda_training_launcher.sh to the external CUDA operator packet required file set, enforce that path in the packet verifier, refresh packet artifacts, update LLM context/working state, completion log, and PABCD only.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
-    "scripts/build_external_cuda_operator_packet.py",
-    "tests/scripts/test_build_external_cuda_operator_packet.py",
     "artifacts/review/verified_external_cuda_training_launcher.sh",
     "artifacts/review/real_adapter_cuda_training_handoff.sh",
-    "scripts/prepare_strict_model_cache.py"
+    "scripts/prepare_strict_model_cache.py",
+    "scripts/build_verified_cuda_training_launcher.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 51b2d97",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head f2227bf",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "rg -n -- \"required_committed_file_commit_blobs|packet_handoff_source_commit|51b2d97|scripts/prepare_strict_model_cache.py|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|release_claimed_go|real_trained_adapter_no_fake_endpoint\" scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"verified_external_cuda_training_launcher.sh|verified_training_launcher|required_committed_files_count: 17|verified 17 required file blobs at f2227bf|packet_handoff_source_commit|release_claimed_go|real_trained_adapter_no_fake_endpoint\" scripts/build_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Verifier rejects required_committed_files that are present in the working tree but absent at packet.git.head when the git commit is resolvable.",
-    "External CUDA operator packet handoff source commit is refreshed from eff6486 to 51b2d97, the commit that contains scripts/prepare_strict_model_cache.py.",
-    "Packet verification remains GO for packet integrity only and still records release_claimed_go false.",
+    "Operator packet required_committed_files includes artifacts/review/verified_external_cuda_training_launcher.sh.",
+    "Packet verifier rejects packets that omit the verified launcher required path.",
+    "Packet verification remains GO for packet integrity only and records 17 required file hashes and commit blobs at f2227bf.",
     "Docs state that v0/M6 remain NOT_GO until real trained adapter no-fake endpoint evidence exists."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_verify_external_cuda_operator_packet.py -q",
-    "python3 -m py_compile scripts/verify_external_cuda_operator_packet.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head 51b2d97",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py -q",
+    "python3 -m py_compile scripts/build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_external_cuda_operator_packet.py --git-head f2227bf",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_external_cuda_operator_packet.py --expected-decision GO --json-output artifacts/review/external_cuda_operator_packet_verification.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet.json",
     "python3 -m json.tool artifacts/review/external_cuda_operator_packet_verification.json",
-    "rg -n -- \"required_committed_file_commit_blobs|packet_handoff_source_commit|51b2d97|scripts/prepare_strict_model_cache.py|GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION|release_claimed_go|real_trained_adapter_no_fake_endpoint\" scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "rg -n -- \"verified_external_cuda_training_launcher.sh|verified_training_launcher|required_committed_files_count: 17|verified 17 required file blobs at f2227bf|packet_handoff_source_commit|release_claimed_go|real_trained_adapter_no_fake_endpoint\" scripts/build_external_cuda_operator_packet.py tests/scripts/test_build_external_cuda_operator_packet.py scripts/verify_external_cuda_operator_packet.py tests/scripts/test_verify_external_cuda_operator_packet.py artifacts/review/external_cuda_operator_packet.json artifacts/review/external_cuda_operator_packet.md artifacts/review/external_cuda_operator_packet_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
     "git diff --check"
   ],
@@ -87,27 +88,27 @@
     "M6-RC and v0 release remain NOT_GO."
   ],
   "phase_notes": {
-    "plan": "Guard against stale packet.git.head values by verifying required committed file blobs at the packet source commit, then regenerate the packet against strict-cache handoff commit 51b2d97.",
-    "audit": "Current packet.git.head is eff6486, but scripts/prepare_strict_model_cache.py was introduced at 51b2d97; eff6486 cannot satisfy the required committed file set.",
-    "build": "Add commit-blob verification to the packet verifier, focused regression coverage, refreshed packet artifacts, docs, completion log, and PABCD.",
-    "check": "Run verifier tests, py_compile, regenerate packet at 51b2d97, verify packet GO, JSON/search evidence, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this packet source-commit guard phase."
+    "plan": "Include the verified external CUDA launcher shell in the packet required committed file set so the preferred external entrypoint is source-pinned.",
+    "audit": "Current recertification points operators to artifacts/review/verified_external_cuda_training_launcher.sh, but the operator packet required_committed_files does not require that launcher shell.",
+    "build": "Add the launcher shell to packet generation, verifier required paths, focused tests, refreshed packet artifacts, docs, completion log, and PABCD.",
+    "check": "Run focused packet generator/verifier tests, py_compile, regenerate packet at f2227bf, verify packet GO, JSON/search evidence, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this packet launcher required-file phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-external-cuda-packet-source-commit-guard",
+    "gate": "mib-studio-external-cuda-packet-launcher-required-file",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "External CUDA operator packet source-commit guard, focused verifier tests, refreshed packet artifacts, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD only.",
-    "blocked_scope": "No product runtime/API/UI/DB/schema changes, no catalog pin changes, no release verifier weakening, no M6 GO docs, no model/adapter/Docker/evidence bundle commits, no release GO claim.",
+    "approved_scope": "Verified external CUDA launcher required-file wiring, focused packet generator/verifier tests, refreshed packet artifacts, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD only.",
+    "blocked_scope": "No product runtime/API/UI/DB/schema changes, no catalog pin changes, no release acceptance weakening, no M6 GO docs, no model/adapter/Docker/evidence bundle commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Guard against stale packet.git.head values by verifying required committed file blobs at the packet source commit, then regenerate the packet against strict-cache handoff commit 51b2d97.",
-    "audit": "Current packet.git.head is eff6486, but scripts/prepare_strict_model_cache.py was introduced at 51b2d97; eff6486 cannot satisfy the required committed file set.",
-    "build": "Add commit-blob verification to the packet verifier, focused regression coverage, refreshed packet artifacts, docs, completion log, and PABCD.",
-    "check": "Run verifier tests, py_compile, regenerate packet at 51b2d97, verify packet GO, JSON/search evidence, bootstrap m1-smoke, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this packet source-commit guard phase."
+    "plan": "Include the verified external CUDA launcher shell in the packet required committed file set so the preferred external entrypoint is source-pinned.",
+    "audit": "Current recertification points operators to artifacts/review/verified_external_cuda_training_launcher.sh, but the operator packet required_committed_files does not require that launcher shell.",
+    "build": "Add the launcher shell to packet generation, verifier required paths, focused tests, refreshed packet artifacts, docs, completion log, and PABCD.",
+    "check": "Run focused packet generator/verifier tests, py_compile, regenerate packet at f2227bf, verify packet GO, JSON/search evidence, bootstrap m1-smoke, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this packet launcher required-file phase."
   }
 }

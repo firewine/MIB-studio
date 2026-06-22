@@ -15,6 +15,7 @@ STATUS = "PREPARED_NOT_RUN"
 PRIMARY_HANDOFF = "artifacts/review/real_adapter_cuda_training_handoff.sh"
 VERIFIED_LAUNCHER_HANDOFF = "artifacts/review/verified_external_cuda_training_launcher.sh"
 REQUIRED_COMMITTED_FILES = {
+    "verified_training_launcher": "artifacts/review/verified_external_cuda_training_launcher.sh",
     "training_handoff_json": "artifacts/review/real_adapter_cuda_training_handoff.json",
     "training_handoff_markdown": "artifacts/review/real_adapter_cuda_training_handoff.md",
     "training_handoff_shell": "artifacts/review/real_adapter_cuda_training_handoff.sh",

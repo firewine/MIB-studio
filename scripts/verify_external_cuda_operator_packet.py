@@ -17,6 +17,7 @@ GO_DECISION = "GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION"
 NOT_GO_DECISION = "NOT_GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION"
 EXPECTED_STATUS = "PREPARED_NOT_RUN"
 PRIMARY_HANDOFF = "artifacts/review/real_adapter_cuda_training_handoff.sh"
+VERIFIED_LAUNCHER_HANDOFF = "artifacts/review/verified_external_cuda_training_launcher.sh"
 
 REQUIRED_READINESS_IDS = [
     "dataset_jsonl_present",
@@ -56,6 +57,7 @@ REQUIRED_FORBIDDEN_LABELS = [
 ]
 REQUIRED_COMMITTED_FILE_PATHS = {
     PRIMARY_HANDOFF,
+    VERIFIED_LAUNCHER_HANDOFF,
     "scripts/prepare_strict_model_cache.py",
 }
 

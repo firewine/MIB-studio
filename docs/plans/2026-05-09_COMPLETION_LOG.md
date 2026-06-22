@@ -33,3 +33,4 @@
 - zip export worker의 adapter validation/lineage 로직을 전용 모듈로 분리해 `services/worker/handlers/export.py` code-shape soft warning을 해소했다.
 - current HEAD `d28b071` 기준 v0 release blocker recertification을 다시 실행해 unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다.
 - d28b071 recertification closeout 전에 `.venv`와 `/tmp/corepack`을 사용하는 strict bootstrap m1-smoke hook 재검증을 다시 실행해 toolchain mismatch 없이 통과함을 확인했다.
+- 외부 CUDA operator packet을 source commit `222f00c` 기준으로 갱신하고 verifier가 17개 required file blob을 해당 commit에서 검증하도록 재확인했다.

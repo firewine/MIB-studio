@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_CURRENT_HEAD_D28B071_BLOCKER_RECERTIFICATION
+phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_222F00C_REFRESH
 milestone: Final_Program_Development_Closeout
-phase_status: current_head_d28b071_recertified_not_go_release
-gate_id: mib-studio-v0-current-head-d28b071-blocker-recertification
+phase_status: external_cuda_operator_packet_current_head_verified
+gate_id: mib-studio-current-head-222f00c-external-cuda-operator-packet-refresh
 mode: development
 product_code_changed: false
 verification_tooling_changed: false
@@ -57,6 +57,51 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-current-head-222f00c-external-cuda-operator-packet-refresh
+objective: refresh the external CUDA operator packet after the current-head recertification closeout
+
+files:
+  packet_outputs:
+    - artifacts/review/external_cuda_operator_packet.json
+    - artifacts/review/external_cuda_operator_packet.md
+    - artifacts/review/external_cuda_operator_packet_verification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+packet:
+  source_commit: 222f00c
+  schema_version: mib_external_cuda_operator_packet.v1
+  status: PREPARED_NOT_RUN
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  required_committed_files_count: 17
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+
+verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  operator_packet_ready: true
+  verification_ok: true
+  warnings: []
+  required_file_hashes: verified 17 required file hashes
+  required_commit_blobs: verified 17 required file blobs at 222f00c
+  forbidden_tracked_artifacts: []
+
+release_status:
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - external CUDA operator packet now pins required committed file hashes to source commit 222f00c
+  - verifier confirms packet integrity GO and 17 required file blobs at 222f00c
+  - primary external handoff remains the verified launcher
+  - this phase does not create real adapter evidence and does not claim M6-RC or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-v0-current-head-d28b071-blocker-recertification
@@ -1787,7 +1832,7 @@ passes. This launcher is PREPARED_NOT_RUN and does not claim M6-RC or v0 release
 GO.
 The external CUDA operator packet is
 artifacts/review/external_cuda_operator_packet.json and .md. It pins the handoff
-source commit to c38ff33, records required committed file sha256 values, names
+source commit to 222f00c, records required committed file sha256 values, names
 artifacts/review/verified_external_cuda_training_launcher.sh as the primary
 external handoff, records artifacts/review/real_adapter_cuda_training_handoff.sh
 as the downstream training handoff, and forbids committing model weights, LoRA
@@ -1801,7 +1846,7 @@ artifacts/review/external_cuda_operator_packet.json and require
 GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION. The current verification artifact
 is artifacts/review/external_cuda_operator_packet_verification.json; it verifies
 17 required committed file hashes including artifacts/review/verified_external_cuda_training_launcher.sh and scripts/prepare_strict_model_cache.py,
-17 required committed file blobs at handoff source commit c38ff33,
+17 required committed file blobs at handoff source commit 222f00c,
 6 package readiness checks, command order,
 forbidden artifact labels, and no forbidden tracked artifacts. The verifier
 allows the current checkout to be a later closeout commit than packet.git.head

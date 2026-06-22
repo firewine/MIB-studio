@@ -48,6 +48,17 @@ Canonical mockup: `docs/mockup/mib_fe_mockup_v6_routes_contract.html`
 
 The v6 route-contract e2e starts the static desktop app, mock API, and headless Chrome through CDP. It verifies toolbox category switching, route preset insertion, contract output preview, compile/test actions, accessible button names, active `aria-current`, live status region, and keyboard focus on the compile action.
 
+## 2026-06-23 Workflow Order Alignment
+
+- Gate: `mib-studio-fe-v6-workflow-order-alignment`
+- Source head before change: `006cc89`
+- Canonical workflow order: `Workbench -> Hardware -> Define -> Data -> Train -> Benchmark -> Package -> Export`
+- App workflow order after change: `Workbench -> Hardware -> Define -> Data -> Train -> Benchmark -> Package -> Export`
+- Unit coverage: `apps/desktop/src/lib/appModel.test.mjs` asserts the exact workflow label order.
+- Browser coverage: `apps/desktop/e2e/fe_v6_route_contract.test.mjs` asserts the visible sidebar workflow order before route-contract edit/persistence checks.
+- `release_claimed_go: false`
+- M6-RC and v0 release remain NOT_GO; current release blocker remains `real_trained_adapter_no_fake_endpoint`.
+
 ## Remaining Non-FE RC Blocker
 
 Real digest-pinned Docker image build/save/run transcript evidence remains outstanding and is outside this FE gate.

@@ -174,10 +174,10 @@ export function workflowSteps(project, currentPath, datasetReady, hardwareReady,
   const packageState = project ? (benchmarkReady ? (packageReady ? "done" : "ready") : "locked") : "locked";
   const exportState = project ? (packageReady ? (exportReady ? "done" : "ready") : "locked") : "locked";
   return [
-    step("project", "Project", projectPath, project ? "done" : "current"),
+    step("project", "Workbench", projectPath, project ? "done" : "current"),
+    step("hardware", "Hardware", "/hardware", hardwareReady ? "done" : "ready"),
     step("define", "Define", project ? `/projects/${projectId}/define` : "/projects/new", project ? "ready" : "locked", "Create a project first."),
     step("data", "Data", project ? `/projects/${projectId}/datasets/new` : "/projects/new", project ? (datasetReady ? "done" : "ready") : "locked", "Project route contract required."),
-    step("hardware", "Hardware", "/hardware", hardwareReady ? "done" : "ready"),
     step("train", "Train", project ? `/projects/${projectId}/training` : "/projects/new", trainState, "Approve a dataset and run Hardware Doctor first."),
     step("benchmark", "Benchmark", project ? `/projects/${projectId}/benchmarks/new` : "/projects/new", benchmarkState, "Complete a model run before benchmarking."),
     step("package", "Package", project ? `/projects/${projectId}/packages` : "/projects/new", packageState, "Complete a valid benchmark report before packaging."),

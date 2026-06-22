@@ -52,3 +52,4 @@
 - current-head recertification 이후 외부 CUDA operator packet을 source commit `f31050c` 기준으로 다시 갱신해 verifier가 18개 required file hash와 18개 commit blob을 warning 없이 GO로 확인하도록 복구했다.
 - HTTPS credential 문제로 막혔던 phase closeout push를 SSH 인증 경로로 완료하고 `origin/main` 추적 ref를 `1e5cfdf`까지 갱신했다.
 - `b79322a` 기준 외부 CUDA handoff readiness audit를 추가해 packet GO, transfer manifest READY, strict model cache READY는 확인했지만 `nvidia-smi`/실제 adapter 파일/`mib-export:test` 이미지가 없어 v0 release는 계속 NOT_GO임을 명확히 했다.
+- FE v6 canonical mockup/UX_SPEC에 맞춰 desktop sidebar workflow 순서를 `Workbench -> Hardware -> Define -> Data -> Train -> Benchmark -> Package -> Export`로 정렬하고 unit/browser smoke/build와 strict m1-smoke 재검증을 통과했다.

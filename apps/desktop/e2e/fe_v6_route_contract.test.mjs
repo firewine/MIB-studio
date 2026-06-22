@@ -35,6 +35,10 @@ test("FE v6 route contract builder renders, edits, and passes keyboard/a11y smok
     await waitFor(client, 'document.body.innerText.includes("support-router")');
     await navigate(client, `http://127.0.0.1:${staticPort}/projects/proj_1/define`);
     await waitFor(client, 'document.body.innerText.includes("Toolbox") && document.body.innerText.includes("output schema locked")');
+    await waitFor(
+      client,
+      `JSON.stringify([...document.querySelectorAll(".workflow-step .step-label")].map((item) => item.textContent.trim())) === ${JSON.stringify(JSON.stringify(["Workbench", "Hardware", "Define", "Data", "Train", "Benchmark", "Package", "Export"]))}`,
+    );
 
     await click(client, '[data-action="select-palette"][data-palette="route"]');
     await waitFor(client, 'document.body.innerText.includes("route among labels")');

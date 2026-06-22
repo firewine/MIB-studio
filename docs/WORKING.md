@@ -41,12 +41,13 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_HANDOFF_READINESS_AUDIT
+phase_id: FE_V6_WORKFLOW_ORDER_ALIGNMENT
 milestone: Final_Program_Development_Closeout
-phase_status: waiting_for_external_cuda_host_real_adapter
-gate_id: mib-studio-external-cuda-handoff-readiness-audit
+phase_status: complete_pending_commit_push
+gate_id: mib-studio-fe-v6-workflow-order-alignment
 mode: development
-product_code_changed: false
+product_code_changed: true
+frontend_code_changed: true
 verification_tooling_changed: false
 verification_artifacts_refreshed: true
 external_operator_packet_refreshed: already_ready
@@ -63,6 +64,59 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-fe-v6-workflow-order-alignment
+objective: align desktop sidebar workflow ordering with canonical FE v6 mockup and UX_SPEC
+
+source_head: 006cc89
+canonical_sources:
+  - docs/specs/UX_SPEC.md
+  - docs/mockup/mib_fe_mockup_v6_routes_contract.html
+
+previous_app_order:
+  - Project
+  - Define
+  - Data
+  - Hardware
+  - Train
+  - Benchmark
+  - Package
+  - Export
+
+current_app_order:
+  - Workbench
+  - Hardware
+  - Define
+  - Data
+  - Train
+  - Benchmark
+  - Package
+  - Export
+
+changed_files:
+  - apps/desktop/src/lib/appModel.mjs
+  - apps/desktop/src/lib/appModel.test.mjs
+  - apps/desktop/e2e/fe_v6_route_contract.test.mjs
+
+verification_completed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --test apps/desktop/src/lib/appModel.test.mjs
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node --experimental-websocket --test apps/desktop/e2e/fe_v6_route_contract.test.mjs
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs test
+  - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build
+
+verification_pending:
+  - stage/commit/push
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-handoff-readiness-audit

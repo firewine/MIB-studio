@@ -45,6 +45,7 @@ test("createSeedExamples builds M1 minimum examples with router output", () => {
 test("workflowSteps locks later milestones but keeps M1 shell routes", () => {
   const project = { id: "proj_1", routes: routesToProjectInput(initialRoutes) };
   const steps = workflowSteps(project, "/hardware", true, false);
+  assert.deepEqual(steps.map((step) => step.label), ["Workbench", "Hardware", "Define", "Data", "Train", "Benchmark", "Package", "Export"]);
   assert.equal(steps.find((step) => step.id === "hardware").state, "current");
   assert.equal(steps.find((step) => step.id === "train").state, "locked");
   const ready = workflowSteps(project, "/projects/proj_1/training", true, true);

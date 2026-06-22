@@ -459,16 +459,17 @@ external_cuda_operator_packet_verification: artifacts/review/external_cuda_opera
 external_cuda_operator_transfer_manifest_builder: scripts/build_external_cuda_operator_transfer_manifest.py
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
 latest_pushed_readiness_closeout_head: 13964c0
+latest_recertification_closeout_head: c7acb56
 latest_readiness_audit_checkout_head: 50d67bf
-external_cuda_operator_packet_source_commit: 3e9f3ea
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
-external_cuda_operator_packet_refresh_reason: current-head recertification at 13964c0 refreshed source-pinned release/handoff artifacts; refresh packet in the next phase before external CUDA operator execution
+external_cuda_operator_packet_source_commit: c7acb56
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
+external_cuda_operator_packet_refresh_reason: none; packet refreshed after recertification closeout source commit c7acb56 and verifier/transfer readiness are GO
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
 cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
-current_recertification_head: 13964c0
+current_recertification_head: c7acb56
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -547,10 +548,11 @@ Current actionable NOT_GO recertification summary:
 
 ```yaml
 summary_file: artifacts/review/v0_release_blocker_recertification.json
-current_head_when_last_recertified: 13964c0
+current_head_when_last_recertified: c7acb56
 latest_pushed_readiness_closeout_head: 13964c0
-external_cuda_operator_packet_source_commit: 3e9f3ea
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
+latest_recertification_closeout_head: c7acb56
+external_cuda_operator_packet_source_commit: c7acb56
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
 top_level_fields:
   - blocking_reasons
   - operator_next_actions
@@ -578,7 +580,7 @@ current_blocking_reasons_include:
   - real_trained_adapter_no_fake_endpoint
   - WAITING_FOR_REAL_ADAPTER_INPUTS
 next_actions_are_in_artifact: true
-first_operator_action: refresh the external CUDA operator packet from the current recertification commit; after packet verification and transfer readiness are GO, run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host
+first_operator_action: run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host after pulling this packet refresh commit into a full repository checkout
 strict_model_cache_status: READY_STRICT_MODEL_CACHE
 strict_model_cache_action: keep /tmp/mib-strict-model-cache-phi/model_cache available on the active host; rerun prepare_strict_model_cache.py with --allow-download only if that host cache is missing
 strict_model_cache_files_current_preflight_ok: true
@@ -648,7 +650,7 @@ packet_verification: artifacts/review/external_cuda_operator_packet_verification
 schema_version: mib_external_cuda_operator_packet.v1
 status: PREPARED_NOT_RUN
 release_claimed_go: false
-handoff_source_commit: 3e9f3ea
+handoff_source_commit: c7acb56
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 recertification_primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
@@ -682,7 +684,7 @@ m6_rc_claimed_go: false
 validated:
   - packet contract and no-GO claims
   - 18 required committed file sha256/size values
-  - 18 required committed file blobs at handoff source commit 3e9f3ea
+  - 18 required committed file blobs at handoff source commit c7acb56
   - operator sequence keeps the packet file from the current checkout
   - primary handoff must be the verified launcher, not the lower-level training handoff
   - packet.git.head resolves even when current checkout is a later closeout commit
@@ -696,8 +698,8 @@ current_checkout_reverification_after_recertification:
   expected_decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   blocker: none
   stale_hash_paths: []
-meaning: packet artifact is currently source-pinned to 3e9f3ea, but current-head recertification at 13964c0 refreshed packet-required release/handoff artifacts; M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
-current_phase_note: refresh the external CUDA operator packet in the next phase before external CUDA operator execution; keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
+meaning: packet artifact is source-pinned to c7acb56 after current-head recertification; operator packet verification and transfer readiness are GO, while M6-RC and v0 release remain NOT_GO until real adapter endpoint evidence exists
+current_phase_note: no packet refresh is pending after this packet phase; use a full repository checkout on the external CUDA host and keep M6-RC and v0 release NOT_GO until real adapter endpoint evidence exists
 ```
 
 Current verified external CUDA training launcher:

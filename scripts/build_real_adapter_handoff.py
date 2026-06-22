@@ -157,11 +157,22 @@ def base_commands(args: argparse.Namespace, candidate_scan: dict[str, Any]) -> l
         args.gate_json_output,
     ]
     token_env = {"MIB_RUNTIME_BEARER_TOKEN": "<set-32-plus-character-token>"}
+    bundle_argv = [
+        args.python,
+        "scripts/verify_real_adapter_evidence_bundle.py",
+        "--bundle-dir",
+        "artifacts/review",
+        "--expected-decision",
+        "GO",
+        "--json-output",
+        args.bundle_json_output,
+    ]
     return [
         command_row("candidate_scan", scan_argv, note="Find and validate adapter candidates under explicit roots."),
         command_row("adapter_intake", intake_argv, note="Run strict intake on the operator-provided adapter before export/endpoint evidence."),
         command_row("rc_gate_preflight", gate_common + ["--preflight-only"], env=token_env, note="Must return READY_TO_RUN before live endpoint capture."),
         command_row("rc_gate_live", gate_common, env=token_env, note="Runs intake, no-fake Docker endpoint capture, and M6 GO verifier."),
+        command_row("evidence_bundle_verification", bundle_argv, note="Must return GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness can pass."),
         command_row(
             "v0_readiness_recheck",
             [
@@ -240,6 +251,12 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
             "v0_release_ready": readiness.get("release_ready"),
             "v0_blockers": readiness.get("blockers", []),
             "v0_unexpected_blockers": readiness.get("unexpected_blockers", []),
+            "real_adapter_evidence_bundle_decision": readiness.get("summary", {}).get("real_adapter_evidence_bundle_decision")
+            if isinstance(readiness.get("summary"), dict)
+            else None,
+            "real_adapter_evidence_bundle_ready": readiness.get("summary", {}).get("real_adapter_evidence_bundle_ready")
+            if isinstance(readiness.get("summary"), dict)
+            else None,
         },
         "required_operator_inputs": required_inputs(prereq),
         "command_sequence": base_commands(args, candidate_scan),
@@ -249,7 +266,8 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
             "Do not use fixture-sized or self-test adapters as release evidence.",
             "The Docker image must package the same adapter hash recorded by manifest.json.",
             "The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.",
-            "M6-RC and v0 remain NOT_GO until verify_m6_rc_evidence.py and verify_v0_release_readiness.py both return GO.",
+            "Run verify_real_adapter_evidence_bundle.py and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.",
+            "M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.",
         ],
     }
 
@@ -290,6 +308,8 @@ prereq_decision: {state["prereq_decision"]}
 missing_prereq_ids: {json.dumps(state["missing_prereq_ids"])}
 v0_readiness_decision: {state["v0_readiness_decision"]}
 v0_release_ready: {str(state["v0_release_ready"]).lower()}
+real_adapter_evidence_bundle_decision: {state["real_adapter_evidence_bundle_decision"]}
+real_adapter_evidence_bundle_ready: {str(state["real_adapter_evidence_bundle_ready"]).lower()}
 v0_blockers: {json.dumps(state["v0_blockers"])}
 v0_unexpected_blockers: {json.dumps(state["v0_unexpected_blockers"])}
 ```
@@ -336,6 +356,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--endpoint-json-output", default="artifacts/review/real_trained_adapter_endpoint_evidence.json")
     parser.add_argument("--m6-json-output", default="artifacts/review/m6_rc_evidence_verification.json")
     parser.add_argument("--gate-json-output", default="artifacts/review/m6_real_adapter_rc_gate_run.json")
+    parser.add_argument("--bundle-json-output", default="artifacts/review/real_adapter_evidence_bundle_verification.json")
     parser.add_argument("--json-output", default="artifacts/review/real_adapter_cuda_handoff.json")
     parser.add_argument("--markdown-output", default="artifacts/review/real_adapter_cuda_handoff.md")
     return parser.parse_args()

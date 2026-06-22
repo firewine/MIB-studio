@@ -51,6 +51,7 @@ def args_for(tmp_path: Path, *, candidate_scan: dict[str, object], prereq: dict[
         endpoint_json_output="artifacts/review/real_trained_adapter_endpoint_evidence.json",
         m6_json_output="artifacts/review/m6_rc_evidence_verification.json",
         gate_json_output="artifacts/review/m6_real_adapter_rc_gate_run.json",
+        bundle_json_output="artifacts/review/real_adapter_evidence_bundle_verification.json",
         json_output=str(tmp_path / "handoff.json"),
         markdown_output=str(tmp_path / "handoff.md"),
     )
@@ -91,9 +92,21 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
         "docker_image_available",
         "host_cuda_visible",
     ]
-    assert any(row["id"] == "rc_gate_live" for row in report["command_sequence"])
+    assert [row["id"] for row in report["command_sequence"]] == [
+        "candidate_scan",
+        "adapter_intake",
+        "rc_gate_preflight",
+        "rc_gate_live",
+        "evidence_bundle_verification",
+        "v0_readiness_recheck",
+    ]
+    bundle_step = next(row for row in report["command_sequence"] if row["id"] == "evidence_bundle_verification")
+    assert "scripts/verify_real_adapter_evidence_bundle.py" in bundle_step["argv"]
+    assert "--expected-decision" in bundle_step["argv"]
+    assert "GO" in bundle_step["argv"]
     assert "M6-RC remains NOT_GO" in markdown
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND" in markdown
+    assert "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" in markdown
 
 
 def test_handoff_preserves_go_candidate_runner_command(tmp_path: Path) -> None:

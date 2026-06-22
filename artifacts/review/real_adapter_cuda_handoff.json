@@ -116,6 +116,22 @@
     {
       "argv": [
         "./.venv/bin/python",
+        "scripts/verify_real_adapter_evidence_bundle.py",
+        "--bundle-dir",
+        "artifacts/review",
+        "--expected-decision",
+        "GO",
+        "--json-output",
+        "artifacts/review/real_adapter_evidence_bundle_verification.json"
+      ],
+      "env": {},
+      "id": "evidence_bundle_verification",
+      "note": "Must return GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness can pass.",
+      "shell": "./.venv/bin/python scripts/verify_real_adapter_evidence_bundle.py --bundle-dir artifacts/review --expected-decision GO --json-output artifacts/review/real_adapter_evidence_bundle_verification.json"
+    },
+    {
+      "argv": [
+        "./.venv/bin/python",
         "scripts/verify_v0_release_readiness.py",
         "--expected-decision",
         "GO",
@@ -143,6 +159,8 @@
     ],
     "prereq_decision": "NOT_READY",
     "prereq_status": "NOT_READY_PRECHECK_FAILED",
+    "real_adapter_evidence_bundle_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
+    "real_adapter_evidence_bundle_ready": false,
     "v0_blockers": [
       "real_trained_adapter_no_fake_endpoint"
     ],
@@ -150,7 +168,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T01:32:17.389097+00:00",
+  "date": "2026-06-22T01:53:31.129085+00:00",
   "decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
   "gate": "mib-studio-real-adapter-cuda-handoff",
   "go_candidate_commands": [],
@@ -169,7 +187,8 @@
     "Do not use fixture-sized or self-test adapters as release evidence.",
     "The Docker image must package the same adapter hash recorded by manifest.json.",
     "The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.",
-    "M6-RC and v0 remain NOT_GO until verify_m6_rc_evidence.py and verify_v0_release_readiness.py both return GO."
+    "Run verify_real_adapter_evidence_bundle.py and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.",
+    "M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO."
   ],
   "release_claimed_go": false,
   "required_operator_inputs": [

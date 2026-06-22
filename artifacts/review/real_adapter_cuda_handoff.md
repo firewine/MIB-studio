@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T01:32:17.389097+00:00
+date: 2026-06-22T01:53:31.129085+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false
@@ -22,6 +22,8 @@ prereq_decision: NOT_READY
 missing_prereq_ids: ["adapter_dir_present", "adapter_safetensors_present", "adapter_config_present", "adapter_manifest_present", "docker_image_available", "host_cuda_visible"]
 v0_readiness_decision: NOT_GO
 v0_release_ready: false
+real_adapter_evidence_bundle_decision: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
+real_adapter_evidence_bundle_ready: false
 v0_blockers: ["real_trained_adapter_no_fake_endpoint"]
 v0_unexpected_blockers: []
 ```
@@ -47,7 +49,8 @@ v0_unexpected_blockers: []
 - Do not use fixture-sized or self-test adapters as release evidence.
 - The Docker image must package the same adapter hash recorded by manifest.json.
 - The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.
-- M6-RC and v0 remain NOT_GO until verify_m6_rc_evidence.py and verify_v0_release_readiness.py both return GO.
+- Run verify_real_adapter_evidence_bundle.py and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.
+- M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.
 
 ## Command Sequence
 
@@ -73,6 +76,12 @@ MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scri
 
 ```bash
 MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --adapter-intake-json-output artifacts/review/real_adapter_artifact_intake.json --endpoint-output artifacts/review/real_trained_adapter_endpoint_evidence.md --endpoint-json-output artifacts/review/real_trained_adapter_endpoint_evidence.json --m6-json-output artifacts/review/m6_rc_evidence_verification.json --json-output artifacts/review/m6_real_adapter_rc_gate_run.json
+```
+
+### evidence_bundle_verification
+
+```bash
+./.venv/bin/python scripts/verify_real_adapter_evidence_bundle.py --bundle-dir artifacts/review --expected-decision GO --json-output artifacts/review/real_adapter_evidence_bundle_verification.json
 ```
 
 ### v0_readiness_recheck

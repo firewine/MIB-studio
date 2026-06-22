@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: M6_RC_REVIEW_DOC_DECISION_GATE
+phase_id: REAL_ADAPTER_ENDPOINT_FIRST_CLOSEOUT
 milestone: M6_RC_Blocker_Remediation
-phase_status: m6_rc_review_doc_decision_gate_verified_not_go
+phase_status: real_adapter_endpoint_first_closeout_verified_not_go
 active_slice: none
-gate_id: mib-studio-m6-rc-review-doc-decision-gate
+gate_id: mib-studio-real-adapter-endpoint-first-closeout
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,11 +53,11 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-m6-rc-review-doc-decision-gate
+  gate: mib-studio-real-adapter-endpoint-first-closeout
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: make M6-RC review-doc requirements match expected verifier decision
+  objective: fix real-adapter closeout sequencing so live endpoint evidence is captured before M6 GO review docs and M6 GO verification
   evidence:
     real_adapter_cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
     real_adapter_cuda_training_prereq_preflight: artifacts/review/real_adapter_cuda_training_prereq_preflight.json
@@ -82,6 +82,11 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
+    - scripts/run_m6_real_adapter_rc_gate.py now supports --endpoint-evidence-only, which runs adapter intake and live no-fake endpoint capture without running M6 GO verification or claiming M6-RC GO
+    - endpoint-only mode returns GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED with m6_rc_claimed_go false and next_required_action pointing to M6 review-doc GO update
+    - artifacts/review/real_adapter_cuda_handoff.* now sequence rc_gate_endpoint_evidence before m6_review_docs_go_update_required, then rc_gate_m6_go, evidence_bundle_assembly, and v0_readiness_recheck
+    - the generated shell checks docs/reviews/M6/SIGNOFF_MATRIX.md and docs/reviews/M6/CTO_DECISION.md for final GO markers and stops before M6 GO verification while those docs remain NOT_GO
+    - current M6 and v0 release readiness remain NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
     - scripts/verify_m6_rc_evidence.py now evaluates M6 review docs against the requested expected decision
     - --expected-decision NOT_GO still accepts the current blocker docs when real_trained_adapter_no_fake_endpoint is the only blocker
     - --expected-decision GO now requires final M6 signoff GO and CTO Decision: GO markers before the verifier can return GO
@@ -201,11 +206,14 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: m6_rc_review_doc_decision_gate_verified_not_go
+status: real_adapter_endpoint_first_closeout_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_m6_rc_evidence.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_m6_rc_evidence.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py scripts/build_real_adapter_handoff.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md --shell-output artifacts/review/real_adapter_cuda_handoff.sh
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json
+  - rg -n -- "endpoint-evidence-only|GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED|m6_review_docs_go_update_required|rc_gate_m6_go" scripts/run_m6_real_adapter_rc_gate.py scripts/build_real_adapter_handoff.py tests/scripts/test_run_m6_real_adapter_rc_gate.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json
   - python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
@@ -215,6 +223,7 @@ passed:
   - git diff --cached --check
 warnings:
   - M6-RC decision remains NOT_GO
+  - endpoint-evidence-only mode does not claim M6-RC GO; it exists to capture live endpoint evidence before the review-doc GO update
   - M6-RC --expected-decision GO now also requires final M6 signoff and CTO GO docs
   - no real trained CUDA lora_adapter artifact was found in the repo or current /tmp artifacts
   - current host has no visible CUDA device; nvidia-smi is unavailable and torch.cuda.is_available() is false
@@ -276,6 +285,7 @@ recorded_go:
   Real_Adapter_Evidence_Bundle_Assembly: true
   Real_Adapter_Evidence_Bundle_Promotion: true
   M6_RC_Review_Doc_Decision_Gate: true
+  Real_Adapter_Endpoint_First_Closeout: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -283,9 +293,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-m6-rc-review-doc-decision-gate
-  review_bundle: scripts/verify_m6_rc_evidence.py
-  decision: m6_rc_review_doc_decision_gate_verified_not_go
+  id: mib-studio-real-adapter-endpoint-first-closeout
+  review_bundle: scripts/run_m6_real_adapter_rc_gate.py
+  decision: real_adapter_endpoint_first_closeout_verified_not_go
 
 active_release_blocker:
   id: m6-real-trained-adapter-no-fake-endpoint-evidence
@@ -319,10 +329,11 @@ immediate:
   - run artifacts/review/real_adapter_docker_image_handoff.sh with MIB_DOCKER_BASE_IMAGE_WITH_DIGEST set to a digest-pinned CUDA runtime base image
   - export or tag the matching mib-export:test Docker image and run on a host where nvidia-smi is available
   - rerun scripts/run_m6_real_adapter_rc_gate.py --preflight-only with the real paths until status is READY_TO_RUN
-  - run scripts/run_m6_real_adapter_rc_gate.py without --preflight-only/--plan-only against the real adapter, exported Docker image, and model cache
+  - run scripts/run_m6_real_adapter_rc_gate.py --endpoint-evidence-only against the real adapter, exported Docker image, and model cache to capture live endpoint evidence without claiming M6-RC GO
+  - review artifacts/review/real_trained_adapter_endpoint_evidence.md and .json; update docs/reviews/M6/SIGNOFF_MATRIX.md and docs/reviews/M6/CTO_DECISION.md to final GO only if that evidence is accepted
+  - run scripts/run_m6_real_adapter_rc_gate.py without --preflight-only/--endpoint-evidence-only after M6 review docs contain final GO markers
   - run scripts/build_real_adapter_evidence_bundle.py after live RC gate success to assemble artifacts/review/real_adapter_evidence_bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE
   - if the GO bundle is produced on another CUDA host, copy that bundle locally and run scripts/promote_real_adapter_evidence_bundle.py --bundle-dir <copied_bundle> --target-dir artifacts/review --expected-decision GO before v0 readiness recheck
-  - update docs/reviews/M6/SIGNOFF_MATRIX.md and docs/reviews/M6/CTO_DECISION.md to final GO only after real endpoint evidence and bundle evidence are complete; scripts/verify_m6_rc_evidence.py --expected-decision GO now rejects otherwise complete endpoint evidence while those docs still say NOT_GO
   - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
@@ -331,17 +342,24 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-m6-rc-review-doc-decision-gate. scripts/verify_m6_rc_evidence.py now
-checks M6 review docs according to --expected-decision: NOT_GO accepts the
-current blocker docs, while GO requires final M6 signoff GO and CTO Decision:
-GO. Do not edit docs/reviews/M6 to GO until real no-fake endpoint evidence,
-M6-RC evidence, and the evidence bundle are complete. Before accepting any
-external CUDA evidence bundle, run scripts/promote_real_adapter_evidence_bundle.py
-against the copied bundle with --expected-decision GO. It first uses the
-existing strict bundle verifier and promotes only the fixed verifier-required
-files into artifacts/review when GO_REAL_ADAPTER_EVIDENCE_BUNDLE is proven. v0
-readiness now also requires that bundle decision for release GO. The current
-local artifacts/review bundle is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE. Start with
+mib-studio-real-adapter-endpoint-first-closeout. scripts/run_m6_real_adapter_rc_gate.py
+now supports --endpoint-evidence-only. That mode runs adapter intake and live
+no-fake Docker endpoint capture, writes endpoint evidence, returns
+GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED, and keeps
+m6_rc_claimed_go false. Use it before updating M6 review docs to GO.
+scripts/verify_m6_rc_evidence.py checks M6 review docs according to
+--expected-decision: NOT_GO accepts the current blocker docs, while GO requires
+final M6 signoff GO and CTO Decision: GO. Do not edit docs/reviews/M6 to GO
+until real no-fake endpoint evidence exists and has been reviewed. After those
+docs contain final GO markers, run the full M6-RC gate without
+--endpoint-evidence-only, then assemble the real-adapter evidence bundle and run
+v0 readiness. Before accepting any external CUDA evidence bundle, run
+scripts/promote_real_adapter_evidence_bundle.py against the copied bundle with
+--expected-decision GO. It first uses the existing strict bundle verifier and
+promotes only the fixed verifier-required files into artifacts/review when
+GO_REAL_ADAPTER_EVIDENCE_BUNDLE is proven. v0 readiness now also requires that
+bundle decision for release GO. The current local artifacts/review bundle is
+NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE. Start with
 artifacts/review/real_adapter_cuda_training_handoff.sh on the CUDA host to
 produce the real trained adapter. That script refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND,
 requires nvidia-smi and ./.venv/bin/llamafactory-cli, resolves
@@ -354,11 +372,10 @@ artifacts/review/real_adapter_cuda_handoff.sh. The Docker image handoff shell
 also resolves MIB_DOCKER_BASE_IMAGE_WITH_DIGEST when unset, requires @sha256,
 refuses fake backend mode, materializes /tmp/mib-real-adapter/docker_context,
 builds mib-export:test, and runs docker image inspect before RC endpoint capture.
-The downstream RC
-handoff script
-requires a real MIB_RUNTIME_BEARER_TOKEN, then runs candidate scan, adapter
-intake, RC preflight, live no-fake Docker endpoint capture, M6 verifier,
-evidence bundle assembly, and v0 readiness recheck. The evidence bundle assembly
+The downstream RC handoff script requires a real MIB_RUNTIME_BEARER_TOKEN, then
+runs candidate scan, adapter intake, RC preflight, endpoint-evidence-only live
+capture, a M6 review-doc GO marker check, the full M6 GO gate, evidence bundle
+assembly, and v0 readiness recheck. The evidence bundle assembly
 step runs scripts/build_real_adapter_evidence_bundle.py, copies the fixed
 required files into artifacts/review/real_adapter_evidence_bundle, removes stale
 fixed evidence files before copying, writes

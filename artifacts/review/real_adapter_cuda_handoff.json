@@ -104,13 +104,59 @@
         "--m6-json-output",
         "artifacts/review/m6_rc_evidence_verification.json",
         "--json-output",
+        "artifacts/review/m6_real_adapter_rc_gate_run.json",
+        "--endpoint-evidence-only"
+      ],
+      "env": {
+        "MIB_RUNTIME_BEARER_TOKEN": "<set-32-plus-character-token>"
+      },
+      "id": "rc_gate_endpoint_evidence",
+      "note": "Runs intake and no-fake Docker endpoint capture only; does not run M6 GO verification or claim M6-RC GO.",
+      "shell": "MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --adapter-intake-json-output artifacts/review/real_adapter_artifact_intake.json --endpoint-output artifacts/review/real_trained_adapter_endpoint_evidence.md --endpoint-json-output artifacts/review/real_trained_adapter_endpoint_evidence.json --m6-json-output artifacts/review/m6_rc_evidence_verification.json --json-output artifacts/review/m6_real_adapter_rc_gate_run.json --endpoint-evidence-only"
+    },
+    {
+      "argv": [
+        "./.venv/bin/python",
+        "-c",
+        "from pathlib import Path; import sys; signoff=Path('docs/reviews/M6/SIGNOFF_MATRIX.md').read_text(encoding='utf-8'); cto=Path('docs/reviews/M6/CTO_DECISION.md').read_text(encoding='utf-8'); ok='| M6 Export / v0 RC | GO | GO | GO | GO | GO | GO | GO | GO | GO | GO |' in signoff and 'Decision: GO' in cto; sys.exit(0 if ok else 3)"
+      ],
+      "env": {},
+      "id": "m6_review_docs_go_update_required",
+      "note": "Stops until docs/reviews/M6 signoff and CTO decision are updated to GO after reviewing live endpoint evidence.",
+      "shell": "./.venv/bin/python -c 'from pathlib import Path; import sys; signoff=Path('\"'\"'docs/reviews/M6/SIGNOFF_MATRIX.md'\"'\"').read_text(encoding='\"'\"'utf-8'\"'\"'); cto=Path('\"'\"'docs/reviews/M6/CTO_DECISION.md'\"'\"').read_text(encoding='\"'\"'utf-8'\"'\"'); ok='\"'\"'| M6 Export / v0 RC | GO | GO | GO | GO | GO | GO | GO | GO | GO | GO |'\"'\"' in signoff and '\"'\"'Decision: GO'\"'\"' in cto; sys.exit(0 if ok else 3)'"
+    },
+    {
+      "argv": [
+        "./.venv/bin/python",
+        "scripts/run_m6_real_adapter_rc_gate.py",
+        "--adapter-dir",
+        "/tmp/mib-real-adapter/adapter",
+        "--adapter-manifest",
+        "/tmp/mib-real-adapter/manifest.json",
+        "--base-model",
+        "microsoft/Phi-3.5-mini-instruct",
+        "--image",
+        "mib-export:test",
+        "--agent-id",
+        "finance.router.v1",
+        "--model-cache-dir",
+        "/tmp/mib-strict-model-cache-phi/model_cache",
+        "--adapter-intake-json-output",
+        "artifacts/review/real_adapter_artifact_intake.json",
+        "--endpoint-output",
+        "artifacts/review/real_trained_adapter_endpoint_evidence.md",
+        "--endpoint-json-output",
+        "artifacts/review/real_trained_adapter_endpoint_evidence.json",
+        "--m6-json-output",
+        "artifacts/review/m6_rc_evidence_verification.json",
+        "--json-output",
         "artifacts/review/m6_real_adapter_rc_gate_run.json"
       ],
       "env": {
         "MIB_RUNTIME_BEARER_TOKEN": "<set-32-plus-character-token>"
       },
-      "id": "rc_gate_live",
-      "note": "Runs intake, no-fake Docker endpoint capture, and M6 GO verifier.",
+      "id": "rc_gate_m6_go",
+      "note": "Runs the full M6-RC gate after M6 review docs are GO.",
       "shell": "MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --adapter-intake-json-output artifacts/review/real_adapter_artifact_intake.json --endpoint-output artifacts/review/real_trained_adapter_endpoint_evidence.md --endpoint-json-output artifacts/review/real_trained_adapter_endpoint_evidence.json --m6-json-output artifacts/review/m6_rc_evidence_verification.json --json-output artifacts/review/m6_real_adapter_rc_gate_run.json"
     },
     {
@@ -172,7 +218,7 @@
     "v0_release_ready": false,
     "v0_unexpected_blockers": []
   },
-  "date": "2026-06-22T03:43:26.365694+00:00",
+  "date": "2026-06-22T04:12:11.118692+00:00",
   "decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
   "executable_artifact": "artifacts/review/real_adapter_cuda_handoff.sh",
   "gate": "mib-studio-real-adapter-cuda-handoff",
@@ -192,6 +238,7 @@
     "Do not use fixture-sized or self-test adapters as release evidence.",
     "The Docker image must package the same adapter hash recorded by manifest.json.",
     "The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.",
+    "Capture endpoint evidence before updating M6 review docs to GO; the generated shell stops before M6 GO verification until those docs contain final GO markers.",
     "Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.",
     "M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO."
   ],

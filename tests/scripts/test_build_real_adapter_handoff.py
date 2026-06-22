@@ -101,10 +101,16 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
         "candidate_scan",
         "adapter_intake",
         "rc_gate_preflight",
-        "rc_gate_live",
+        "rc_gate_endpoint_evidence",
+        "m6_review_docs_go_update_required",
+        "rc_gate_m6_go",
         "evidence_bundle_assembly",
         "v0_readiness_recheck",
     ]
+    endpoint_step = next(row for row in report["command_sequence"] if row["id"] == "rc_gate_endpoint_evidence")
+    assert "--endpoint-evidence-only" in endpoint_step["argv"]
+    docs_step = next(row for row in report["command_sequence"] if row["id"] == "m6_review_docs_go_update_required")
+    assert "docs/reviews/M6/SIGNOFF_MATRIX.md" in " ".join(docs_step["argv"])
     bundle_step = next(row for row in report["command_sequence"] if row["id"] == "evidence_bundle_assembly")
     assert "scripts/build_real_adapter_evidence_bundle.py" in bundle_step["argv"]
     assert "--bundle-dir" in bundle_step["argv"]
@@ -116,10 +122,13 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert "M6-RC remains NOT_GO" in markdown
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND" in markdown
     assert "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" in markdown
+    assert "Capture endpoint evidence before updating M6 review docs to GO" in markdown
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "set a real MIB_RUNTIME_BEARER_TOKEN" in shell
     assert 'MIB_RUNTIME_BEARER_TOKEN="${MIB_RUNTIME_BEARER_TOKEN}"' in shell
-    assert shell.index("== rc_gate_live ==") < shell.index("== evidence_bundle_assembly ==")
+    assert shell.index("== rc_gate_endpoint_evidence ==") < shell.index("== m6_review_docs_go_update_required ==")
+    assert shell.index("== m6_review_docs_go_update_required ==") < shell.index("== rc_gate_m6_go ==")
+    assert shell.index("== rc_gate_m6_go ==") < shell.index("== evidence_bundle_assembly ==")
     assert shell.index("== evidence_bundle_assembly ==") < shell.index("== v0_readiness_recheck ==")
     assert "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" in markdown
 
@@ -164,6 +173,6 @@ def test_handoff_preserves_go_candidate_runner_command(tmp_path: Path) -> None:
 
     report = handoff.build_handoff(args)
 
-    assert report["decision"] == "READY_FOR_LIVE_M6_RC_GATE"
+    assert report["decision"] == "READY_FOR_ENDPOINT_FIRST_M6_RC_CLOSEOUT"
     assert report["go_candidate_commands"][0]["argv"] == rc_command
     assert report["go_candidate_commands"][0]["env"]["MIB_RUNTIME_BEARER_TOKEN"].startswith("<set-32")

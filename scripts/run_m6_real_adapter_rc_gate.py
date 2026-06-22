@@ -252,7 +252,7 @@ def failed_preflight_messages(checks: list[dict[str, Any]]) -> list[str]:
     return [f"{row['id']}: {row['detail']}" for row in checks if not row["ok"]]
 
 
-def build_steps(args: argparse.Namespace, *, python_exe: str | None = None) -> list[Step]:
+def build_steps(args: argparse.Namespace, *, python_exe: str | None = None, include_m6_verification: bool = True) -> list[Step]:
     python = python_exe or sys.executable
     scripts_dir = Path(__file__).resolve().parent
     intake = [
@@ -306,11 +306,13 @@ def build_steps(args: argparse.Namespace, *, python_exe: str | None = None) -> l
         "--json-output",
         args.m6_json_output,
     ]
-    return [
+    steps = [
         Step("adapter_intake", intake, args.step_timeout_seconds),
         Step("endpoint_capture", endpoint, args.endpoint_timeout_seconds),
-        Step("m6_go_verification", m6, args.step_timeout_seconds),
     ]
+    if include_m6_verification:
+        steps.append(Step("m6_go_verification", m6, args.step_timeout_seconds))
+    return steps
 
 
 def base_summary(args: argparse.Namespace) -> dict[str, Any]:
@@ -324,6 +326,7 @@ def base_summary(args: argparse.Namespace) -> dict[str, Any]:
         "status": "RUNNING",
         "plan_only": bool(args.plan_only),
         "preflight_only": bool(args.preflight_only),
+        "endpoint_evidence_only": bool(getattr(args, "endpoint_evidence_only", False)),
         "decision": "PENDING",
         "m6_rc_claimed_go": False,
         "inputs": {
@@ -390,7 +393,8 @@ def run_gate(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> di
         summary["m6_rc_claimed_go"] = False
         return summary
 
-    for step in build_steps(args):
+    endpoint_evidence_only = bool(getattr(args, "endpoint_evidence_only", False))
+    for step in build_steps(args, include_m6_verification=not endpoint_evidence_only):
         result = runner(step.command, step.timeout)
         summary["steps"].append(step_result_row(step, result, secrets))
         if result.returncode != 0:
@@ -408,6 +412,17 @@ def run_gate(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> di
             if m6_report.get("verification_ok") is not True or m6_report.get("decision") != "GO":
                 return failed(summary, status="NOT_GO_M6_VERIFICATION", decision="NOT_GO", error="M6 verifier did not return GO")
 
+    if endpoint_evidence_only:
+        summary["status"] = "GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED"
+        summary["decision"] = "ENDPOINT_EVIDENCE_READY"
+        summary["m6_rc_claimed_go"] = False
+        summary["next_required_action"] = (
+            "Review the live endpoint evidence, update docs/reviews/M6/SIGNOFF_MATRIX.md and "
+            "docs/reviews/M6/CTO_DECISION.md to GO only when that evidence is accepted, then rerun "
+            "the full M6-RC gate without --endpoint-evidence-only."
+        )
+        return summary
+
     summary["status"] = "GO_M6_REAL_ADAPTER_RC_GATE"
     summary["decision"] = "GO"
     summary["m6_rc_claimed_go"] = True
@@ -416,8 +431,14 @@ def run_gate(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> di
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the real adapter M6-RC evidence gate.")
-    parser.add_argument("--plan-only", action="store_true", help="Render the command plan without executing the gate.")
-    parser.add_argument("--preflight-only", action="store_true", help="Check real-run prerequisites without executing intake, endpoint, or M6 verification steps.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--plan-only", action="store_true", help="Render the command plan without executing the gate.")
+    mode.add_argument("--preflight-only", action="store_true", help="Check real-run prerequisites without executing intake, endpoint, or M6 verification steps.")
+    mode.add_argument(
+        "--endpoint-evidence-only",
+        action="store_true",
+        help="Run adapter intake and live endpoint capture only; do not run M6 GO verification or claim M6-RC GO.",
+    )
     parser.add_argument("--adapter-dir", required=True)
     parser.add_argument("--adapter-manifest", required=True)
     parser.add_argument("--base-model", choices=["google/gemma-2b-it", "microsoft/Phi-3.5-mini-instruct"], required=True)
@@ -447,7 +468,7 @@ def main() -> int:
     print(json.dumps({"json_output": args.json_output, "status": summary["status"], "decision": summary["decision"]}, sort_keys=True))
     if args.preflight_only:
         return 0
-    return 0 if summary["status"] in {"GO_M6_REAL_ADAPTER_RC_GATE", "PLAN_ONLY_NOT_RUN"} else 1
+    return 0 if summary["status"] in {"GO_M6_REAL_ADAPTER_RC_GATE", "PLAN_ONLY_NOT_RUN", "GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED"} else 1
 
 
 if __name__ == "__main__":

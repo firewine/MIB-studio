@@ -175,6 +175,13 @@ def base_commands(args: argparse.Namespace, candidate_scan: dict[str, Any]) -> l
         args.gate_json_output,
     ]
     token_env = {"MIB_RUNTIME_BEARER_TOKEN": "<set-32-plus-character-token>"}
+    m6_doc_go_check = (
+        "from pathlib import Path; import sys; "
+        "signoff=Path('docs/reviews/M6/SIGNOFF_MATRIX.md').read_text(encoding='utf-8'); "
+        "cto=Path('docs/reviews/M6/CTO_DECISION.md').read_text(encoding='utf-8'); "
+        "ok='| M6 Export / v0 RC | GO | GO | GO | GO | GO | GO | GO | GO | GO | GO |' in signoff and 'Decision: GO' in cto; "
+        "sys.exit(0 if ok else 3)"
+    )
     bundle_argv = [
         args.python,
         "scripts/build_real_adapter_evidence_bundle.py",
@@ -193,7 +200,18 @@ def base_commands(args: argparse.Namespace, candidate_scan: dict[str, Any]) -> l
         command_row("candidate_scan", scan_argv, note="Find and validate adapter candidates under explicit roots."),
         command_row("adapter_intake", intake_argv, note="Run strict intake on the operator-provided adapter before export/endpoint evidence."),
         command_row("rc_gate_preflight", gate_common + ["--preflight-only"], env=token_env, note="Must return READY_TO_RUN before live endpoint capture."),
-        command_row("rc_gate_live", gate_common, env=token_env, note="Runs intake, no-fake Docker endpoint capture, and M6 GO verifier."),
+        command_row(
+            "rc_gate_endpoint_evidence",
+            gate_common + ["--endpoint-evidence-only"],
+            env=token_env,
+            note="Runs intake and no-fake Docker endpoint capture only; does not run M6 GO verification or claim M6-RC GO.",
+        ),
+        command_row(
+            "m6_review_docs_go_update_required",
+            [args.python, "-c", m6_doc_go_check],
+            note="Stops until docs/reviews/M6 signoff and CTO decision are updated to GO after reviewing live endpoint evidence.",
+        ),
+        command_row("rc_gate_m6_go", gate_common, env=token_env, note="Runs the full M6-RC gate after M6 review docs are GO."),
         command_row(
             "evidence_bundle_assembly",
             bundle_argv,
@@ -237,7 +255,7 @@ def decision(candidate_scan: dict[str, Any], prereq: dict[str, Any], readiness: 
         return "RELEASE_READY_RECHECK_REQUIRED"
     missing = failed_preflight_ids(prereq)
     if int(candidate_scan.get("go_candidate_count", 0) or 0) > 0 and not missing:
-        return "READY_FOR_LIVE_M6_RC_GATE"
+        return "READY_FOR_ENDPOINT_FIRST_M6_RC_CLOSEOUT"
     if int(candidate_scan.get("go_candidate_count", 0) or 0) > 0:
         return "GO_CANDIDATE_AWAITING_PREFLIGHT"
     return "WAITING_FOR_REAL_ADAPTER_INPUTS"
@@ -293,6 +311,7 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
             "Do not use fixture-sized or self-test adapters as release evidence.",
             "The Docker image must package the same adapter hash recorded by manifest.json.",
             "The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.",
+            "Capture endpoint evidence before updating M6 review docs to GO; the generated shell stops before M6 GO verification until those docs contain final GO markers.",
             "Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.",
             "M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.",
         ],

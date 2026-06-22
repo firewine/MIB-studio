@@ -26,6 +26,7 @@ def args_for(
     token: str = "x" * 32,
     plan_only: bool = False,
     preflight_only: bool = False,
+    endpoint_evidence_only: bool = False,
 ) -> SimpleNamespace:
     adapter_dir = tmp_path / "run" / "adapter"
     adapter_dir.mkdir(parents=True)
@@ -57,6 +58,7 @@ def args_for(
         json_output=str(tmp_path / "gate.json"),
         plan_only=plan_only,
         preflight_only=preflight_only,
+        endpoint_evidence_only=endpoint_evidence_only,
     )
 
 
@@ -139,6 +141,53 @@ def test_gate_runner_stops_before_endpoint_when_intake_command_fails(tmp_path: P
     script_commands = [command for command in commands if len(command) > 1 and command[1].endswith(".py")]
     assert [Path(command[1]).name for command in script_commands] == ["verify_real_adapter_artifact.py"]
     assert summary["m6_rc_claimed_go"] is False
+
+
+def test_gate_runner_endpoint_evidence_only_stops_before_m6_go_without_claiming_rc(tmp_path: Path) -> None:
+    args = args_for(tmp_path, endpoint_evidence_only=True)
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        script = command[1] if len(command) > 1 else ""
+        if "verify_real_adapter_artifact.py" in script:
+            write_json(
+                args.adapter_intake_json_output,
+                {
+                    "schema_version": "mib_real_adapter_artifact_intake.v1",
+                    "status": "GO_REAL_ADAPTER_ARTIFACT_INTAKE",
+                    "adapter_sha256": "a" * 64,
+                    "artifact_manifest_sha256": "b" * 64,
+                    "errors": [],
+                },
+            )
+        elif "capture_real_adapter_endpoint_evidence.py" in script:
+            Path(args.endpoint_output).write_text("live endpoint evidence\n", encoding="utf-8")
+            write_json(
+                args.endpoint_json_output,
+                {
+                    "schema_version": "mib_real_adapter_endpoint_evidence.v1",
+                    "source": "live_docker_capture",
+                    "self_test": False,
+                    "decision": "GO_REAL_TRAINED_ADAPTER_ENDPOINT",
+                },
+            )
+        elif "verify_m6_rc_evidence.py" in script:
+            raise AssertionError("endpoint-evidence-only must not run M6 GO verification")
+        return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
+
+    summary = gate.run_gate(args, runner=runner)
+
+    assert summary["status"] == "GO_REAL_ADAPTER_ENDPOINT_EVIDENCE_READY_M6_NOT_CLAIMED"
+    assert summary["decision"] == "ENDPOINT_EVIDENCE_READY"
+    assert summary["m6_rc_claimed_go"] is False
+    assert [row["id"] for row in summary["steps"]] == ["adapter_intake", "endpoint_capture"]
+    assert "docs/reviews/M6/SIGNOFF_MATRIX.md" in summary["next_required_action"]
+    script_commands = [command for command in commands if len(command) > 1 and command[1].endswith(".py")]
+    assert [Path(command[1]).name for command in script_commands] == [
+        "verify_real_adapter_artifact.py",
+        "capture_real_adapter_endpoint_evidence.py",
+    ]
 
 
 def test_gate_runner_preflight_only_reports_not_ready_without_executing_steps(tmp_path: Path) -> None:

@@ -50,3 +50,4 @@
 - transfer manifest builder 추가 이후 외부 CUDA operator packet을 source commit `5fc0a75` 기준으로 다시 갱신해 verifier가 18개 required file hash와 18개 commit blob을 warning 없이 GO로 확인하도록 복구했다.
 - current HEAD `159a00a` 기준 v0 release blocker recertification을 다시 실행해 Docker/base-image 준비 상태는 유지되고 CUDA visibility/real adapter endpoint evidence가 없어 v0 release는 계속 NOT_GO임을 확인했다.
 - current-head recertification 이후 외부 CUDA operator packet을 source commit `f31050c` 기준으로 다시 갱신해 verifier가 18개 required file hash와 18개 commit blob을 warning 없이 GO로 확인하도록 복구했다.
+- HTTPS credential 문제로 막혔던 phase closeout push를 SSH 인증 경로로 완료하고 `origin/main` 추적 ref를 `1e5cfdf`까지 갱신했다.

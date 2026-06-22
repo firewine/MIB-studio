@@ -183,31 +183,30 @@
   },
   "warnings": [
     "This phase refreshes packet integrity only.",
-    "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists.",
-    "The previous recertification commit f31050c is local and still needs push after GitHub credential repair."
+    "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   ],
   "phase_notes": {
     "plan": "Refresh external CUDA operator packet artifacts so source-pinned hashes match recertification commit f31050c.",
     "audit": "After commit f31050c, the previous packet is expected to be NOT_GO because required file hashes for handoff/recertification artifacts are stale.",
     "build": "Regenerate external_cuda_operator_packet JSON/Markdown at git head f31050c, verify it, run the transfer manifest builder, and update LLM operational docs.",
     "check": "Run pre-refresh NOT_GO verification, focused packet tests, py_compile, packet build, packet verification, transfer manifest generation, JSON validation, evidence search, git status scope check, and diff checks.",
-    "done": "Verification passed, packet source commit f31050c is GO, transfer manifest is READY, release GO claims remain false, and GitHub credential repair is still required before push can succeed."
+    "done": "Verification passed, packet source commit f31050c is GO, transfer manifest is READY, release GO claims remain false, commits were pushed over SSH, and origin/main tracking was refreshed."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
     "gate": "mib-studio-post-recertification-external-cuda-packet-refresh",
-    "status": "COMPLETE_PENDING_COMMIT_PUSH",
+    "status": "COMPLETE_PUSHED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "approved_scope": "Refresh external CUDA operator packet artifacts and LLM operational docs after recertification commit f31050c.",
     "blocked_scope": "No product/runtime/test/script/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model cache, adapter, Docker, endpoint, evidence bundle, or venv artifacts.",
-    "phase_completion_git_policy": "After verification passes, stage, commit locally, attempt push, and report GitHub credential blocker if push still fails.",
+    "phase_completion_git_policy": "Completed: stage, commit, push over SSH, and refresh origin/main tracking.",
     "plan": "Refresh external CUDA operator packet artifacts so source-pinned hashes match recertification commit f31050c.",
     "audit": "After commit f31050c, the previous packet is expected to be NOT_GO because required file hashes for handoff/recertification artifacts are stale.",
     "build": "Regenerate external_cuda_operator_packet JSON/Markdown at git head f31050c, verify it, run the transfer manifest builder, and update LLM operational docs.",
     "check": "Run pre-refresh NOT_GO verification, focused packet tests, py_compile, packet build, packet verification, transfer manifest generation, JSON validation, evidence search, git status scope check, and diff checks.",
-    "done": "Verification passed, packet source commit f31050c is GO, transfer manifest is READY, release GO claims remain false, and GitHub credential repair is still required before push can succeed."
+    "done": "Verification passed, packet source commit f31050c is GO, transfer manifest is READY, release GO claims remain false, commits were pushed over SSH, and origin/main tracking was refreshed."
   }
 }

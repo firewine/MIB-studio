@@ -25,6 +25,19 @@ def completed(command: list[str], returncode: int = 0, stdout: str = "ok", stder
     return subprocess.CompletedProcess(command, returncode, stdout=stdout, stderr=stderr)
 
 
+def docker_inspect_stdout(*, repo_digest: str, env: list[str]) -> str:
+    return json.dumps(
+        [
+            {
+                "Id": "sha256:" + "1" * 64,
+                "RepoDigests": [repo_digest],
+                "RepoTags": [repo_digest.split("@", 1)[0] + ":unit"],
+                "Config": {"Env": env, "Labels": {}},
+            }
+        ]
+    )
+
+
 def args_for(tmp_path: Path) -> SimpleNamespace:
     dataset = tmp_path / "dataset.jsonl"
     dataset.write_text(json.dumps({"instruction": "route", "input": {}, "output": {"route": "finance_income"}}) + "\n", encoding="utf-8")
@@ -114,7 +127,13 @@ def test_preflight_ready_with_digest_env_strict_cache_and_commands(tmp_path: Pat
         if command[:2] == ["docker", "version"]:
             return completed(command, stdout="24.0")
         if command[:3] == ["docker", "image", "inspect"]:
-            return completed(command, stdout="[]")
+            return completed(
+                command,
+                stdout=docker_inspect_stdout(
+                    repo_digest="local-cuda-base@sha256:" + "a" * 64,
+                    env=["CUDA_VERSION=12.1.1", "NVIDIA_VISIBLE_DEVICES=all", "PYTHON_VERSION=3.11.8"],
+                ),
+            )
         raise AssertionError(f"unexpected command: {command}")
 
     report = preflight.build_report(
@@ -128,3 +147,58 @@ def test_preflight_ready_with_digest_env_strict_cache_and_commands(tmp_path: Pat
     assert report["blockers"] == []
     assert cache_check["verify_hashes"] is True
     assert cache_check["hash_mismatches"] == []
+    runtime_check = next(row for row in report["checks"] if row["id"] == "docker_base_image_cuda_python_runtime")
+    assert runtime_check["ok"] is True
+    assert "env:CUDA_VERSION" in runtime_check["cuda_markers"]
+    assert "env:PYTHON_VERSION" in runtime_check["python_runtime_markers"]
+
+
+def test_preflight_rejects_inspectable_non_cuda_digest_base_image(tmp_path: Path, monkeypatch) -> None:
+    args = args_for(tmp_path)
+    cache_subdir = "test__model@1234567890abcdef1234567890abcdef12345678"
+    cache_root = Path(args.model_cache_dir) / cache_subdir
+    cache_root.mkdir(parents=True)
+    payload = b"{}"
+    cache_file = cache_root / "config.json"
+    cache_file.write_bytes(payload)
+    monkeypatch.setattr(
+        preflight,
+        "load_model_catalog",
+        lambda: SimpleNamespace(
+            get=lambda model_id: SimpleNamespace(
+                id=model_id,
+                cache_subdir=cache_subdir,
+                required_files=(SimpleNamespace(path="config.json", sha256=hashlib.sha256(payload).hexdigest(), size_bytes=len(payload), required=True),),
+            )
+        ),
+    )
+
+    def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        if command[0] == "nvidia-smi":
+            return completed(command)
+        if command == [args.llamafactory_cli, "version"]:
+            return completed(command, stdout="Welcome to LLaMA Factory, version 0.9.5")
+        if command[:2] == ["docker", "version"]:
+            return completed(command, stdout="24.0")
+        if command[:3] == ["docker", "image", "inspect"]:
+            return completed(
+                command,
+                stdout=docker_inspect_stdout(
+                    repo_digest="getbeta-backend@sha256:" + "b" * 64,
+                    env=["PATH=/usr/local/bin"],
+                ),
+            )
+        raise AssertionError(f"unexpected command: {command}")
+
+    report = preflight.build_report(
+        args,
+        runner=runner,
+        env={"MIB_DOCKER_BASE_IMAGE_WITH_DIGEST": "getbeta-backend@sha256:" + "b" * 64},
+    )
+
+    runtime_check = next(row for row in report["checks"] if row["id"] == "docker_base_image_cuda_python_runtime")
+    assert report["status"] == preflight.NOT_READY_STATUS
+    assert "docker_base_image_cuda_python_runtime" in report["blockers"]
+    assert runtime_check["ok"] is False
+    assert runtime_check["cuda_markers"] == []
+    assert runtime_check["python_runtime_markers"] == []

@@ -16,7 +16,9 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
+from resolve_cuda_base_image import cuda_markers, python_runtime_markers
 from services.shared.model_catalog import load_model_catalog
 
 
@@ -64,6 +66,75 @@ def command_check(check_id: str, command: list[str], *, timeout: int, runner: Ru
         return check_row(check_id, False, str(exc), command=command, returncode=None)
     detail = "ok" if result.returncode == 0 else clip((result.stderr or result.stdout or "").strip())
     return check_row(check_id, result.returncode == 0, detail, command=command, returncode=result.returncode)
+
+
+def docker_base_image_checks(base_image: str, *, timeout: int, runner: Runner) -> list[dict[str, Any]]:
+    command = ["docker", "image", "inspect", base_image]
+    if not base_image:
+        return [
+            check_row(
+                "docker_base_image_available",
+                False,
+                f"cannot inspect base image until {BASE_IMAGE_ENV} is set",
+                command=["docker", "image", "inspect", f"${BASE_IMAGE_ENV}"],
+                returncode=None,
+            )
+        ]
+    try:
+        result = runner(command, timeout)
+    except Exception as exc:
+        return [check_row("docker_base_image_available", False, str(exc), command=command, returncode=None)]
+    if result.returncode != 0:
+        detail = clip((result.stderr or result.stdout or "").strip())
+        return [check_row("docker_base_image_available", False, detail, command=command, returncode=result.returncode)]
+    available = check_row("docker_base_image_available", True, "ok", command=command, returncode=result.returncode)
+    try:
+        inspected = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return [
+            available,
+            check_row(
+                "docker_base_image_cuda_python_runtime",
+                False,
+                f"docker image inspect returned invalid JSON: {exc}",
+                command=command,
+                cuda_markers=[],
+                python_runtime_markers=[],
+            ),
+        ]
+    if not isinstance(inspected, list) or not inspected or not isinstance(inspected[0], dict):
+        return [
+            available,
+            check_row(
+                "docker_base_image_cuda_python_runtime",
+                False,
+                "docker image inspect returned no image object",
+                command=command,
+                cuda_markers=[],
+                python_runtime_markers=[],
+            ),
+        ]
+    image = inspected[0]
+    cuda = cuda_markers(base_image, base_image, image)
+    python_runtime = python_runtime_markers(base_image, base_image, image)
+    ok = bool(cuda) and bool(python_runtime)
+    missing: list[str] = []
+    if not cuda:
+        missing.append("cuda_markers")
+    if not python_runtime:
+        missing.append("python_runtime_markers")
+    detail = "ok" if ok else "base image is inspectable but missing " + ", ".join(missing)
+    return [
+        available,
+        check_row(
+            "docker_base_image_cuda_python_runtime",
+            ok,
+            detail,
+            command=command,
+            cuda_markers=cuda,
+            python_runtime_markers=python_runtime,
+        ),
+    ]
 
 
 def llamafactory_cli_check(command_path: str, *, timeout: int, runner: Runner) -> dict[str, Any]:
@@ -189,18 +260,7 @@ def build_report(args: argparse.Namespace, *, runner: Runner = run_subprocess, e
         llamafactory_cli_check(args.llamafactory_cli, timeout=30, runner=runner),
         command_check("docker_daemon_available", ["docker", "version", "--format", "{{.Server.Version}}"], timeout=30, runner=runner),
     ]
-    if base_image:
-        checks.append(command_check("docker_base_image_available", ["docker", "image", "inspect", base_image], timeout=30, runner=runner))
-    else:
-        checks.append(
-            check_row(
-                "docker_base_image_available",
-                False,
-                f"cannot inspect base image until {BASE_IMAGE_ENV} is set",
-                command=["docker", "image", "inspect", f"${BASE_IMAGE_ENV}"],
-                returncode=None,
-            )
-        )
+    checks.extend(docker_base_image_checks(base_image, timeout=30, runner=runner))
     blockers = [row["id"] for row in checks if not row["ok"]]
     return {
         "schema_version": SCHEMA_VERSION,
@@ -228,7 +288,7 @@ def build_report(args: argparse.Namespace, *, runner: Runner = run_subprocess, e
         "blockers": blockers,
         "operator_rules": [
             f"Do not set {FAKE_BACKEND_ENV}.",
-            f"Set {BASE_IMAGE_ENV} to a locally inspectable image reference containing @sha256 before training.",
+            f"Set {BASE_IMAGE_ENV} to a locally inspectable CUDA/Python runtime image reference containing @sha256 before training.",
             "Run on a host where nvidia-smi succeeds before launching llamafactory-cli train.",
             "Keep strict model cache files pinned to presets/model_catalog.yaml.",
             "Do not claim M6-RC or v0 GO from this preflight alone.",

@@ -87,7 +87,7 @@
       "returncode": null
     }
   ],
-  "date": "2026-06-22T02:53:37.345762+00:00",
+  "date": "2026-06-22T03:16:31.670470+00:00",
   "env_requirements": {
     "docker_base_image_digest_present": false,
     "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",
@@ -107,7 +107,7 @@
   "m6_rc_claimed_go": false,
   "operator_rules": [
     "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
-    "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a locally inspectable image reference containing @sha256 before training.",
+    "Set MIB_DOCKER_BASE_IMAGE_WITH_DIGEST to a locally inspectable CUDA/Python runtime image reference containing @sha256 before training.",
     "Run on a host where nvidia-smi succeeds before launching llamafactory-cli train.",
     "Keep strict model cache files pinned to presets/model_catalog.yaml.",
     "Do not claim M6-RC or v0 GO from this preflight alone."

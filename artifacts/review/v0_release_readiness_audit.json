@@ -102,7 +102,7 @@
         "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
         "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
         "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
-        "docker_image_available: permission denied while trying to connect to the docker API at unix:///var/run/docker.sock",
+        "docker_image_available: Error response from daemon: No such image: mib-export:test",
         "host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'"
       ],
       "id": "m6_real_adapter_prereq_audit",

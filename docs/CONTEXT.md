@@ -461,12 +461,15 @@ external_cuda_operator_packet_source_commit: 29392d5
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
-current_recertification_head: d13a1fa
+current_recertification_head: ce422a4
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 strict_model_cache_status: READY_STRICT_MODEL_CACHE
 strict_model_cache_files_committed: false
+host_docker_daemon_available: true
+mib_export_test_image_available: false
+host_cuda_visible: false
 ```
 
 Continuation sequence for future LLM agents:
@@ -534,7 +537,7 @@ Current actionable NOT_GO recertification summary:
 
 ```yaml
 summary_file: artifacts/review/v0_release_blocker_recertification.json
-current_head: d13a1fa
+current_head: ce422a4
 top_level_fields:
   - blocking_reasons
   - operator_next_actions
@@ -549,7 +552,6 @@ current_blocking_reasons_include:
   - no_go_adapter_candidates
   - docker_base_image_env_digest
   - cuda_visible
-  - docker_daemon_available
   - docker_base_image_available
   - adapter_safetensors_present
   - adapter_config_present
@@ -569,6 +571,9 @@ first_operator_action: run artifacts/review/verified_external_cuda_training_laun
 strict_model_cache_status: READY_STRICT_MODEL_CACHE
 strict_model_cache_action: keep /tmp/mib-strict-model-cache-phi/model_cache available on the active host; rerun prepare_strict_model_cache.py with --allow-download only if that host cache is missing
 strict_model_cache_files_current_preflight_ok: true
+docker_daemon_available_current_preflight_ok: true
+mib_export_test_image_current_status: missing
+host_cuda_current_status: nvidia-smi_not_available
 ```
 
 Current external CUDA training handoff package:

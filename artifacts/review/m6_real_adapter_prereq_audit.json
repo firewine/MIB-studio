@@ -1,12 +1,12 @@
 {
-  "date": "2026-06-22T19:53:26.199596+00:00",
+  "date": "2026-06-22T20:08:59.033949+00:00",
   "decision": "NOT_READY",
   "endpoint_evidence_only": false,
   "errors": [
     "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
     "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
     "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
-    "docker_image_available: permission denied while trying to connect to the docker API at unix:///var/run/docker.sock",
+    "docker_image_available: Error response from daemon: No such image: mib-export:test",
     "host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'"
   ],
   "gate": "mib-studio-real-adapter-rc-gate-runner",
@@ -130,7 +130,7 @@
         "inspect",
         "mib-export:test"
       ],
-      "detail": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock",
+      "detail": "Error response from daemon: No such image: mib-export:test",
       "id": "docker_image_available",
       "ok": false,
       "returncode": 1

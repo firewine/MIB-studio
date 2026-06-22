@@ -41,15 +41,15 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: POST_STRICT_CACHE_EXTERNAL_CUDA_PACKET_REFRESH
+phase_id: HOST_DOCKER_ACCESS_V0_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: external_cuda_operator_packet_verification_restored_after_strict_cache
-gate_id: mib-studio-post-strict-cache-external-cuda-packet-refresh
+phase_status: host_docker_access_recertification_release_still_not_go
+gate_id: mib-studio-host-docker-access-v0-recertification
 mode: development
 product_code_changed: false
 verification_tooling_changed: false
 verification_artifacts_refreshed: true
-external_operator_packet_refreshed: true
+external_operator_packet_refreshed: false
 strict_model_cache_ready: true
 release_claimed_go: false
 
@@ -60,6 +60,89 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-host-docker-access-v0-recertification
+objective: refresh current v0 release blocker recertification with host Docker access so local NOT_GO blockers reflect the real release workstation state
+
+source_head: ce422a4
+recertification_timestamp_utc: "2026-06-22T20:08:59.121771+00:00"
+
+pre_audit:
+  docker_daemon_host_access: ok
+  docker_server_version: "29.6.0"
+  mib_export_test_image: absent
+  nvidia_smi: not_found
+  proc_driver_nvidia_version: absent
+  adapter_dir: /tmp/mib-real-adapter/adapter
+  adapter_files_present: false
+  strict_model_cache_ready: true
+
+files:
+  refreshed_artifacts:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/v0_release_readiness_audit.json
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/real_adapter_cuda_handoff.sh
+    - artifacts/review/v0_release_blocker_recertification.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+training_preflight:
+  status: NOT_READY_CUDA_LORA_TRAINING
+  docker_daemon_available_ok: true
+  strict_model_cache_files_ok: true
+  blockers:
+    - docker_base_image_env_digest
+    - cuda_visible
+    - docker_base_image_available
+
+m6_prereq:
+  status: NOT_READY_PRECHECK_FAILED
+  errors:
+    - adapter_safetensors_present
+    - adapter_config_present
+    - adapter_manifest_present
+    - docker_image_available: No such image: mib-export:test
+    - host_cuda_visible: nvidia-smi not found
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  v0_release_ready: false
+  v0_unexpected_blockers: []
+  sole_v0_blocker: real_trained_adapter_no_fake_endpoint
+  handoff_decision: WAITING_FOR_REAL_ADAPTER_INPUTS
+  blocking_reasons_removed:
+    - docker_daemon_available
+
+scope:
+  product_code_changed: false
+  tests_changed: false
+  scripts_changed: false
+  release_criteria_changed: false
+  docs_reviews_M6_changed: false
+  real_adapter_evidence_created: false
+  model_cache_files_committed: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+follow_up:
+  external_cuda_operator_packet_refresh_required: true
+  reason: this recertification changed source-pinned handoff and blocker artifacts after packet source commit 29392d5
+```
 
 ```yaml
 gate: mib-studio-post-strict-cache-external-cuda-packet-refresh
@@ -2449,10 +2532,11 @@ blockers without weakening release acceptance.
 The current local strict model cache blocker is cleared: the CUDA training
 preflight check for strict_model_cache_files is ok and no longer appears in the
 top-level blocker list.
-The latest current-state recertification records docker_daemon_available as a
-diagnostic blocker because this execution context cannot access the Docker API;
-this does not change the release blocker, which is still the missing real
-trained adapter no-fake endpoint evidence.
+The latest current-state recertification ran with host Docker access:
+docker_daemon_available is ok and no longer appears in the top-level blocker
+list. The Docker export image mib-export:test is still missing, CUDA is still
+not visible through nvidia-smi, adapter files are still absent, and the release
+blocker is still the missing real trained adapter no-fake endpoint evidence.
 
 Do not claim M6-RC GO or v0 GO from the current local artifacts. The current
 release blocker is real_trained_adapter_no_fake_endpoint. M6 review docs must

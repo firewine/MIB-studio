@@ -1,0 +1,99 @@
+{
+  "blockers": [
+    "endpoint_live_no_fake_json",
+    "endpoint_markdown_present",
+    "adapter_intake_go",
+    "adapter_hash_crosscheck",
+    "rc_gate_go",
+    "m6_verification_go",
+    "v0_readiness_go"
+  ],
+  "bundle_dir": "artifacts/review",
+  "checks": [
+    {
+      "detail": "missing",
+      "id": "endpoint_live_no_fake_json",
+      "missing_markers": [
+        "structured endpoint JSON sidecar"
+      ],
+      "ok": false,
+      "path": "artifacts/review/real_trained_adapter_endpoint_evidence.json"
+    },
+    {
+      "detail": "missing",
+      "id": "endpoint_markdown_present",
+      "missing_markers": [
+        "endpoint markdown"
+      ],
+      "ok": false,
+      "path": "artifacts/review/real_trained_adapter_endpoint_evidence.md"
+    },
+    {
+      "detail": "missing",
+      "id": "adapter_intake_go",
+      "missing_markers": [
+        "adapter intake JSON"
+      ],
+      "ok": false,
+      "path": "artifacts/review/real_adapter_artifact_intake.json"
+    },
+    {
+      "detail": "endpoint or intake JSON missing",
+      "id": "adapter_hash_crosscheck",
+      "missing_markers": [
+        "endpoint_json",
+        "adapter_intake_json"
+      ],
+      "ok": false,
+      "path": null
+    },
+    {
+      "detail": "missing",
+      "id": "rc_gate_go",
+      "missing_markers": [
+        "RC gate runner JSON"
+      ],
+      "ok": false,
+      "path": "artifacts/review/m6_real_adapter_rc_gate_run.json"
+    },
+    {
+      "detail": "M6 verification is not GO",
+      "id": "m6_verification_go",
+      "missing_markers": [
+        "decision",
+        "blockers_empty",
+        "endpoint_check"
+      ],
+      "ok": false,
+      "path": "artifacts/review/m6_rc_evidence_verification.json"
+    },
+    {
+      "detail": "v0 readiness is not GO",
+      "id": "v0_readiness_go",
+      "missing_markers": [
+        "decision",
+        "release_ready",
+        "blockers_empty"
+      ],
+      "ok": false,
+      "path": "artifacts/review/v0_release_readiness_audit.json"
+    }
+  ],
+  "date": "2026-06-22T01:38:41.032641+00:00",
+  "decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
+  "decision_matches_expected": true,
+  "expected_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
+  "m6_rc_claimed_go": false,
+  "release_bundle_ready": false,
+  "schema_version": "mib_real_adapter_evidence_bundle_verification.v1",
+  "summary": {
+    "adapter_sha256": null,
+    "artifact_manifest_sha256": null,
+    "endpoint_self_test": null,
+    "endpoint_source": null,
+    "m6_decision": "NOT_GO",
+    "rc_gate_status": null,
+    "v0_decision": "NOT_GO"
+  },
+  "verification_ok": true
+}

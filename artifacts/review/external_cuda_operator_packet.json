@@ -21,10 +21,11 @@
       "finalize_manifest",
       "verify_adapter_intake",
       "prepare_docker_image",
+      "run_docker_image_handoff",
       "run_rc_handoff"
     ]
   },
-  "date": "2026-06-22T22:28:31.410761+00:00",
+  "date": "2026-06-22T22:46:16.542205+00:00",
   "downstream_training_handoff": "artifacts/review/real_adapter_cuda_training_handoff.sh",
   "downstream_training_handoff_status": "PREPARED_NOT_RUN",
   "expected_return_artifacts": [
@@ -45,7 +46,7 @@
   "git": {
     "branch": "main",
     "clean_worktree_required": true,
-    "head": "5239f8d",
+    "head": "5dfb80f",
     "remote_origin": "https://github.com/firewine/MIB-studio.git"
   },
   "m6_rc_claimed_go": false,
@@ -54,7 +55,7 @@
     "Do not claim M6-RC or v0 release GO until real trained adapter evidence, accepted M6 review docs, bundle verification, and v0 readiness all return GO."
   ],
   "operator_sequence": [
-    "Keep this packet file from the current checkout; packet.git.head is the required committed file source commit 5239f8d for verifier blob checks.",
+    "Keep this packet file from the current checkout; packet.git.head is the required committed file source commit 5dfb80f for verifier blob checks.",
     "Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before artifacts/review/real_adapter_cuda_training_handoff.sh.",
     "Allow the verified launcher to invoke artifacts/review/real_adapter_cuda_training_handoff.sh only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.",
     "Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.",
@@ -120,20 +121,20 @@
     {
       "path": "artifacts/review/real_adapter_cuda_training_handoff.json",
       "role": "training_handoff_json",
-      "sha256": "7aa526075b226f67a4b9d41bb412a9f2bc3a28b95339d2dcaba207a1ba8584f5",
-      "size_bytes": 11836
+      "sha256": "6c4ddd4af6e7b74dc3f135aba5546319aaddbb6dfe5cbd46ac7a48a04faae56d",
+      "size_bytes": 12166
     },
     {
       "path": "artifacts/review/real_adapter_cuda_training_handoff.md",
       "role": "training_handoff_markdown",
-      "sha256": "da9abc50ba0100a2cf5b1e3f30d9c87ec7894bb93a77f1d29f6f266b2b251bc3",
-      "size_bytes": 5115
+      "sha256": "04b45247630e87aadd1c55ce854a8772792e9dbe40a60a55a2e1a4d5db477868",
+      "size_bytes": 5217
     },
     {
       "path": "artifacts/review/real_adapter_cuda_training_handoff.sh",
       "role": "training_handoff_shell",
-      "sha256": "dade49ab2aa5718cdd9b07fa05196927130546fef943a9390ff99927d284e697",
-      "size_bytes": 4473
+      "sha256": "f033ee288dc04ee50a7f9f7b614c016629cac5b951b2fa4876c31a6003b545af",
+      "size_bytes": 4577
     },
     {
       "path": "artifacts/review/real_adapter_cuda_handoff.json",
@@ -180,8 +181,8 @@
     {
       "path": "scripts/prepare_cuda_lora_training_run.py",
       "role": "training_handoff_generator",
-      "sha256": "8681af37c4a0cc0c16d5f47db30bb5fe236c44f96320fc9da54ac8341f49b323",
-      "size_bytes": 21912
+      "sha256": "b14dac7cca450de7a933a345052c7146d3f8002a1bd3cd565cd0512f3f2173ae",
+      "size_bytes": 22156
     },
     {
       "path": "scripts/check_cuda_lora_training_prereqs.py",

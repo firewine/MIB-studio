@@ -41,37 +41,85 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_TRAINING_HANDOFF_DOCKER_IMAGE_BEFORE_RC
+phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_5DFB80F_TRAINING_HANDOFF
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-external-cuda-training-handoff-docker-build-before-rc
+gate_id: mib-studio-external-cuda-operator-packet-refresh-after-5dfb80f-training-handoff
 mode: development
 product_code_changed: false
 frontend_code_changed: false
-verification_tooling_changed: true
-training_handoff_artifacts_refreshed: true
-external_operator_packet_refreshed: false
-external_operator_packet_refresh_required_after_phase_commit: true
+verification_tooling_changed: false
+training_handoff_artifacts_refreshed: false
+external_operator_packet_refreshed: true
+external_operator_packet_refresh_required_after_phase_commit: false
 external_cuda_handoff_readiness_refreshed: false
-operator_packet_ready_for_current_source: false
+operator_packet_ready: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
 release_claimed_go: false
 
 current_decision:
+  external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
   training_handoff_command_order_suffix:
     - prepare_docker_image
     - run_docker_image_handoff
     - run_rc_handoff
-  existing_operator_packet_source_commit: 5239f8d
-  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
+  packet_handoff_source_commit: 5dfb80f
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: false
   v0_release_ready: false
   expected_local_decision: NOT_GO
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-operator-packet-refresh-after-5dfb80f-training-handoff
+objective: refresh source-pinned external CUDA operator packet after training handoff docker-image run step
+
+source_head: 5dfb80f
+
+packet:
+  status: PREPARED_NOT_RUN
+  source_commit: 5dfb80f
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  required_committed_files: 18
+  training_handoff_command_order_contains:
+    - run_docker_image_handoff
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+
+packet_verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  operator_packet_ready: true
+  verification_ok: true
+  required_file_hashes: verified 18 required file hashes
+  required_commit_blobs: verified 18 required file blobs at 5dfb80f
+  forbidden_tracked_artifacts: []
+  warnings: []
+
+transfer_manifest:
+  status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  packet_handoff_source_commit: 5dfb80f
+  json_output: /tmp/mib-5dfb80f-external-cuda-transfer-readiness.json
+  transfer_model: full_repository_checkout_required
+  committed_to_repo: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+operator_next_step:
+  run: bash artifacts/review/verified_external_cuda_training_launcher.sh
+  host: external CUDA host with full repository checkout at or after 5dfb80f, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, real runtime token, and real adapter output paths
+  note: packet verification GO and transfer READY are operator handoff readiness results, not M6-RC GO or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-external-cuda-training-handoff-docker-build-before-rc
@@ -103,9 +151,10 @@ verification:
   training_handoff_json: valid
   training_handoff_shell_syntax: valid
 
-follow_up_required:
-  - refresh artifacts/review/external_cuda_operator_packet.json after this source commit exists
-  - rerun operator packet verifier and transfer manifest before external CUDA operator execution
+follow_up_resolved:
+  - external CUDA operator packet refreshed at source commit 5dfb80f
+  - packet verifier returned GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  - transfer manifest returned READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
 
 release_status:
   release_claimed_go: false

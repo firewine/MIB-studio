@@ -2,12 +2,12 @@
 
 ```yaml
 schema_version: mib_external_cuda_operator_packet.v1
-date: 2026-06-22T22:28:31.410761+00:00
+date: 2026-06-22T22:46:16.542205+00:00
 gate: mib-studio-external-cuda-operator-packet
 status: PREPARED_NOT_RUN
 release_claimed_go: false
 m6_rc_claimed_go: false
-git_head: 5239f8d
+git_head: 5dfb80f
 primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
 downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
 ```
@@ -15,9 +15,9 @@ downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff
 ## Required Committed Files
 
 - `artifacts/review/verified_external_cuda_training_launcher.sh` (verified_training_launcher): `01a0c441724b5252c35bb9ff3033e44919c0535f4ee7439aaf6053726dc5fa48`
-- `artifacts/review/real_adapter_cuda_training_handoff.json` (training_handoff_json): `7aa526075b226f67a4b9d41bb412a9f2bc3a28b95339d2dcaba207a1ba8584f5`
-- `artifacts/review/real_adapter_cuda_training_handoff.md` (training_handoff_markdown): `da9abc50ba0100a2cf5b1e3f30d9c87ec7894bb93a77f1d29f6f266b2b251bc3`
-- `artifacts/review/real_adapter_cuda_training_handoff.sh` (training_handoff_shell): `dade49ab2aa5718cdd9b07fa05196927130546fef943a9390ff99927d284e697`
+- `artifacts/review/real_adapter_cuda_training_handoff.json` (training_handoff_json): `6c4ddd4af6e7b74dc3f135aba5546319aaddbb6dfe5cbd46ac7a48a04faae56d`
+- `artifacts/review/real_adapter_cuda_training_handoff.md` (training_handoff_markdown): `04b45247630e87aadd1c55ce854a8772792e9dbe40a60a55a2e1a4d5db477868`
+- `artifacts/review/real_adapter_cuda_training_handoff.sh` (training_handoff_shell): `f033ee288dc04ee50a7f9f7b614c016629cac5b951b2fa4876c31a6003b545af`
 - `artifacts/review/real_adapter_cuda_handoff.json` (rc_handoff_json): `ee9c3e5d425c29905e1d4422fa8508ec72c69d0bc78803a3b362a80a6eb14429`
 - `artifacts/review/real_adapter_cuda_handoff.md` (rc_handoff_markdown): `9860f9fdb42bb7540c7e81a1a7b176311a5cadf83114fe340c2b6e3224a15294`
 - `artifacts/review/real_adapter_cuda_handoff.sh` (rc_handoff_shell): `4f480e310d70fc036e2e17f420bea22c51cf19261c74a6839100f37a43e53c9c`
@@ -25,7 +25,7 @@ downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff
 - `examples/fixtures/router_20.jsonl` (router_training_dataset): `3be5cdfe2f6b655eed0e9c11c8ec23b5778bf61798b4c8fb152be67a9953bd90`
 - `scripts/prepare_strict_model_cache.py` (strict_model_cache_preparation): `327352a72b263b1f06665d84e55d25bdd4f963fdc504b5c8c8854b1ff35d8452`
 - `scripts/build_external_cuda_operator_transfer_manifest.py` (operator_transfer_manifest_builder): `b818829dbe047d4d6ad4990df40783353a3c24acdb1c50cecddd1ad605365230`
-- `scripts/prepare_cuda_lora_training_run.py` (training_handoff_generator): `8681af37c4a0cc0c16d5f47db30bb5fe236c44f96320fc9da54ac8341f49b323`
+- `scripts/prepare_cuda_lora_training_run.py` (training_handoff_generator): `b14dac7cca450de7a933a345052c7146d3f8002a1bd3cd565cd0512f3f2173ae`
 - `scripts/check_cuda_lora_training_prereqs.py` (cuda_training_preflight): `ac5b0df5eb6efbb860e5a516c257596a0e7e8a9ae31ae41c9285a3c128d2137e`
 - `scripts/resolve_cuda_base_image.py` (cuda_base_image_resolver): `0c8d641aa46a6f94441ec9ca2b3c0f61cf72b94b6be9cd3dcf8ca6e00ae8a685`
 - `scripts/prepare_real_adapter_docker_image.py` (docker_image_handoff_generator): `0c9e92b0a3bfcd711a4a85ec26fd3a3393fbd74387e59ac7169cb9ea8609c69f`
@@ -44,7 +44,7 @@ downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff
 
 ## Operator Sequence
 
-1. Keep this packet file from the current checkout; packet.git.head is the required committed file source commit 5239f8d for verifier blob checks.
+1. Keep this packet file from the current checkout; packet.git.head is the required committed file source commit 5dfb80f for verifier blob checks.
 2. Run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host so packet verification runs before artifacts/review/real_adapter_cuda_training_handoff.sh.
 3. Allow the verified launcher to invoke artifacts/review/real_adapter_cuda_training_handoff.sh only after GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION.
 4. Run the downstream no-fake endpoint/M6/evidence-bundle commands emitted by artifacts/review/real_adapter_cuda_handoff.sh.

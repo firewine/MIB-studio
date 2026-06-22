@@ -31,16 +31,20 @@ environment:
   gitignored:
     - .venv/
   frontend_corepack_home: /tmp/corepack
+  strict_toolchain_helper: scripts/prepare_strict_toolchain.py
+  strict_toolchain_defaults:
+    MIB_TOOLCHAIN_ROOT: /tmp/mib-toolchain
+    COREPACK_HOME: /tmp/corepack
   phase_completion_git_policy: stage_commit_push_after_verified_phase_completion
 ```
 
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_HANDOFF_LOCAL_CLOSEOUT
+phase_id: STRICT_TOOLCHAIN_PREPARER
 milestone: Final_Program_Development_Closeout
-phase_status: real_adapter_handoff_local_closeout_verified_not_go
-gate_id: mib-studio-real-adapter-handoff-local-closeout
+phase_status: strict_toolchain_preparer_verified_not_go
+gate_id: mib-studio-strict-toolchain-preparer
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -52,6 +56,39 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-strict-toolchain-preparer
+objective: make strict bootstrap/frontend verification toolchain setup reproducible
+
+files:
+  strict_toolchain_preparer: scripts/prepare_strict_toolchain.py
+  strict_toolchain_tests: tests/scripts/test_prepare_strict_toolchain.py
+  devex_spec: docs/specs/DEV_ENVIRONMENT_SPEC.md
+  working_state: docs/WORKING.md
+
+preparer_contract:
+  reads_version_sources:
+    - .node-version
+    - rust-toolchain.toml
+    - package.json packageManager
+  defaults:
+    toolchain_root: /tmp/mib-toolchain
+    corepack_home: /tmp/corepack
+  verifies_downloads:
+    - node upstream SHASUMS256.txt
+    - rust upstream .sha256 file
+  dry_run_no_network: true
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+
+summary:
+  - strict bootstrap mismatch is now reproducible through scripts/prepare_strict_toolchain.py instead of a manual /tmp setup
+  - dry-run and idempotent real runs report READY_STRICT_TOOLCHAIN when Node 20.18.1, Rust 1.83.0, and pnpm 9.15.0 are present
+  - focused tests cover version discovery, official archive planning, existing-tool detection, checksum parsing, command failure handling, and archive path traversal rejection
+  - strict bootstrap m1-smoke passes after preparing /tmp/mib-toolchain and /tmp/corepack
+  - this is DevEx verification support only and does not change product behavior or release readiness
+```
 
 ```yaml
 gate: mib-studio-real-adapter-handoff-local-closeout
@@ -143,8 +180,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: real_adapter_handoff_local_closeout_verified_not_go
+status: strict_toolchain_preparer_verified_not_go
 passed:
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_prepare_strict_toolchain.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_toolchain.py --dry-run --json-output /tmp/mib-strict-toolchain-dry-run.json
+  - python3 -m json.tool /tmp/mib-strict-toolchain-dry-run.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_toolchain.py --json-output /tmp/mib-strict-toolchain-preparation.json
+  - python3 -m json.tool /tmp/mib-strict-toolchain-preparation.json
+  - python3 -m py_compile scripts/prepare_strict_toolchain.py
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py tests/scripts/test_run_v0_release_closeout_from_bundle.py -q
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest
@@ -168,6 +211,7 @@ fixed_verification_blockers:
   - full_pytest_import_file_mismatch_from_duplicate_test_basenames
   - fe_e2e_missing_node_experimental_websocket_flag
   - handoff_missing_embedded_local_closeout_after_bundle_transfer
+  - strict_toolchain_setup_was_manual_and_hook_fragile
 
 warnings:
   - M6-RC remains NOT_GO.
@@ -217,6 +261,12 @@ recertify_current_state:
     --expected-bundle-decision NOT_GO
     --expected-training-status NOT_READY_CUDA_LORA_TRAINING
     --expected-rc-status NOT_READY_PRECHECK_FAILED
+
+prepare_strict_toolchain_before_strict_checks:
+  command: >
+    PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python
+    scripts/prepare_strict_toolchain.py
+    --json-output /tmp/mib-strict-toolchain-preparation.json
 
 external_cuda_host_flow:
   - run artifacts/review/real_adapter_cuda_training_handoff.sh on a CUDA host

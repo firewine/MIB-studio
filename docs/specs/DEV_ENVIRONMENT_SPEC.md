@@ -208,6 +208,26 @@ corepack pnpm install
 
 Windows 네이티브는 UI/daemon smoke까지만 허용하고, NVIDIA 학습 개발은 WSL2를 권장 경로로 둔다.
 
+### 36.4.1 Strict verification toolchain helper
+
+`scripts/bootstrap_dev.sh` prefers `MIB_TOOLCHAIN_ROOT` when it exists. Local
+agents that need strict bootstrap or frontend verification should prepare the
+pinned Node/Rust/pnpm toolchain before running strict checks:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_strict_toolchain.py \
+  --json-output /tmp/mib-strict-toolchain-preparation.json
+
+COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 \
+  PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+```
+
+The helper reads `.node-version`, `rust-toolchain.toml`, and
+`package.json#packageManager`; those files remain the version source of truth.
+It defaults to `/tmp/mib-toolchain` and `/tmp/corepack`, verifies downloaded
+Node/Rust archives with upstream SHA256 metadata, and does not change product
+runtime behavior or release readiness.
+
 ## 36.5 IDE 설정 계약
 
 VS Code Day-0 settings:

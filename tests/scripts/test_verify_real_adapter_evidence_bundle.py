@@ -105,17 +105,6 @@ self_test: false
             ],
         },
     )
-    write_json(
-        root / "v0_release_readiness_audit.json",
-        {
-            "schema_version": "mib_v0_release_readiness.v1",
-            "decision": "GO",
-            "verification_ok": True,
-            "release_ready": True,
-            "blockers": [],
-            "unexpected_blockers": [],
-        },
-    )
 
 
 def test_verifier_accepts_complete_live_bundle(tmp_path: Path) -> None:
@@ -159,4 +148,4 @@ def test_verifier_rejects_missing_current_bundle(tmp_path: Path) -> None:
     report = bundle.verify_bundle(tmp_path)
 
     assert report["decision"] == "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
-    assert {"endpoint_live_no_fake_json", "adapter_intake_go", "rc_gate_go", "m6_verification_go", "v0_readiness_go"} <= set(report["blockers"])
+    assert {"endpoint_live_no_fake_json", "adapter_intake_go", "rc_gate_go", "m6_verification_go"} <= set(report["blockers"])

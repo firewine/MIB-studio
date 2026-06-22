@@ -1,16 +1,18 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Add a strict verifier for externally produced real-adapter CUDA evidence bundles so results generated on a CUDA host can be checked before they are used for M6-RC/v0 release closeout. The verifier must require live no-fake endpoint JSON, GO adapter intake, GO RC gate runner output, GO M6 verification, and GO v0 readiness when validating a release bundle. Current local artifacts must remain NOT_GO because the real trained adapter endpoint evidence is absent.",
+  "goal": "Remove the circular dependency between the real-adapter evidence bundle verifier and v0 release readiness, then make v0 release readiness require a GO real-adapter evidence bundle. The bundle verifier should validate endpoint/intake/RC-gate/M6 evidence only; v0 readiness should own the final release-ready decision and require the bundle verifier report to be GO.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-evidence-bundle-verifier",
+  "gate": "mib-studio-v0-bundle-gate-integration",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "77855d3",
+  "head": "755b1a5",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "scripts/verify_real_adapter_evidence_bundle.py",
+    "scripts/verify_v0_release_readiness.py",
     "tests/scripts/test_verify_real_adapter_evidence_bundle.py",
+    "tests/scripts/test_verify_v0_release_readiness.py",
     "artifacts/review/",
     "docs/WORKING.md"
   ],
@@ -43,9 +45,9 @@
     "Product runtime, API, UI, DB, schema, training, export implementation, or model behavior changes",
     "Creating or committing model weights or adapter artifacts",
     "Claiming M6-RC or v0 release GO from current local artifacts",
-    "Weakening real adapter intake, endpoint, M6, or v0 release evidence acceptance"
+    "Weakening real adapter intake, endpoint, M6, bundle, or v0 release evidence acceptance"
   ],
-  "allowed_edit_paths_scope_note": "This gate may add an external evidence bundle verifier script/tests/current verification evidence and update WORKING.md plus this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may refactor the evidence bundle verifier/readiness verifier/tests/evidence and update WORKING.md plus this PABCD contract only.",
   "external_runtime_paths": [
     "/tmp"
   ],
@@ -53,21 +55,15 @@
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/capture_real_adapter_endpoint_evidence.py",
-    "scripts/verify_m6_rc_evidence.py",
-    "scripts/verify_v0_release_readiness.py",
-    "scripts/run_m6_real_adapter_rc_gate.py",
-    "artifacts/review/real_trained_adapter_endpoint_evidence.json",
-    "artifacts/review/real_adapter_artifact_intake.json",
-    "artifacts/review/m6_real_adapter_rc_gate_run.json",
-    "artifacts/review/m6_rc_evidence_verification.json",
-    "artifacts/review/v0_release_readiness_audit.json"
+    "artifacts/review/real_adapter_evidence_bundle_verification.json",
+    "artifacts/review/v0_release_readiness_audit.json",
+    "artifacts/review/m6_rc_evidence_verification.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_real_adapter_evidence_bundle.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_real_adapter_evidence_bundle.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_real_adapter_evidence_bundle.py scripts/verify_v0_release_readiness.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_real_adapter_evidence_bundle.py tests/scripts/test_verify_v0_release_readiness.py -q",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_real_adapter_evidence_bundle.py --bundle-dir artifacts/review --expected-decision NOT_GO --json-output artifacts/review/real_adapter_evidence_bundle_verification.json",
     "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
@@ -76,16 +72,16 @@
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Verifier accepts a complete strict live CUDA evidence bundle in tests",
-    "Verifier rejects self-test or fake/markdown-only endpoint evidence in tests",
-    "Verifier cross-checks adapter hashes across intake and endpoint evidence",
-    "Current local bundle verification remains NOT_GO",
+    "Bundle verifier no longer depends on v0 readiness",
+    "v0 readiness requires GO real_adapter_evidence_bundle_verification for release GO",
+    "Tests cover GO readiness requiring bundle GO and current NOT_GO bundle blocker",
+    "Current local readiness remains NOT_GO",
     "No runtime/backend/schema/training/export/UI behavior changed"
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_real_adapter_evidence_bundle.py",
-    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_real_adapter_evidence_bundle.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_real_adapter_evidence_bundle.py scripts/verify_v0_release_readiness.py",
+    "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_real_adapter_evidence_bundle.py tests/scripts/test_verify_v0_release_readiness.py -q",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_real_adapter_evidence_bundle.py --bundle-dir artifacts/review --expected-decision NOT_GO --json-output artifacts/review/real_adapter_evidence_bundle_verification.json",
     "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
@@ -96,31 +92,31 @@
   "failed_verification_commands": [],
   "warnings": [
     "M6-RC remains NOT_GO due missing real trained adapter endpoint evidence.",
-    "This gate adds external evidence verification tooling only and does not generate a trained adapter."
+    "This gate changes release evidence verification only and does not generate a trained adapter."
   ],
   "phase_notes": {
-    "plan": "Open scoped external real-adapter evidence bundle verifier gate after confirming the remaining final-program blocker requires CUDA-host evidence and current tooling can generate that evidence but lacks a single strict bundle-level acceptance check.",
-    "audit": "Read current WORKING.md, v0 readiness audit, M6 verifier, endpoint capture script/tests, and RC gate runner/tests. Current artifacts still lack live no-fake endpoint evidence, GO adapter intake, GO RC gate output, GO M6 verification, and GO v0 readiness.",
-    "build": "Added scripts/verify_real_adapter_evidence_bundle.py, focused tests, and current bundle verification JSON. The verifier requires live_docker_capture endpoint JSON/markdown, GO adapter intake, matching adapter hashes, GO RC gate runner, GO M6 verification, and GO v0 readiness.",
-    "check": "Passed json.tool, py_compile, focused bundle verifier pytest, current bundle verification expected NOT_GO, generated bundle verification JSON validation, v0 release readiness expected NOT_GO, readiness JSON validation, git diff --check, and git diff --cached --check.",
-    "done": "External CUDA evidence bundle verifier is complete. Current local bundle remains NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE and v0 remains NOT_GO because real trained CUDA lora_adapter no-fake Docker endpoint evidence is still absent."
+    "plan": "Open scoped non-circular bundle gate integration after finding that the bundle verifier required v0 readiness while v0 readiness did not require the bundle verifier. The intended ownership is bundle verifier for endpoint/intake/RC/M6 evidence, and v0 readiness for final release state.",
+    "audit": "Read current WORKING.md, bundle verifier, v0 readiness auditor, focused tests, bundle verification JSON, and readiness JSON. The previous bundle verifier included v0 readiness in the bundle check, which made v0 readiness ownership ambiguous if readiness also required bundle GO.",
+    "build": "Removed v0 readiness dependency from scripts/verify_real_adapter_evidence_bundle.py. Added real_adapter_evidence_bundle_verification as a release-required check in scripts/verify_v0_release_readiness.py, mapping current missing real-adapter bundle blockers to real_trained_adapter_no_fake_endpoint while treating a missing/invalid bundle report as unexpected.",
+    "check": "Passed json.tool, py_compile, focused bundle/readiness pytest, current bundle verification expected NOT_GO, generated bundle JSON validation, v0 readiness expected NOT_GO, readiness JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "Non-circular v0 bundle gate integration is complete. Current v0 readiness remains NOT_GO with the sole acceptable blocker real_trained_adapter_no_fake_endpoint, and release GO now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-evidence-bundle-verifier",
-    "status": "MIB_STUDIO_REAL_ADAPTER_EVIDENCE_BUNDLE_VERIFIER_COMPLETE_M6_NOT_GO",
+    "gate": "mib-studio-v0-bundle-gate-integration",
+    "status": "MIB_STUDIO_V0_BUNDLE_GATE_INTEGRATION_COMPLETE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "Real adapter evidence bundle verifier script/tests/evidence, WORKING.md, and PABCD contract only.",
+    "approved_scope": "Bundle verifier/readiness verifier/tests/evidence, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no release GO claim from current local artifacts.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped external real-adapter evidence bundle verifier gate after confirming the remaining final-program blocker requires CUDA-host evidence and current tooling can generate that evidence but lacks a single strict bundle-level acceptance check.",
-    "audit": "Read current WORKING.md, v0 readiness audit, M6 verifier, endpoint capture script/tests, and RC gate runner/tests. Current artifacts still lack live no-fake endpoint evidence, GO adapter intake, GO RC gate output, GO M6 verification, and GO v0 readiness.",
-    "build": "Added scripts/verify_real_adapter_evidence_bundle.py, focused tests, and current bundle verification JSON. The verifier requires live_docker_capture endpoint JSON/markdown, GO adapter intake, matching adapter hashes, GO RC gate runner, GO M6 verification, and GO v0 readiness.",
-    "check": "Passed json.tool, py_compile, focused bundle verifier pytest, current bundle verification expected NOT_GO, generated bundle verification JSON validation, v0 release readiness expected NOT_GO, readiness JSON validation, git diff --check, and git diff --cached --check.",
-    "done": "External CUDA evidence bundle verifier is complete. Current local bundle remains NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE and v0 remains NOT_GO because real trained CUDA lora_adapter no-fake Docker endpoint evidence is still absent."
+    "plan": "Open scoped non-circular bundle gate integration after finding that the bundle verifier required v0 readiness while v0 readiness did not require the bundle verifier. The intended ownership is bundle verifier for endpoint/intake/RC/M6 evidence, and v0 readiness for final release state.",
+    "audit": "Read current WORKING.md, bundle verifier, v0 readiness auditor, focused tests, bundle verification JSON, and readiness JSON. The previous bundle verifier included v0 readiness in the bundle check, which made v0 readiness ownership ambiguous if readiness also required bundle GO.",
+    "build": "Removed v0 readiness dependency from scripts/verify_real_adapter_evidence_bundle.py. Added real_adapter_evidence_bundle_verification as a release-required check in scripts/verify_v0_release_readiness.py, mapping current missing real-adapter bundle blockers to real_trained_adapter_no_fake_endpoint while treating a missing/invalid bundle report as unexpected.",
+    "check": "Passed json.tool, py_compile, focused bundle/readiness pytest, current bundle verification expected NOT_GO, generated bundle JSON validation, v0 readiness expected NOT_GO, readiness JSON validation, git diff --check, and git diff --cached --check.",
+    "done": "Non-circular v0 bundle gate integration is complete. Current v0 readiness remains NOT_GO with the sole acceptable blocker real_trained_adapter_no_fake_endpoint, and release GO now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE."
   }
 }

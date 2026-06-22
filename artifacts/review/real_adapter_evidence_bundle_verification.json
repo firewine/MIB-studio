@@ -5,8 +5,7 @@
     "adapter_intake_go",
     "adapter_hash_crosscheck",
     "rc_gate_go",
-    "m6_verification_go",
-    "v0_readiness_go"
+    "m6_verification_go"
   ],
   "bundle_dir": "artifacts/review",
   "checks": [
@@ -66,20 +65,9 @@
       ],
       "ok": false,
       "path": "artifacts/review/m6_rc_evidence_verification.json"
-    },
-    {
-      "detail": "v0 readiness is not GO",
-      "id": "v0_readiness_go",
-      "missing_markers": [
-        "decision",
-        "release_ready",
-        "blockers_empty"
-      ],
-      "ok": false,
-      "path": "artifacts/review/v0_release_readiness_audit.json"
     }
   ],
-  "date": "2026-06-22T01:38:41.032641+00:00",
+  "date": "2026-06-22T01:44:37.817056+00:00",
   "decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
   "decision_matches_expected": true,
   "expected_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
@@ -92,8 +80,7 @@
     "endpoint_self_test": null,
     "endpoint_source": null,
     "m6_decision": "NOT_GO",
-    "rc_gate_status": null,
-    "v0_decision": "NOT_GO"
+    "rc_gate_status": null
   },
   "verification_ok": true
 }

@@ -16,7 +16,6 @@ FILES = {
     "adapter_intake": "real_adapter_artifact_intake.json",
     "rc_gate": "m6_real_adapter_rc_gate_run.json",
     "m6": "m6_rc_evidence_verification.json",
-    "v0": "v0_release_readiness_audit.json",
 }
 
 
@@ -154,23 +153,6 @@ def m6_check(path: Path) -> tuple[dict[str, Any], dict[str, Any] | None]:
     return check_row("m6_verification_go", not missing, "ok" if not missing else "M6 verification is not GO", path=path, missing_markers=missing), data
 
 
-def v0_check(path: Path) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    data, error = read_json(path)
-    if error:
-        return check_row("v0_readiness_go", False, error, path=path, missing_markers=["v0 readiness JSON"]), None
-    assert data is not None
-    requirements = {
-        "schema_version": data.get("schema_version") == "mib_v0_release_readiness.v1",
-        "decision": data.get("decision") == "GO",
-        "verification_ok": data.get("verification_ok") is True,
-        "release_ready": data.get("release_ready") is True,
-        "blockers_empty": data.get("blockers") == [],
-        "unexpected_blockers_empty": data.get("unexpected_blockers") == [],
-    }
-    missing = [key for key, ok in requirements.items() if not ok]
-    return check_row("v0_readiness_go", not missing, "ok" if not missing else "v0 readiness is not GO", path=path, missing_markers=missing), data
-
-
 def cross_hash_check(endpoint: dict[str, Any] | None, intake: dict[str, Any] | None) -> dict[str, Any]:
     if not endpoint or not intake:
         return check_row("adapter_hash_crosscheck", False, "endpoint or intake JSON missing", missing_markers=["endpoint_json", "adapter_intake_json"])
@@ -189,7 +171,6 @@ def verify_bundle(bundle_dir: Path) -> dict[str, Any]:
     intake_row, intake = intake_check(paths["adapter_intake"])
     rc_gate_row, rc_gate = rc_gate_check(paths["rc_gate"])
     m6_row, m6 = m6_check(paths["m6"])
-    v0_row, v0 = v0_check(paths["v0"])
     checks.extend(
         [
             endpoint_row,
@@ -198,7 +179,6 @@ def verify_bundle(bundle_dir: Path) -> dict[str, Any]:
             cross_hash_check(endpoint, intake),
             rc_gate_row,
             m6_row,
-            v0_row,
         ]
     )
     blockers = [row["id"] for row in checks if not row["ok"]]
@@ -219,7 +199,6 @@ def verify_bundle(bundle_dir: Path) -> dict[str, Any]:
             "artifact_manifest_sha256": endpoint.get("artifact_manifest_sha256") if endpoint else None,
             "rc_gate_status": rc_gate.get("status") if rc_gate else None,
             "m6_decision": m6.get("decision") if m6 else None,
-            "v0_decision": v0.get("decision") if v0 else None,
         },
     }
 

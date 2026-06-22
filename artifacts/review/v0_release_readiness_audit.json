@@ -65,6 +65,25 @@
       "verification_ok": true
     },
     {
+      "blocker": "real_trained_adapter_no_fake_endpoint",
+      "bundle_blockers": [
+        "endpoint_live_no_fake_json",
+        "endpoint_markdown_present",
+        "adapter_intake_go",
+        "adapter_hash_crosscheck",
+        "rc_gate_go",
+        "m6_verification_go"
+      ],
+      "decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
+      "id": "real_adapter_evidence_bundle_verification",
+      "ok": false,
+      "path": "artifacts/review/real_adapter_evidence_bundle_verification.json",
+      "present": true,
+      "release_bundle_ready": false,
+      "release_required": true,
+      "verification_ok": true
+    },
+    {
       "blocker": null,
       "id": "m6_review_docs_current",
       "ok": true,
@@ -110,6 +129,7 @@
     "Release GO requires current M6-RC evidence verification decision GO.",
     "M0-M6 milestone evidence markers are release-required and become unexpected blockers if missing.",
     "Current NOT_GO is acceptable only when real_trained_adapter_no_fake_endpoint is the sole blocker.",
+    "v0 release GO requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE from the real adapter bundle verifier.",
     "Prereq audit is diagnostic; it explains what must be supplied before the live M6-RC gate can run."
   ],
   "release_ready": false,
@@ -122,6 +142,16 @@
     "m6_rc_decision": "NOT_GO",
     "m6_rc_verification_ok": true,
     "m6_review_docs_current": true,
+    "real_adapter_evidence_bundle_blockers": [
+      "endpoint_live_no_fake_json",
+      "endpoint_markdown_present",
+      "adapter_intake_go",
+      "adapter_hash_crosscheck",
+      "rc_gate_go",
+      "m6_verification_go"
+    ],
+    "real_adapter_evidence_bundle_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
+    "real_adapter_evidence_bundle_ready": false,
     "real_adapter_missing_prereq_ids": [
       "adapter_dir_present",
       "adapter_safetensors_present",

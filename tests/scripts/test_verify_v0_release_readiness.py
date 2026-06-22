@@ -115,9 +115,35 @@ def write_prereq_audit(root: Path) -> None:
     )
 
 
+def write_bundle_verification(root: Path, *, decision: str) -> None:
+    if decision == "GO":
+        write_json(
+            root / "artifacts/review/real_adapter_evidence_bundle_verification.json",
+            {
+                "schema_version": "mib_real_adapter_evidence_bundle_verification.v1",
+                "decision": "GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
+                "verification_ok": True,
+                "release_bundle_ready": True,
+                "blockers": [],
+            },
+        )
+        return
+    write_json(
+        root / "artifacts/review/real_adapter_evidence_bundle_verification.json",
+        {
+            "schema_version": "mib_real_adapter_evidence_bundle_verification.v1",
+            "decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
+            "verification_ok": True,
+            "release_bundle_ready": False,
+            "blockers": ["endpoint_live_no_fake_json", "adapter_intake_go", "rc_gate_go", "m6_verification_go"],
+        },
+    )
+
+
 def test_current_not_go_is_verified_when_only_real_adapter_endpoint_is_missing(tmp_path: Path) -> None:
     write_required_text_evidence(tmp_path)
     write_prereq_audit(tmp_path)
+    write_bundle_verification(tmp_path, decision="NOT_GO")
     write_json(
         tmp_path / "artifacts/review/m6_rc_evidence_verification.json",
         {
@@ -140,6 +166,8 @@ def test_current_not_go_is_verified_when_only_real_adapter_endpoint_is_missing(t
     assert report["summary"]["desktop_e2e_route_repair_verified"] is True
     assert report["summary"]["working_recorded_milestone_state_verified"] is True
     assert report["summary"]["m6_review_docs_current"] is True
+    assert report["summary"]["real_adapter_evidence_bundle_ready"] is False
+    assert report["summary"]["real_adapter_evidence_bundle_decision"] == "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
     assert report["summary"]["real_adapter_missing_prereq_ids"] == ["host_cuda_visible"]
 
 
@@ -147,6 +175,7 @@ def test_release_go_requires_m6_rc_go(tmp_path: Path) -> None:
     write_required_text_evidence(tmp_path)
     write_m6_review_docs(tmp_path, decision="GO")
     write_prereq_audit(tmp_path)
+    write_bundle_verification(tmp_path, decision="GO")
     write_json(
         tmp_path / "artifacts/review/m6_rc_evidence_verification.json",
         {
@@ -163,6 +192,31 @@ def test_release_go_requires_m6_rc_go(tmp_path: Path) -> None:
     assert report["decision"] == "GO"
     assert report["release_ready"] is True
     assert report["blockers"] == []
+    assert report["summary"]["real_adapter_evidence_bundle_ready"] is True
+
+
+def test_release_go_requires_real_adapter_bundle_go(tmp_path: Path) -> None:
+    write_required_text_evidence(tmp_path)
+    write_m6_review_docs(tmp_path, decision="GO")
+    write_prereq_audit(tmp_path)
+    write_bundle_verification(tmp_path, decision="NOT_GO")
+    write_json(
+        tmp_path / "artifacts/review/m6_rc_evidence_verification.json",
+        {
+            "schema_version": "mib_m6_rc_evidence_verification.v1",
+            "decision": "GO",
+            "verification_ok": True,
+            "blockers": [],
+            "unexpected_blockers": [],
+        },
+    )
+
+    report = verify.evaluate(tmp_path)
+
+    assert report["decision"] == "NOT_GO"
+    assert report["release_ready"] is False
+    assert report["blockers"] == ["real_trained_adapter_no_fake_endpoint"]
+    assert report["unexpected_blockers"] == []
 
 
 def test_missing_fe_v6_evidence_is_unexpected_release_blocker(tmp_path: Path) -> None:
@@ -180,6 +234,7 @@ def test_missing_fe_v6_evidence_is_unexpected_release_blocker(tmp_path: Path) ->
     )
     write_m6_review_docs(tmp_path, decision="NOT_GO")
     write_prereq_audit(tmp_path)
+    write_bundle_verification(tmp_path, decision="NOT_GO")
     write_json(
         tmp_path / "artifacts/review/m6_rc_evidence_verification.json",
         {
@@ -206,6 +261,7 @@ def test_missing_recorded_milestone_state_is_unexpected_release_blocker(tmp_path
         "\n".join(marker for marker in verify.WORKING_RECORDED_GO_MARKERS if "M4_001_to_M4_003" not in marker),
     )
     write_prereq_audit(tmp_path)
+    write_bundle_verification(tmp_path, decision="NOT_GO")
     write_json(
         tmp_path / "artifacts/review/m6_rc_evidence_verification.json",
         {
@@ -227,6 +283,7 @@ def test_missing_recorded_milestone_state_is_unexpected_release_blocker(tmp_path
 def test_m6_unexpected_blockers_are_propagated(tmp_path: Path) -> None:
     write_required_text_evidence(tmp_path)
     write_prereq_audit(tmp_path)
+    write_bundle_verification(tmp_path, decision="NOT_GO")
     write_json(
         tmp_path / "artifacts/review/m6_rc_evidence_verification.json",
         {
@@ -243,3 +300,24 @@ def test_m6_unexpected_blockers_are_propagated(tmp_path: Path) -> None:
     assert report["decision"] == "NOT_GO"
     assert "export_secret_scan_failed" in report["blockers"]
     assert report["unexpected_blockers"] == ["export_secret_scan_failed"]
+
+
+def test_missing_bundle_report_is_unexpected_release_blocker(tmp_path: Path) -> None:
+    write_required_text_evidence(tmp_path)
+    write_m6_review_docs(tmp_path, decision="GO")
+    write_prereq_audit(tmp_path)
+    write_json(
+        tmp_path / "artifacts/review/m6_rc_evidence_verification.json",
+        {
+            "schema_version": "mib_m6_rc_evidence_verification.v1",
+            "decision": "GO",
+            "verification_ok": True,
+            "blockers": [],
+            "unexpected_blockers": [],
+        },
+    )
+
+    report = verify.evaluate(tmp_path)
+
+    assert "real_adapter_evidence_bundle_unavailable" in report["blockers"]
+    assert "real_adapter_evidence_bundle_unavailable" in report["unexpected_blockers"]

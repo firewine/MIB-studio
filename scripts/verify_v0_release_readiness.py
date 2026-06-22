@@ -9,6 +9,14 @@ from typing import Any
 
 SCHEMA_VERSION = "mib_v0_release_readiness.v1"
 ACCEPTABLE_NOT_GO_BLOCKERS = ["real_trained_adapter_no_fake_endpoint"]
+REAL_ADAPTER_BUNDLE_BLOCKER_IDS = {
+    "endpoint_live_no_fake_json",
+    "endpoint_markdown_present",
+    "adapter_intake_go",
+    "adapter_hash_crosscheck",
+    "rc_gate_go",
+    "m6_verification_go",
+}
 
 
 TEXT_EVIDENCE_CHECKS = [
@@ -179,6 +187,53 @@ def prereq_audit_check(root: Path) -> dict[str, Any]:
     }
 
 
+def real_adapter_bundle_check(root: Path) -> dict[str, Any]:
+    path = root / "artifacts/review/real_adapter_evidence_bundle_verification.json"
+    data = read_json(path)
+    if data is None:
+        return {
+            "id": "real_adapter_evidence_bundle_verification",
+            "path": "artifacts/review/real_adapter_evidence_bundle_verification.json",
+            "present": False,
+            "ok": False,
+            "release_required": True,
+            "decision": None,
+            "verification_ok": False,
+            "release_bundle_ready": False,
+            "bundle_blockers": ["bundle_report_missing"],
+            "blocker": "real_adapter_evidence_bundle_unavailable",
+        }
+    bundle_blockers = data.get("blockers")
+    if not isinstance(bundle_blockers, list):
+        bundle_blockers = ["bundle_blockers_not_reported"]
+    decision = data.get("decision")
+    ok = (
+        data.get("schema_version") == "mib_real_adapter_evidence_bundle_verification.v1"
+        and decision == "GO_REAL_ADAPTER_EVIDENCE_BUNDLE"
+        and data.get("verification_ok") is True
+        and data.get("release_bundle_ready") is True
+        and bundle_blockers == []
+    )
+    if ok:
+        blocker = None
+    elif all(isinstance(item, str) and item in REAL_ADAPTER_BUNDLE_BLOCKER_IDS for item in bundle_blockers):
+        blocker = "real_trained_adapter_no_fake_endpoint"
+    else:
+        blocker = "real_adapter_evidence_bundle_not_verified"
+    return {
+        "id": "real_adapter_evidence_bundle_verification",
+        "path": "artifacts/review/real_adapter_evidence_bundle_verification.json",
+        "present": True,
+        "ok": ok,
+        "release_required": True,
+        "decision": decision,
+        "verification_ok": data.get("verification_ok") is True,
+        "release_bundle_ready": data.get("release_bundle_ready") is True,
+        "bundle_blockers": bundle_blockers,
+        "blocker": blocker,
+    }
+
+
 def working_state_check(root: Path) -> dict[str, Any]:
     path = root / "docs/WORKING.md"
     text = read_text(path)
@@ -245,6 +300,8 @@ def evaluate(root: Path) -> dict[str, Any]:
     checks.append(working_state_check(root))
     m6_check = m6_rc_check(root)
     checks.append(m6_check)
+    bundle_check = real_adapter_bundle_check(root)
+    checks.append(bundle_check)
     checks.append(m6_review_docs_check(root, m6_check.get("decision")))
     checks.append(prereq_audit_check(root))
 
@@ -270,6 +327,9 @@ def evaluate(root: Path) -> dict[str, Any]:
             "desktop_e2e_route_repair_verified": next(check for check in checks if check["id"] == "desktop_e2e_route_repair")["ok"] is True,
             "working_recorded_milestone_state_verified": next(check for check in checks if check["id"] == "working_recorded_milestone_state")["ok"] is True,
             "m6_review_docs_current": next(check for check in checks if check["id"] == "m6_review_docs_current")["ok"] is True,
+            "real_adapter_evidence_bundle_ready": bundle_check.get("ok") is True,
+            "real_adapter_evidence_bundle_decision": bundle_check.get("decision"),
+            "real_adapter_evidence_bundle_blockers": bundle_check.get("bundle_blockers", []),
             "m6_rc_decision": m6_check.get("decision"),
             "m6_rc_verification_ok": m6_check.get("verification_ok") is True,
             "real_adapter_prereq_status": prereq_check.get("status"),
@@ -279,6 +339,7 @@ def evaluate(root: Path) -> dict[str, Any]:
             "Release GO requires current M6-RC evidence verification decision GO.",
             "M0-M6 milestone evidence markers are release-required and become unexpected blockers if missing.",
             "Current NOT_GO is acceptable only when real_trained_adapter_no_fake_endpoint is the sole blocker.",
+            "v0 release GO requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE from the real adapter bundle verifier.",
             "Prereq audit is diagnostic; it explains what must be supplied before the live M6-RC gate can run.",
         ],
     }

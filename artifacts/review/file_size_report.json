@@ -45,7 +45,7 @@
       "soft": 240
     }
   },
-  "files_checked": 112,
+  "files_checked": 113,
   "violations": [
     {
       "hard_limit": 400,
@@ -76,14 +76,6 @@
       "kind": "service",
       "loc": 264,
       "path": "services/api/app/services/dataset_service.py",
-      "severity": "soft",
-      "soft_limit": 260
-    },
-    {
-      "hard_limit": 400,
-      "kind": "service",
-      "loc": 380,
-      "path": "services/api/app/services/dataset_job_service.py",
       "severity": "soft",
       "soft_limit": 260
     },

@@ -1,33 +1,22 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Refresh v0 release blocker recertification on current HEAD after FE v6 and strict bootstrap verification, preserving expected NOT_GO until real no-fake adapter endpoint evidence exists.",
+  "goal": "Resolve the dataset_job_service.py code-shape soft warning by extracting benchmark job validation into a narrowly owned service module without behavior changes.",
   "phase": "done",
-  "gate": "mib-studio-v0-current-head-blocker-recertification",
+  "gate": "mib-studio-dataset-job-benchmark-validation-extraction",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "6dac1ef",
+  "head": "f7e6f59",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "artifacts/review/real_adapter_candidate_scan.json",
-    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "artifacts/review/m6_real_adapter_prereq_audit.json",
-    "artifacts/review/real_adapter_artifact_intake.json",
-    "artifacts/review/real_trained_adapter_endpoint_evidence.md",
-    "artifacts/review/real_trained_adapter_endpoint_evidence.json",
-    "artifacts/review/m6_rc_evidence_verification.json",
-    "artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "artifacts/review/v0_release_readiness_audit.json",
-    "artifacts/review/v0_release_blocker_recertification.json",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/real_adapter_cuda_handoff.md",
-    "artifacts/review/real_adapter_cuda_handoff.sh",
-    "docs/CONTEXT.md",
+    "services/api/app/services/dataset_job_service.py",
+    "services/api/app/services/benchmark_job_validation.py",
+    "artifacts/review/file_size_report.json",
+    "artifacts/review/import_boundary_report.json",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
   "blocked_path_prefixes": [
-    "services",
     "packages",
     "presets",
     "examples",
@@ -40,86 +29,90 @@
     "docs/mockup",
     "docs/handoffs",
     "docs/reviews",
+    "artifacts/security",
+    "artifacts/review/real_adapter",
+    "artifacts/review/m6_",
     ".github"
   ],
   "blocked_scope": [
-    "Changing product runtime behavior, FE workflow behavior, API contracts, schemas, mock data, model catalog, verifier acceptance criteria, or release readiness logic",
+    "Changing API behavior, benchmark acceptance rules, job idempotency semantics, DB models, schemas, tests, frontend behavior, release readiness logic, verifier criteria, or evidence policy",
     "Inventing real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
     "Claiming M6-RC or v0 release GO",
-    "Editing docs/reviews/M6 to GO or weakening any no-fake evidence gate",
+    "Editing docs/reviews/M6 to GO",
     "Committing model weights, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, or generated venv content"
   ],
-  "allowed_edit_paths_scope_note": "This gate reruns the existing v0 release blocker recertification command on current HEAD and updates only generated recertification/handoff artifacts plus LLM handoff docs.",
+  "allowed_edit_paths_scope_note": "Move only BenchmarkParams validation, EvalSet lookup checks, and benchmark target validation from dataset_job_service.py into services/api/app/services/benchmark_job_validation.py; preserve exact API errors and behavior.",
   "reference_only_paths": [
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "scripts/run_v0_release_blocker_recertification.py",
-    "scripts/verify_v0_release_readiness.py",
-    "artifacts/review/v0_release_blocker_recertification.json",
-    "artifacts/review/toolchain_report.json"
+    "services/api/app/services/dataset_job_service.py",
+    "services/api/app/services/training_service.py",
+    "tests/eval/test_benchmark_submit.py",
+    "tests/smoke/test_m1_smoke.py",
+    "artifacts/review/file_size_report.json"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json",
-    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
-    "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
-    "rg -n -- \"NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|recertification_ok|release_claimed_go|primary_external_handoff|6dac1ef\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/real_adapter_cuda_handoff.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "python3 -m py_compile services/api/app/services/dataset_job_service.py services/api/app/services/benchmark_job_validation.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/eval/test_benchmark_submit.py tests/smoke/test_m1_smoke.py -q",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+    "python3 -m json.tool artifacts/review/file_size_report.json",
+    "python3 -m json.tool artifacts/review/import_boundary_report.json",
+    "sed -n '$=' services/api/app/services/dataset_job_service.py",
+    "sed -n '$=' services/api/app/services/benchmark_job_validation.py",
+    "rg -n -- \"benchmark_job_validation|validate_benchmark_targets|benchmark_params|dataset_job_service.py|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/api/app/services/dataset_job_service.py services/api/app/services/benchmark_job_validation.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Current HEAD recertification command returns recertification_ok=true.",
-    "v0 release decision remains expected NOT_GO with no unexpected blockers.",
-    "real_trained_adapter_no_fake_endpoint remains the active release blocker and no release GO is claimed.",
-    "Operator next action still points to the verified external CUDA training launcher."
+    "dataset_job_service.py is below the 260-line service soft warning threshold.",
+    "benchmark_job_validation.py has narrow ownership and remains below the service soft warning threshold.",
+    "Focused benchmark submit and M1 smoke tests pass.",
+    "No release GO is claimed and real_trained_adapter_no_fake_endpoint remains the active release blocker."
   ],
   "executed_verification_commands": [
     {
       "command": "python3 -m json.tool .codex/tasks/current.json",
+      "result": "passed after final done-state update"
+    },
+    {
+      "command": "python3 -m py_compile services/api/app/services/dataset_job_service.py services/api/app/services/benchmark_job_validation.py",
       "result": "passed"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-      "result": "passed: status NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION, recertification_ok true, release_claimed_go false"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/eval/test_benchmark_submit.py tests/smoke/test_m1_smoke.py -q",
+      "result": "passed: 3 passed, 9 FastAPI ORJSONResponse deprecation warnings"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
+      "result": "passed: 113 files checked, 0 hard violations, 5 remaining pre-existing soft warnings; dataset_job_service.py removed from violations"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+      "result": "passed: violations []"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/review/file_size_report.json",
       "result": "passed"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json",
+      "command": "python3 -m json.tool artifacts/review/import_boundary_report.json",
       "result": "passed"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-      "result": "passed"
+      "command": "sed -n '$=' services/api/app/services/dataset_job_service.py",
+      "result": "passed: 256"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
-      "result": "passed"
+      "command": "sed -n '$=' services/api/app/services/benchmark_job_validation.py",
+      "result": "passed: 156"
     },
     {
-      "command": "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
-      "result": "passed"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-      "result": "passed"
-    },
-    {
-      "command": "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
-      "result": "passed"
-    },
-    {
-      "command": "rg -n -- \"NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|recertification_ok|release_claimed_go|primary_external_handoff|6dac1ef\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/real_adapter_cuda_handoff.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
-      "result": "passed"
+      "command": "rg -n -- \"benchmark_job_validation|validate_benchmark_targets|benchmark_params|dataset_job_service.py|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/api/app/services/dataset_job_service.py services/api/app/services/benchmark_job_validation.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+      "result": "passed: extraction references and NOT_GO/release blocker guardrails found"
     },
     {
       "command": "git diff --check",
@@ -131,54 +124,32 @@
     }
   ],
   "failed_verification_commands": [],
-  "observed_evidence": {
-    "source_head": "6dac1ef",
-    "recertification_status": "NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION",
-    "recertification_ok": true,
-    "release_claimed_go": false,
-    "m6_rc_claimed_go": false,
-    "v0_readiness_decision": "NOT_GO",
-    "v0_release_ready": false,
-    "v0_unexpected_blockers": [],
-    "sole_v0_blocker": "real_trained_adapter_no_fake_endpoint",
-    "primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
-    "handoff_decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
-    "current_missing_inputs": [
-      "real adapter candidate",
-      "digest-pinned CUDA/Python Docker base image",
-      "strict pinned Phi model cache files",
-      "CUDA visibility on the execution host",
-      "Docker daemon and required Docker images",
-      "no-fake live endpoint JSON/Markdown evidence",
-      "accepted M6 RC evidence verification"
-    ]
-  },
   "warnings": [
-    "This is a recertification phase only.",
-    "M6-RC and v0 release remain NOT_GO until accepted real no-fake endpoint evidence exists."
+    "This is a behavior-preserving code-shape refactor only.",
+    "M6-RC and v0 release remain NOT_GO."
   ],
   "phase_notes": {
-    "plan": "Rerun current v0 release blocker recertification on HEAD 6dac1ef after strict bootstrap verification.",
-    "audit": "Existing recertification docs reference older HEADs, while current local/remote main is 6dac1ef.",
-    "build": "Execute the existing recertification script and preserve expected NOT_GO semantics.",
-    "check": "Validate generated JSON, evidence strings, and diff hygiene.",
-    "done": "After verification passes, stage, commit, and push this recertification phase."
+    "plan": "Extract benchmark job parameter and target validation from dataset_job_service.py into a focused service module.",
+    "audit": "dataset_job_service.py is 380 lines, over the 260-line service soft warning threshold but below the 400-line hard limit.",
+    "build": "Move BenchmarkParams validation, benchmark EvalSet checks, and benchmark target checks; keep dataset generation and accepted response logic in dataset_job_service.py.",
+    "check": "Run py_compile, benchmark submit tests, M1 smoke, code-shape checks, import-boundary checks, evidence search, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this refactor phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-v0-current-head-blocker-recertification",
+    "gate": "mib-studio-dataset-job-benchmark-validation-extraction",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Current-head v0 blocker recertification artifacts and LLM docs only.",
+    "approved_scope": "Behavior-preserving extraction of benchmark job validation from dataset_job_service.py into a focused service module, plus generated code-shape artifacts and LLM docs.",
     "blocked_scope": "No product behavior changes, no release GO claim, no M6 review GO edits, no model/adapter/Docker/endpoint/bundle artifacts, no verifier/evidence-policy weakening.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Rerun current v0 release blocker recertification on HEAD 6dac1ef after strict bootstrap verification.",
-    "audit": "Existing recertification docs reference older HEADs, while current local/remote main is 6dac1ef.",
-    "build": "Execute the existing recertification script and preserve expected NOT_GO semantics.",
-    "check": "Validate generated JSON, evidence strings, and diff hygiene.",
-    "done": "After verification passes, stage, commit, and push this recertification phase."
+    "plan": "Extract benchmark job parameter and target validation from dataset_job_service.py into a focused service module.",
+    "audit": "dataset_job_service.py is 380 lines, over the 260-line service soft warning threshold but below the 400-line hard limit.",
+    "build": "Move BenchmarkParams validation, benchmark EvalSet checks, and benchmark target checks; keep dataset generation and accepted response logic in dataset_job_service.py.",
+    "check": "Run py_compile, benchmark submit tests, M1 smoke, code-shape checks, import-boundary checks, evidence search, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this refactor phase."
   }
 }

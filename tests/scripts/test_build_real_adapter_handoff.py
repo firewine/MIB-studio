@@ -54,6 +54,7 @@ def args_for(tmp_path: Path, *, candidate_scan: dict[str, object], prereq: dict[
         bundle_json_output="artifacts/review/real_adapter_evidence_bundle_verification.json",
         json_output=str(tmp_path / "handoff.json"),
         markdown_output=str(tmp_path / "handoff.md"),
+        shell_output=str(tmp_path / "handoff.sh"),
     )
 
 
@@ -83,10 +84,12 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
 
     report = handoff.build_handoff(args)
     markdown = handoff.render_markdown(report)
+    shell = handoff.render_shell(report)
 
     assert report["decision"] == "WAITING_FOR_REAL_ADAPTER_INPUTS"
     assert report["m6_rc_claimed_go"] is False
     assert report["release_claimed_go"] is False
+    assert report["executable_artifact"].endswith("handoff.sh")
     assert report["current_state"]["missing_prereq_ids"] == [
         "adapter_dir_present",
         "docker_image_available",
@@ -106,6 +109,12 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert "GO" in bundle_step["argv"]
     assert "M6-RC remains NOT_GO" in markdown
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND" in markdown
+    assert "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" in markdown
+    assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
+    assert "set a real MIB_RUNTIME_BEARER_TOKEN" in shell
+    assert 'MIB_RUNTIME_BEARER_TOKEN="${MIB_RUNTIME_BEARER_TOKEN}"' in shell
+    assert shell.index("== rc_gate_live ==") < shell.index("== evidence_bundle_verification ==")
+    assert shell.index("== evidence_bundle_verification ==") < shell.index("== v0_readiness_recheck ==")
     assert "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" in markdown
 
 

@@ -1,12 +1,12 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Align the CUDA real-adapter operator handoff with the new v0 bundle gate. Since v0 readiness now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE, the handoff must run the real-adapter evidence bundle verifier after the live RC gate and before the final v0 readiness recheck. Current local artifacts must remain NOT_GO.",
+  "goal": "Make the CUDA real-adapter handoff directly executable for the external CUDA host operator by emitting a reviewed shell artifact from scripts/build_real_adapter_handoff.py. The generated script must preserve the safe sequence candidate scan -> intake -> RC preflight -> live no-fake RC gate -> real-adapter evidence bundle verification -> v0 readiness recheck, refuse fake-backend mode, require a real bearer token, and keep current local release state NOT_GO.",
   "phase": "done",
-  "gate": "mib-studio-cuda-handoff-bundle-step",
+  "gate": "mib-studio-cuda-handoff-executable-artifact",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "d39e029",
+  "head": "4f4cb5e",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
     "scripts/build_real_adapter_handoff.py",
@@ -45,7 +45,7 @@
     "Claiming M6-RC or v0 release GO from current local artifacts",
     "Weakening real adapter intake, endpoint, M6, bundle, or v0 release evidence acceptance"
   ],
-  "allowed_edit_paths_scope_note": "This gate may update the CUDA handoff generator/tests/current handoff evidence and update WORKING.md plus this PABCD contract only.",
+  "allowed_edit_paths_scope_note": "This gate may update the CUDA handoff generator/tests/current handoff evidence, including artifacts/review/real_adapter_cuda_handoff.sh, and update WORKING.md plus this PABCD contract only.",
   "external_runtime_paths": [
     "/tmp"
   ],
@@ -58,6 +58,7 @@
     "scripts/run_m6_real_adapter_rc_gate.py",
     "artifacts/review/real_adapter_cuda_handoff.json",
     "artifacts/review/real_adapter_cuda_handoff.md",
+    "artifacts/review/real_adapter_cuda_handoff.sh",
     "artifacts/review/real_adapter_evidence_bundle_verification.json",
     "artifacts/review/v0_release_readiness_audit.json"
   ],
@@ -66,8 +67,10 @@
     "python3 -m json.tool .codex/tasks/current.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/build_real_adapter_handoff.py",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --candidate-scan artifacts/review/real_adapter_candidate_scan.json --prereq-audit artifacts/review/m6_real_adapter_prereq_audit.json --readiness-audit artifacts/review/v0_release_readiness_audit.json --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --candidate-scan artifacts/review/real_adapter_candidate_scan.json --prereq-audit artifacts/review/m6_real_adapter_prereq_audit.json --readiness-audit artifacts/review/v0_release_readiness_audit.json --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md --shell-output artifacts/review/real_adapter_cuda_handoff.sh",
     "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
+    "bash -n artifacts/review/real_adapter_cuda_handoff.sh",
+    "rg -n \"MIB_RUNTIME_ALLOW_FAKE_BACKEND|evidence_bundle_verification|GO_REAL_ADAPTER_EVIDENCE_BUNDLE\" artifacts/review/real_adapter_cuda_handoff.sh artifacts/review/real_adapter_cuda_handoff.md",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
@@ -75,8 +78,9 @@
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Handoff command sequence includes real_adapter_evidence_bundle_verification before v0 readiness recheck",
-    "Handoff operator rules mention bundle GO as a required v0 release precondition",
+    "Generated shell artifact runs real_adapter_evidence_bundle_verification before v0 readiness recheck",
+    "Generated shell artifact refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND and requires a real MIB_RUNTIME_BEARER_TOKEN",
+    "Handoff Markdown mentions the executable shell artifact and bundle GO as a required v0 release precondition",
     "Current generated handoff remains WAITING_FOR_REAL_ADAPTER_INPUTS",
     "Current v0 readiness remains NOT_GO",
     "No runtime/backend/schema/training/export/UI behavior changed"
@@ -85,8 +89,10 @@
     "python3 -m json.tool .codex/tasks/current.json",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/build_real_adapter_handoff.py",
     "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --candidate-scan artifacts/review/real_adapter_candidate_scan.json --prereq-audit artifacts/review/m6_real_adapter_prereq_audit.json --readiness-audit artifacts/review/v0_release_readiness_audit.json --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/build_real_adapter_handoff.py --candidate-scan artifacts/review/real_adapter_candidate_scan.json --prereq-audit artifacts/review/m6_real_adapter_prereq_audit.json --readiness-audit artifacts/review/v0_release_readiness_audit.json --adapter-root /tmp/mib-real-adapter --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --json-output artifacts/review/real_adapter_cuda_handoff.json --markdown-output artifacts/review/real_adapter_cuda_handoff.md --shell-output artifacts/review/real_adapter_cuda_handoff.sh",
     "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
+    "bash -n artifacts/review/real_adapter_cuda_handoff.sh",
+    "rg -n \"MIB_RUNTIME_ALLOW_FAKE_BACKEND|evidence_bundle_verification|GO_REAL_ADAPTER_EVIDENCE_BUNDLE\" artifacts/review/real_adapter_cuda_handoff.sh artifacts/review/real_adapter_cuda_handoff.md",
     "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
     "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
     "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
@@ -96,31 +102,31 @@
   "failed_verification_commands": [],
   "warnings": [
     "M6-RC remains NOT_GO due missing real trained adapter endpoint evidence.",
-    "This gate updates operator handoff sequencing only and does not generate a trained adapter."
+    "This gate updates operator handoff execution tooling only and does not generate a trained adapter."
   ],
   "phase_notes": {
-    "plan": "Open scoped handoff alignment gate after confirming v0 readiness now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE but the CUDA handoff still jumped from rc_gate_live directly to v0_readiness_recheck.",
-    "audit": "Read the current handoff generator, focused tests, generated handoff JSON/Markdown, and v0 readiness audit. The handoff command sequence still jumped from rc_gate_live directly to v0_readiness_recheck even though v0 readiness now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE.",
-    "build": "Added an evidence_bundle_verification command row that runs scripts/verify_real_adapter_evidence_bundle.py --expected-decision GO before v0_readiness_recheck. Surfaced current real_adapter_evidence_bundle_* readiness fields in handoff JSON/Markdown and updated focused tests for the exact sequence.",
-    "check": "Passed json.tool, py_compile, focused handoff pytest, regenerated current handoff evidence, v0 readiness expected NOT_GO, v0 JSON validation, hook-reported .venv m1-smoke bootstrap, git diff --check, and git diff --cached --check.",
-    "done": "CUDA handoff bundle step is complete. The operator handoff now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck, while current local artifacts remain WAITING_FOR_REAL_ADAPTER_INPUTS / NOT_GO."
+    "plan": "Open scoped executable handoff artifact gate after confirming final completion is still blocked by missing external CUDA real-adapter evidence, and the current handoff is Markdown/JSON only.",
+    "audit": "Read the current handoff generator, focused tests, generated JSON/Markdown handoff, v0 readiness audit, and WORKING state. The remaining release blocker is external real CUDA adapter evidence, and the existing handoff required manual command copying from Markdown/JSON.",
+    "build": "Added render_shell/script_command support, --shell-output, and executable_artifact metadata to scripts/build_real_adapter_handoff.py. The generated shell refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND, requires a real 32+ character MIB_RUNTIME_BEARER_TOKEN, and runs the established safe command sequence through bundle verification before v0 readiness.",
+    "check": "Passed json.tool, py_compile, focused handoff pytest, regenerated JSON/Markdown/Shell handoff artifacts, handoff JSON validation, shell bash -n, marker rg, v0 readiness expected NOT_GO, v0 JSON validation, hook-required .venv m1-smoke bootstrap, git diff --check, and git diff --cached --check.",
+    "done": "Executable CUDA handoff artifact gate is complete. Current local evidence remains WAITING_FOR_REAL_ADAPTER_INPUTS / NOT_GO and no release GO is claimed."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-cuda-handoff-bundle-step",
-    "status": "MIB_STUDIO_CUDA_HANDOFF_BUNDLE_STEP_COMPLETE_M6_NOT_GO",
+    "gate": "mib-studio-cuda-handoff-executable-artifact",
+    "status": "MIB_STUDIO_CUDA_HANDOFF_EXECUTABLE_ARTIFACT_COMPLETE_M6_NOT_GO",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
     "all_required_teams_go": false,
-    "approved_scope": "CUDA handoff generator/tests/evidence, WORKING.md, and PABCD contract only.",
+    "approved_scope": "CUDA handoff generator/tests/evidence shell artifact, WORKING.md, and PABCD contract only.",
     "blocked_scope": "No product/runtime/API/UI/training/export behavior changes, no model artifacts, no release GO claim from current local artifacts.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Open scoped handoff alignment gate after confirming v0 readiness now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE but the CUDA handoff still jumped from rc_gate_live directly to v0_readiness_recheck.",
-    "audit": "Read the current handoff generator, focused tests, generated handoff JSON/Markdown, and v0 readiness audit. The handoff command sequence still jumped from rc_gate_live directly to v0_readiness_recheck even though v0 readiness now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE.",
-    "build": "Added an evidence_bundle_verification command row that runs scripts/verify_real_adapter_evidence_bundle.py --expected-decision GO before v0_readiness_recheck. Surfaced current real_adapter_evidence_bundle_* readiness fields in handoff JSON/Markdown and updated focused tests for the exact sequence.",
-    "check": "Passed json.tool, py_compile, focused handoff pytest, regenerated current handoff evidence, v0 readiness expected NOT_GO, v0 JSON validation, hook-reported .venv m1-smoke bootstrap, git diff --check, and git diff --cached --check.",
-    "done": "CUDA handoff bundle step is complete. The operator handoff now requires GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck, while current local artifacts remain WAITING_FOR_REAL_ADAPTER_INPUTS / NOT_GO."
+    "plan": "Open scoped executable handoff artifact gate after confirming final completion is still blocked by missing external CUDA real-adapter evidence, and the current handoff is Markdown/JSON only.",
+    "audit": "Read the current handoff generator, focused tests, generated JSON/Markdown handoff, v0 readiness audit, and WORKING state. The remaining release blocker is external real CUDA adapter evidence, and the existing handoff required manual command copying from Markdown/JSON.",
+    "build": "Added render_shell/script_command support, --shell-output, and executable_artifact metadata to scripts/build_real_adapter_handoff.py. The generated shell refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND, requires a real 32+ character MIB_RUNTIME_BEARER_TOKEN, and runs the established safe command sequence through bundle verification before v0 readiness.",
+    "check": "Passed json.tool, py_compile, focused handoff pytest, regenerated JSON/Markdown/Shell handoff artifacts, handoff JSON validation, shell bash -n, marker rg, v0 readiness expected NOT_GO, v0 JSON validation, hook-required .venv m1-smoke bootstrap, git diff --check, and git diff --cached --check.",
+    "done": "Executable CUDA handoff artifact gate is complete. Current local evidence remains WAITING_FOR_REAL_ADAPTER_INPUTS / NOT_GO and no release GO is claimed."
   }
 }

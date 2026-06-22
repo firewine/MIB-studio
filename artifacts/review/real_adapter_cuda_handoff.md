@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T01:53:31.129085+00:00
+date: 2026-06-22T02:02:46.825296+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false
@@ -9,6 +9,8 @@ release_claimed_go: false
 ```
 
 M6-RC remains NOT_GO until a real trained CUDA `lora_adapter` produces no-fake Docker endpoint evidence and the M6/v0 verifiers return GO.
+
+Executable shell artifact: `artifacts/review/real_adapter_cuda_handoff.sh`. Run it only on the CUDA host after placing the real trained adapter under the configured adapter root and setting `MIB_RUNTIME_BEARER_TOKEN`.
 
 ## Current State
 

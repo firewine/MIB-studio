@@ -41,19 +41,19 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CURRENT_HEAD_POST_MERGE_SMOKE_V0_RECERTIFICATION
+phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_3E9F3EA_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-current-head-post-merge-smoke-v0-recertification
+gate_id: mib-studio-external-cuda-operator-packet-refresh-after-3e9f3ea-recertification
 mode: development
 product_code_changed: false
 frontend_code_changed: false
 verification_tooling_changed: false
 training_handoff_artifacts_refreshed: false
-external_operator_packet_refreshed: false
-external_operator_packet_refresh_required_after_phase_commit: true
+external_operator_packet_refreshed: true
+external_operator_packet_refresh_required_after_phase_commit: false
 external_cuda_handoff_readiness_refreshed: false
-operator_packet_ready_for_current_source: false
+operator_packet_ready: true
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
@@ -64,8 +64,8 @@ current_decision:
   current_head_v0_recertification: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
-  current_packet_source_commit: 5dfb80f
-  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
+  current_packet_source_commit: 3e9f3ea
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: false
   training_handoff_command_order_suffix:
     - prepare_docker_image
     - run_docker_image_handoff
@@ -76,6 +76,52 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-operator-packet-refresh-after-3e9f3ea-recertification
+objective: refresh source-pinned external CUDA operator packet after current-head recertification
+
+source_head: 3e9f3ea
+
+packet:
+  status: PREPARED_NOT_RUN
+  source_commit: 3e9f3ea
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  downstream_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.sh
+  required_committed_files: 18
+  training_handoff_command_order_contains:
+    - run_docker_image_handoff
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+
+packet_verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  operator_packet_ready: true
+  verification_ok: true
+  required_file_hashes: verified 18 required file hashes
+  required_commit_blobs: verified 18 required file blobs at 3e9f3ea
+  forbidden_tracked_artifacts: []
+  warnings: []
+
+transfer_manifest:
+  status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  packet_handoff_source_commit: 3e9f3ea
+  json_output: /tmp/mib-3e9f3ea-external-cuda-transfer-readiness.json
+  transfer_model: full_repository_checkout_required
+  committed_to_repo: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+operator_next_step:
+  run: bash artifacts/review/verified_external_cuda_training_launcher.sh
+  host: external CUDA host with full repository checkout at or after 3e9f3ea, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, real runtime token, and real adapter output paths
+  note: packet verification GO and transfer READY are operator handoff readiness results, not M6-RC GO or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-current-head-post-merge-smoke-v0-recertification

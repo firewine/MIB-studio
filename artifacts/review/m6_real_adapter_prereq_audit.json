@@ -1,11 +1,13 @@
 {
-  "date": "2026-06-22T06:02:43.678775+00:00",
+  "date": "2026-06-22T13:07:47.226359+00:00",
   "decision": "NOT_READY",
   "endpoint_evidence_only": false,
   "errors": [
+    "adapter_dir_present: missing adapter directory: /tmp/mib-real-adapter/adapter",
     "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
     "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
     "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
+    "model_cache_dir_present: missing model cache dir: /tmp/mib-strict-model-cache-phi/model_cache",
     "docker_image_available: Error response from daemon: No such image: mib-export:test",
     "host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'"
   ],
@@ -99,9 +101,9 @@
       "ok": true
     },
     {
-      "detail": "ok",
+      "detail": "missing adapter directory: /tmp/mib-real-adapter/adapter",
       "id": "adapter_dir_present",
-      "ok": true
+      "ok": false
     },
     {
       "detail": "missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
@@ -119,9 +121,9 @@
       "ok": false
     },
     {
-      "detail": "ok",
+      "detail": "missing model cache dir: /tmp/mib-strict-model-cache-phi/model_cache",
       "id": "model_cache_dir_present",
-      "ok": true
+      "ok": false
     },
     {
       "command": [
@@ -142,6 +144,7 @@
       "skipped": true,
       "skipped_prereq_ids": [
         "adapter_manifest_sha256_unavailable",
+        "adapter_dir_present",
         "docker_image_available"
       ]
     },

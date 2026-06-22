@@ -1,7 +1,7 @@
 # Real Adapter CUDA Handoff
 
 ```yaml
-date: 2026-06-22T06:02:43.754551+00:00
+date: 2026-06-22T13:07:47.305690+00:00
 gate: mib-studio-real-adapter-cuda-handoff
 decision: WAITING_FOR_REAL_ADAPTER_INPUTS
 m6_rc_claimed_go: false
@@ -16,12 +16,12 @@ Executable shell artifact: `artifacts/review/real_adapter_cuda_handoff.sh`. Run 
 
 ```yaml
 candidate_scan_decision: NO_GO_CANDIDATES_FOUND
-candidate_count: 2
+candidate_count: 0
 go_candidate_count: 0
-fixture_like_candidate_count: 2
+fixture_like_candidate_count: 0
 prereq_status: NOT_READY_PRECHECK_FAILED
 prereq_decision: NOT_READY
-missing_prereq_ids: ["adapter_safetensors_present", "adapter_config_present", "adapter_manifest_present", "docker_image_available", "host_cuda_visible"]
+missing_prereq_ids: ["adapter_dir_present", "adapter_safetensors_present", "adapter_config_present", "adapter_manifest_present", "model_cache_dir_present", "docker_image_available", "host_cuda_visible"]
 v0_readiness_decision: NOT_GO
 v0_release_ready: false
 real_adapter_evidence_bundle_decision: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
@@ -34,14 +34,14 @@ v0_unexpected_blockers: []
 
 | Check | Status | Requirement |
 | --- | --- | --- |
-| `adapter_dir_present` | available | Real adapter directory exists, normally /tmp/mib-real-adapter/adapter |
+| `adapter_dir_present` | missing | Real adapter directory exists, normally /tmp/mib-real-adapter/adapter |
 | `adapter_safetensors_present` | missing | adapter.safetensors is present and is not fixture-sized |
 | `adapter_config_present` | missing | adapter_config.json declares PEFT LORA and the locked base model |
 | `adapter_manifest_present` | missing | manifest.json records adapter_sha256, files, and trainer_backend |
 | `docker_image_available` | missing | Docker image tag exists for the export that packages the same adapter |
 | `docker_image_adapter_matches_adapter_manifest` | pending | Docker /app/adapter hash matches manifest adapter_sha256 |
 | `host_cuda_visible` | missing | nvidia-smi succeeds on the host |
-| `model_cache_dir_present` | available | Strict base-model cache directory is present and mounted read-only |
+| `model_cache_dir_present` | missing | Strict base-model cache directory is present and mounted read-only |
 | `bearer_token_ready` | available | MIB_RUNTIME_BEARER_TOKEN is at least 32 characters |
 | `fake_backend_env_absent` | available | MIB_RUNTIME_ALLOW_FAKE_BACKEND is unset |
 
@@ -53,6 +53,7 @@ v0_unexpected_blockers: []
 - The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.
 - Capture endpoint evidence before updating M6 review docs to GO; the generated shell stops before M6 GO verification until those docs contain final GO markers.
 - Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and portable archive, then require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.
+- After transferring the bundle archive back to the release workstation, run run_v0_release_closeout_from_bundle.py and require GO_V0_RELEASE_CLOSEOUT.
 - M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.
 
 ## Command Sequence
@@ -104,3 +105,15 @@ MIB_RUNTIME_BEARER_TOKEN='<set-32-plus-character-token>' ./.venv/bin/python scri
 ```bash
 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision GO --json-output artifacts/review/v0_release_readiness_audit.json
 ```
+
+## Local Closeout After Bundle Transfer
+
+Copy `artifacts/review/real_adapter_evidence_bundle.tar.gz` from the CUDA host back into this repository, then run:
+
+### local_closeout_after_bundle_transfer
+
+```bash
+./.venv/bin/python scripts/run_v0_release_closeout_from_bundle.py --bundle-archive artifacts/review/real_adapter_evidence_bundle.tar.gz --expected-bundle-decision GO --expected-readiness-decision GO
+```
+
+Run in this repository after copying the real adapter evidence bundle archive back from the CUDA host. Expected success status: GO_V0_RELEASE_CLOSEOUT.

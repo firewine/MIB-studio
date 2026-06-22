@@ -1,6 +1,8 @@
 {
   "blockers": [
     "docker_base_image_env_digest",
+    "backend_config_ready",
+    "strict_model_cache_files",
     "cuda_visible",
     "docker_base_image_available"
   ],
@@ -25,20 +27,25 @@
       "row_count": 20
     },
     {
-      "detail": "ok",
+      "detail": "missing backend_config.yaml: /tmp/mib-real-adapter/backend_config.yaml",
       "id": "backend_config_ready",
-      "mismatches": [],
-      "ok": true,
+      "ok": false,
       "path": "/tmp/mib-real-adapter/backend_config.yaml"
     },
     {
       "cache_dir": "/tmp/mib-strict-model-cache-phi/model_cache/microsoft__Phi-3.5-mini-instruct@2fe192450127e6a83f7441aef6e3ca586c338b77",
-      "detail": "ok",
+      "detail": "strict model cache files are missing or do not match the locked catalog",
       "hash_mismatches": [],
       "id": "strict_model_cache_files",
-      "missing": [],
+      "missing": [
+        "config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "model-00001-of-00002.safetensors",
+        "model-00002-of-00002.safetensors"
+      ],
       "model_id": "microsoft/Phi-3.5-mini-instruct",
-      "ok": true,
+      "ok": false,
       "required_count": 5,
       "size_mismatches": [],
       "verify_hashes": true
@@ -87,7 +94,7 @@
       "returncode": null
     }
   ],
-  "date": "2026-06-22T06:02:43.647053+00:00",
+  "date": "2026-06-22T13:07:47.193595+00:00",
   "env_requirements": {
     "docker_base_image_digest_present": false,
     "docker_base_image_env": "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST",

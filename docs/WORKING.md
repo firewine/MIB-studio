@@ -37,10 +37,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: FINAL_VERIFICATION_TEST_HARNESS
+phase_id: REAL_ADAPTER_HANDOFF_LOCAL_CLOSEOUT
 milestone: Final_Program_Development_Closeout
-phase_status: final_verification_pytest_and_fe_e2e_verified_not_go
-gate_id: mib-studio-final-verification-pytest-collection
+phase_status: real_adapter_handoff_local_closeout_verified_not_go
+gate_id: mib-studio-real-adapter-handoff-local-closeout
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -54,12 +54,14 @@ current_decision:
 ## 2. Latest Work
 
 ```yaml
-gate: mib-studio-final-verification-pytest-collection
-objective: make full Python and FE verification runnable for final completion checks
+gate: mib-studio-real-adapter-handoff-local-closeout
+objective: make the external CUDA handoff self-contained through local closeout
 
 files:
   pytest_config: pytest.ini
   frontend_scripts: package.json
+  handoff_generator: scripts/build_real_adapter_handoff.py
+  handoff_tests: tests/scripts/test_build_real_adapter_handoff.py
   runner: scripts/run_v0_release_blocker_recertification.py
   tests: tests/scripts/test_run_v0_release_blocker_recertification.py
   summary: artifacts/review/v0_release_blocker_recertification.json
@@ -87,6 +89,8 @@ runner_contract:
   release_claimed_go: false
 
 summary:
+  - real adapter CUDA handoff artifacts now include local_closeout_after_bundle_transfer
+  - after copying artifacts/review/real_adapter_evidence_bundle.tar.gz back from the CUDA host, run scripts/run_v0_release_closeout_from_bundle.py with expected GO decisions
   - full pytest now collects duplicate-basename tests safely through pytest importlib mode
   - full Python regression passes: 193 passed
   - FE unit, build, M1 e2e, and FE v6 route-contract e2e pass with the strict local Node/pnpm toolchain
@@ -97,8 +101,8 @@ summary:
   - mib-export:test is currently missing on the host: Error response from daemon: No such image: mib-export:test
   - the current local state remains NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
   - FE v6 remains verified through docs/mockup/mib_fe_mockup_v6_routes_contract.html and artifacts/review/fe_v6_evidence.md
-  - current scan found 2 fixture-like candidates and 0 GO candidates
-  - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING with blockers docker_base_image_env_digest, cuda_visible, and docker_base_image_available
+  - current scan found 0 candidates and 0 GO candidates; /tmp/mib-real-adapter and /tmp/mib-phi-docker-export-_vgqfd4g are currently absent
+  - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING with blockers docker_base_image_env_digest, backend_config_ready, strict_model_cache_files, cuda_visible, and docker_base_image_available
   - current M6 real-adapter preflight is NOT_READY_PRECHECK_FAILED
   - current real-adapter bundle verification is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
   - current handoff decision is WAITING_FOR_REAL_ADAPTER_INPUTS
@@ -139,9 +143,10 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: final_verification_pytest_and_fe_e2e_verified_not_go
+status: real_adapter_handoff_local_closeout_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py tests/scripts/test_run_v0_release_closeout_from_bundle.py -q
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest
   - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs test
   - COREPACK_HOME=/tmp/corepack /tmp/mib-toolchain/node-v20.18.1-linux-x64/bin/node /tmp/corepack/v1/pnpm/9.15.0/bin/pnpm.cjs run build
@@ -157,10 +162,12 @@ passed:
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
   - git diff --check
   - git diff --cached --check
+  - rg -n -- "local_closeout_after_bundle_transfer|run_v0_release_closeout_from_bundle.py|GO_V0_RELEASE_CLOSEOUT|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/WORKING.md artifacts/review/v0_release_blocker_recertification.json
 
 fixed_verification_blockers:
   - full_pytest_import_file_mismatch_from_duplicate_test_basenames
   - fe_e2e_missing_node_experimental_websocket_flag
+  - handoff_missing_embedded_local_closeout_after_bundle_transfer
 
 warnings:
   - M6-RC remains NOT_GO.
@@ -189,7 +196,10 @@ release_blocker:
 local_missing_inputs:
   - /tmp/mib-real-adapter/adapter/adapter.safetensors
   - /tmp/mib-real-adapter/adapter/adapter_config.json
+  - /tmp/mib-real-adapter/adapter directory
+  - /tmp/mib-real-adapter/backend_config.yaml
   - /tmp/mib-real-adapter/manifest.json
+  - /tmp/mib-strict-model-cache-phi/model_cache
   - nvidia-smi_cuda_visibility
   - MIB_DOCKER_BASE_IMAGE_WITH_DIGEST
   - local_digest_pinned_cuda_python_base_image
@@ -236,6 +246,10 @@ commands. The active closeout tool is
 scripts/run_v0_release_blocker_recertification.py. It refreshes the current
 candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle
 verification, v0 readiness, and CUDA handoff artifacts with one command.
+The generated CUDA handoff now embeds local_closeout_after_bundle_transfer:
+after copying artifacts/review/real_adapter_evidence_bundle.tar.gz back into
+this repo, run scripts/run_v0_release_closeout_from_bundle.py with expected GO
+bundle/readiness decisions and require GO_V0_RELEASE_CLOSEOUT.
 The latest host-access recertification confirmed docker_daemon_available ok:true
 and mib-export:test missing as "No such image", so Docker permission denial is
 not the current release blocker.

@@ -93,6 +93,7 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert report["m6_rc_claimed_go"] is False
     assert report["release_claimed_go"] is False
     assert report["executable_artifact"].endswith("handoff.sh")
+    assert [row["id"] for row in report["post_transfer_closeout_commands"]] == ["local_closeout_after_bundle_transfer"]
     assert report["current_state"]["missing_prereq_ids"] == [
         "adapter_dir_present",
         "docker_image_available",
@@ -127,14 +128,21 @@ def test_handoff_reports_waiting_state_without_claiming_go(tmp_path: Path) -> No
     assert "M6-RC remains NOT_GO" in markdown
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND" in markdown
     assert "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" in markdown
+    assert "Local Closeout After Bundle Transfer" in markdown
+    assert "scripts/run_v0_release_closeout_from_bundle.py" in markdown
+    assert "GO_V0_RELEASE_CLOSEOUT" in markdown
     assert "Capture endpoint evidence before updating M6 review docs to GO" in markdown
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "set a real MIB_RUNTIME_BEARER_TOKEN" in shell
     assert 'MIB_RUNTIME_BEARER_TOKEN="${MIB_RUNTIME_BEARER_TOKEN}"' in shell
+    assert "== local_closeout_after_bundle_transfer ==" in shell
+    assert "scripts/run_v0_release_closeout_from_bundle.py" in shell
+    assert "GO_V0_RELEASE_CLOSEOUT" in shell
     assert shell.index("== rc_gate_endpoint_evidence ==") < shell.index("== m6_review_docs_go_update_required ==")
     assert shell.index("== m6_review_docs_go_update_required ==") < shell.index("== rc_gate_m6_go ==")
     assert shell.index("== rc_gate_m6_go ==") < shell.index("== evidence_bundle_assembly ==")
     assert shell.index("== evidence_bundle_assembly ==") < shell.index("== v0_readiness_recheck ==")
+    assert shell.index("== v0_readiness_recheck ==") < shell.index("== local_closeout_after_bundle_transfer ==")
     assert "GO_REAL_ADAPTER_EVIDENCE_BUNDLE" in markdown
 
 

@@ -38,3 +38,12 @@ printf '\n== evidence_bundle_assembly ==\n'
 
 printf '\n== v0_readiness_recheck ==\n'
 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision GO --json-output artifacts/review/v0_release_readiness_audit.json
+
+printf '\n== local_closeout_after_bundle_transfer ==\n'
+cat <<'MIB_LOCAL_CLOSEOUT'
+Copy artifacts/review/real_adapter_evidence_bundle.tar.gz from the CUDA host
+back into this repository, then run the local closeout command below.
+Expected success status: GO_V0_RELEASE_CLOSEOUT.
+
+# local_closeout_after_bundle_transfer: ./.venv/bin/python scripts/run_v0_release_closeout_from_bundle.py --bundle-archive artifacts/review/real_adapter_evidence_bundle.tar.gz --expected-bundle-decision GO --expected-readiness-decision GO
+MIB_LOCAL_CLOSEOUT

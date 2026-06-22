@@ -239,6 +239,28 @@ def base_commands(args: argparse.Namespace, candidate_scan: dict[str, Any]) -> l
     ]
 
 
+def post_transfer_closeout_commands(args: argparse.Namespace) -> list[dict[str, Any]]:
+    return [
+        command_row(
+            "local_closeout_after_bundle_transfer",
+            [
+                args.python,
+                "scripts/run_v0_release_closeout_from_bundle.py",
+                "--bundle-archive",
+                args.bundle_archive_output,
+                "--expected-bundle-decision",
+                "GO",
+                "--expected-readiness-decision",
+                "GO",
+            ],
+            note=(
+                "Run in this repository after copying the real adapter evidence bundle archive "
+                "back from the CUDA host. Expected success status: GO_V0_RELEASE_CLOSEOUT."
+            ),
+        )
+    ]
+
+
 def go_candidate_commands(candidate_scan: dict[str, Any]) -> list[dict[str, Any]]:
     rows = []
     for index, candidate in enumerate(candidate_scan.get("candidates", []), 1):
@@ -312,6 +334,7 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
         },
         "required_operator_inputs": required_inputs(prereq),
         "command_sequence": base_commands(args, candidate_scan),
+        "post_transfer_closeout_commands": post_transfer_closeout_commands(args),
         "go_candidate_commands": go_commands,
         "operator_rules": [
             "Do not set MIB_RUNTIME_ALLOW_FAKE_BACKEND.",
@@ -320,6 +343,7 @@ def build_handoff(args: argparse.Namespace) -> dict[str, Any]:
             "The live endpoint capture must produce structured JSON sidecar evidence from source live_docker_capture.",
             "Capture endpoint evidence before updating M6 review docs to GO; the generated shell stops before M6 GO verification until those docs contain final GO markers.",
             "Run build_real_adapter_evidence_bundle.py to assemble the fixed evidence bundle and portable archive, then require GO_REAL_ADAPTER_EVIDENCE_BUNDLE before v0 readiness recheck.",
+            "After transferring the bundle archive back to the release workstation, run run_v0_release_closeout_from_bundle.py and require GO_V0_RELEASE_CLOSEOUT.",
             "M6-RC and v0 remain NOT_GO until the M6 verifier, real adapter bundle verifier, and v0 readiness verifier all return GO.",
         ],
     }
@@ -332,6 +356,10 @@ def render_markdown(report: dict[str, Any]) -> str:
     )
     commands = "\n\n".join(
         f"### {row['id']}\n\n```bash\n{row['shell']}\n```" for row in report["command_sequence"]
+    )
+    closeout_commands = "\n\n".join(
+        f"### {row['id']}\n\n```bash\n{row['shell']}\n```\n\n{row['note']}"
+        for row in report["post_transfer_closeout_commands"]
     )
     candidate_commands = "\n\n".join(
         f"### {row['id']}\n\n```bash\n{row['shell']}\n```" for row in report["go_candidate_commands"]
@@ -382,6 +410,12 @@ v0_unexpected_blockers: {json.dumps(state["v0_unexpected_blockers"])}
 ## Command Sequence
 
 {commands}
+
+## Local Closeout After Bundle Transfer
+
+Copy `artifacts/review/real_adapter_evidence_bundle.tar.gz` from the CUDA host back into this repository, then run:
+
+{closeout_commands}
 """
     if candidate_commands:
         text += f"""
@@ -399,6 +433,7 @@ def render_shell(report: dict[str, Any]) -> str:
     commands = "\n\n".join(
         f"printf '\\n== {row['id']} ==\\n'\n{script_command(row)}" for row in report["command_sequence"]
     )
+    closeout_commands = "\n".join(f"# {row['id']}: {row['shell']}" for row in report["post_transfer_closeout_commands"])
     return f"""#!/usr/bin/env bash
 set -euo pipefail
 
@@ -417,6 +452,15 @@ if [ -z "${{MIB_RUNTIME_BEARER_TOKEN:-}}" ] || [ "${{#MIB_RUNTIME_BEARER_TOKEN}}
 fi
 
 {commands}
+
+printf '\\n== local_closeout_after_bundle_transfer ==\\n'
+cat <<'MIB_LOCAL_CLOSEOUT'
+Copy artifacts/review/real_adapter_evidence_bundle.tar.gz from the CUDA host
+back into this repository, then run the local closeout command below.
+Expected success status: GO_V0_RELEASE_CLOSEOUT.
+
+{closeout_commands}
+MIB_LOCAL_CLOSEOUT
 """
 
 

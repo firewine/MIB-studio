@@ -70,22 +70,76 @@ def bearer_token(args: argparse.Namespace) -> str:
     return args.token or os.environ.get("MIB_RUNTIME_BEARER_TOKEN", "")
 
 
-def preflight_errors(args: argparse.Namespace) -> list[str]:
-    errors: list[str] = []
+def check_row(check_id: str, ok: bool, detail: str, **extra: Any) -> dict[str, Any]:
+    row = {"id": check_id, "ok": ok, "detail": detail}
+    row.update(extra)
+    return row
+
+
+def command_check(check_id: str, command: list[str], *, timeout: int, runner: Runner) -> dict[str, Any]:
+    try:
+        result = runner(command, timeout)
+    except Exception as exc:
+        return check_row(check_id, False, str(exc), command=command, returncode=None)
+    return check_row(
+        check_id,
+        result.returncode == 0,
+        "ok" if result.returncode == 0 else clip((result.stderr or result.stdout or "").strip(), limit=1000),
+        command=command,
+        returncode=result.returncode,
+    )
+
+
+def preflight_checks(args: argparse.Namespace, *, runner: Runner, full: bool) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
     token = bearer_token(args)
-    if os.environ.get("MIB_RUNTIME_ALLOW_FAKE_BACKEND"):
-        errors.append("MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset")
-    if len(token) < 32:
-        errors.append("MIB_RUNTIME_BEARER_TOKEN or --token must be at least 32 characters")
-    if args.plan_only:
-        return errors
-    if not Path(args.adapter_dir).is_dir():
-        errors.append(f"adapter directory does not exist: {args.adapter_dir}")
-    if not Path(args.adapter_manifest).is_file():
-        errors.append(f"adapter manifest does not exist: {args.adapter_manifest}")
-    if not Path(args.model_cache_dir).is_dir():
-        errors.append(f"model cache dir does not exist: {args.model_cache_dir}")
-    return errors
+    checks.append(check_row("fake_backend_env_absent", not os.environ.get("MIB_RUNTIME_ALLOW_FAKE_BACKEND"), "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset"))
+    checks.append(check_row("bearer_token_ready", len(token) >= 32, "MIB_RUNTIME_BEARER_TOKEN or --token must be at least 32 characters"))
+    if not all(row["ok"] for row in checks) or not full:
+        return checks
+
+    adapter_dir = Path(args.adapter_dir)
+    adapter_dir_present = adapter_dir.is_dir()
+    adapter_safetensors_present = (adapter_dir / "adapter.safetensors").is_file()
+    adapter_config_present = (adapter_dir / "adapter_config.json").is_file()
+    adapter_manifest_present = Path(args.adapter_manifest).is_file()
+    model_cache_dir_present = Path(args.model_cache_dir).is_dir()
+    checks.extend(
+        [
+            check_row(
+                "adapter_dir_present",
+                adapter_dir_present,
+                "ok" if adapter_dir_present else f"missing adapter directory: {args.adapter_dir}",
+            ),
+            check_row(
+                "adapter_safetensors_present",
+                adapter_safetensors_present,
+                "ok" if adapter_safetensors_present else f"missing adapter.safetensors under {args.adapter_dir}",
+            ),
+            check_row(
+                "adapter_config_present",
+                adapter_config_present,
+                "ok" if adapter_config_present else f"missing adapter_config.json under {args.adapter_dir}",
+            ),
+            check_row(
+                "adapter_manifest_present",
+                adapter_manifest_present,
+                "ok" if adapter_manifest_present else f"missing adapter manifest: {args.adapter_manifest}",
+            ),
+            check_row(
+                "model_cache_dir_present",
+                model_cache_dir_present,
+                "ok" if model_cache_dir_present else f"missing model cache dir: {args.model_cache_dir}",
+            ),
+        ]
+    )
+    checks.append(command_check("docker_image_available", ["docker", "image", "inspect", args.image], timeout=30, runner=runner))
+    checks.append(command_check("host_cuda_visible", ["nvidia-smi"], timeout=30, runner=runner))
+    return checks
+
+
+def failed_preflight_messages(checks: list[dict[str, Any]]) -> list[str]:
+    return [f"{row['id']}: {row['detail']}" for row in checks if not row["ok"]]
 
 
 def build_steps(args: argparse.Namespace, *, python_exe: str | None = None) -> list[Step]:
@@ -159,6 +213,7 @@ def base_summary(args: argparse.Namespace) -> dict[str, Any]:
         "gate": "mib-studio-real-adapter-rc-gate-runner",
         "status": "RUNNING",
         "plan_only": bool(args.plan_only),
+        "preflight_only": bool(args.preflight_only),
         "decision": "PENDING",
         "m6_rc_claimed_go": False,
         "inputs": {
@@ -177,6 +232,7 @@ def base_summary(args: argparse.Namespace) -> dict[str, Any]:
             {"id": step.id, "command": redacted_command(step.command, secrets), "timeout_seconds": step.timeout}
             for step in planned_steps
         ],
+        "preflight": [],
         "steps": [],
         "errors": [],
     }
@@ -204,7 +260,15 @@ def run_gate(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> di
     token = bearer_token(args)
     secrets = [token] if token else []
     summary = base_summary(args)
-    errors = preflight_errors(args)
+    checks = preflight_checks(args, runner=runner, full=not args.plan_only)
+    summary["preflight"] = checks
+    errors = failed_preflight_messages(checks)
+    if args.preflight_only:
+        summary["errors"].extend(errors)
+        summary["status"] = "NOT_READY_PRECHECK_FAILED" if errors else "READY_TO_RUN"
+        summary["decision"] = "NOT_READY" if errors else "READY"
+        summary["m6_rc_claimed_go"] = False
+        return summary
     if errors:
         summary["errors"].extend(errors)
         summary["status"] = "NOT_GO_PRECHECK_FAILED"
@@ -243,6 +307,7 @@ def run_gate(args: argparse.Namespace, *, runner: Runner = run_subprocess) -> di
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the real adapter M6-RC evidence gate.")
     parser.add_argument("--plan-only", action="store_true", help="Render the command plan without executing the gate.")
+    parser.add_argument("--preflight-only", action="store_true", help="Check real-run prerequisites without executing intake, endpoint, or M6 verification steps.")
     parser.add_argument("--adapter-dir", required=True)
     parser.add_argument("--adapter-manifest", required=True)
     parser.add_argument("--base-model", choices=["google/gemma-2b-it", "microsoft/Phi-3.5-mini-instruct"], required=True)
@@ -270,6 +335,8 @@ def main() -> int:
     summary = run_gate(args)
     write_json(args.json_output, summary)
     print(json.dumps({"json_output": args.json_output, "status": summary["status"], "decision": summary["decision"]}, sort_keys=True))
+    if args.preflight_only:
+        return 0
     return 0 if summary["status"] in {"GO_M6_REAL_ADAPTER_RC_GATE", "PLAN_ONLY_NOT_RUN"} else 1
 
 

@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_RC_GATE_RUNNER
+phase_id: REAL_ADAPTER_PREREQ_AUDIT
 milestone: M6_RC_Blocker_Remediation
-phase_status: real_adapter_rc_gate_runner_tooling_verified
+phase_status: real_adapter_prereq_audit_tooling_verified
 active_slice: none
-gate_id: mib-studio-real-adapter-rc-gate-runner
+gate_id: mib-studio-real-adapter-prereq-audit
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,12 +53,14 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-real-adapter-rc-gate-runner
+  gate: mib-studio-real-adapter-prereq-audit
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: add a single-command runner for the remaining real adapter M6-RC evidence gate
+  objective: add machine-readable preflight audit for the remaining real adapter M6-RC evidence gate
   evidence:
+    real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
+    real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
     real_adapter_rc_gate_runner: artifacts/review/real_adapter_rc_gate_runner_evidence.md
     structured_real_endpoint_evidence: artifacts/review/structured_real_endpoint_evidence.md
     real_adapter_artifact_intake: artifacts/review/real_adapter_artifact_intake_evidence.md
@@ -78,6 +80,10 @@ last_completed_work:
     gemma_cache_blocker: artifacts/review/strict_model_cache_evidence.md
     docker_runtime_remediation: artifacts/review/docker_runtime_remediation_evidence.md
   summary:
+    - scripts/run_m6_real_adapter_rc_gate.py now supports --preflight-only to audit real-run prerequisites without executing intake/capture/M6 GO verification
+    - current preflight audit is NOT_READY and does not claim M6-RC GO
+    - current ready checks are fake_backend_env_absent, bearer_token_ready, and model_cache_dir_present
+    - current missing checks are adapter_dir_present, adapter_safetensors_present, adapter_config_present, adapter_manifest_present, docker_image_available, and host_cuda_visible
     - scripts/run_m6_real_adapter_rc_gate.py chains adapter intake, live endpoint capture, and M6-RC GO verification for the real adapter closeout path
     - runner plan-only output records the exact command sequence without executing live Docker evidence or claiming GO
     - focused tests prove the runner stops before endpoint capture on intake failure, refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND, and redacts bearer tokens
@@ -130,13 +136,13 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: real_adapter_rc_gate_runner_tooling_verified
+status: real_adapter_prereq_audit_tooling_verified
 passed:
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/run_m6_real_adapter_rc_gate.py
   - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_run_m6_real_adapter_rc_gate.py -q
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --plan-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output /tmp/mib-real-adapter-rc-gate-plan.json
-  - python3 -m json.tool /tmp/mib-real-adapter-rc-gate-plan.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_m6_real_adapter_rc_gate.py --preflight-only --adapter-dir /tmp/mib-real-adapter/adapter --adapter-manifest /tmp/mib-real-adapter/manifest.json --base-model microsoft/Phi-3.5-mini-instruct --image mib-export:test --agent-id finance.router.v1 --model-cache-dir /tmp/mib-strict-model-cache/model_cache --token 12345678901234567890123456789012 --json-output artifacts/review/m6_real_adapter_prereq_audit.json
+  - python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json
   - python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json
   - git diff --check
@@ -179,6 +185,7 @@ recorded_go:
   Real_Adapter_Artifact_Intake_Tooling: true
   Structured_Real_Endpoint_Evidence_Tooling: true
   Real_Adapter_RC_Gate_Runner_Tooling: true
+  Real_Adapter_Prereq_Audit_Tooling: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -186,9 +193,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 active_gate:
-  id: mib-studio-real-adapter-rc-gate-runner
+  id: mib-studio-real-adapter-prereq-audit
   cto_decision: waiting_for_real_trained_adapter_inference_evidence_or_release_policy
-  review_bundle: artifacts/review/real_adapter_rc_gate_runner_evidence.md
+  review_bundle: artifacts/review/real_adapter_prereq_audit_evidence.md
 
 known_project_state:
   ssot: docs/foundation/MIB_Studio_Dev_Plan_v0.3.md
@@ -220,8 +227,10 @@ blocked_until_new_gate:
 
 ```yaml
 immediate:
-  - provide or train a real CUDA lora_adapter and strict external model cache
-  - run scripts/run_m6_real_adapter_rc_gate.py without --plan-only against the real adapter, exported Docker image, and model cache
+  - provide or train a real CUDA lora_adapter with adapter.safetensors, adapter_config.json, and manifest.json
+  - export or tag the matching Docker image and run on a host where nvidia-smi is available
+  - rerun scripts/run_m6_real_adapter_rc_gate.py --preflight-only with the real paths until status is READY_TO_RUN
+  - run scripts/run_m6_real_adapter_rc_gate.py without --preflight-only/--plan-only against the real adapter, exported Docker image, and model cache
   - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
@@ -295,6 +304,15 @@ CUDA lora_adapter, exported Docker image, strict model cache, and bearer token
 are available. The runner refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND and redacts
 bearer tokens in its JSON summary. Current plan-only verification does not run
 Docker evidence and does not claim GO.
+Real adapter prerequisite audit tooling is recorded in
+artifacts/review/real_adapter_prereq_audit_evidence.md and
+artifacts/review/m6_real_adapter_prereq_audit.json. Use
+scripts/run_m6_real_adapter_rc_gate.py --preflight-only before a live RC run.
+Current preflight status is NOT_READY_PRECHECK_FAILED: fake backend is absent,
+the bearer token is long enough, and /tmp/mib-strict-model-cache/model_cache is
+present, but /tmp/mib-real-adapter/adapter, adapter.safetensors,
+adapter_config.json, /tmp/mib-real-adapter/manifest.json, Docker image
+mib-export:test, and host nvidia-smi are missing.
 M6-RC remains NOT_GO until real trained adapter inference evidence exists or the
 release policy explicitly accepts fixture-adapter endpoint evidence. Use .venv
 for Python.

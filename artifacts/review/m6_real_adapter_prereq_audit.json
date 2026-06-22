@@ -1,0 +1,151 @@
+{
+  "date": "2026-06-22T00:13:31.830312+00:00",
+  "decision": "NOT_READY",
+  "errors": [
+    "adapter_dir_present: missing adapter directory: /tmp/mib-real-adapter/adapter",
+    "adapter_safetensors_present: missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
+    "adapter_config_present: missing adapter_config.json under /tmp/mib-real-adapter/adapter",
+    "adapter_manifest_present: missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
+    "docker_image_available: Error response from daemon: No such image: mib-export:test",
+    "host_cuda_visible: [Errno 2] No such file or directory: 'nvidia-smi'"
+  ],
+  "gate": "mib-studio-real-adapter-rc-gate-runner",
+  "inputs": {
+    "adapter_dir": "/tmp/mib-real-adapter/adapter",
+    "adapter_intake_json_output": "artifacts/review/real_adapter_artifact_intake.json",
+    "adapter_manifest": "/tmp/mib-real-adapter/manifest.json",
+    "agent_id": "finance.router.v1",
+    "base_model": "microsoft/Phi-3.5-mini-instruct",
+    "endpoint_json_output": "artifacts/review/real_trained_adapter_endpoint_evidence.json",
+    "endpoint_output": "artifacts/review/real_trained_adapter_endpoint_evidence.md",
+    "image": "mib-export:test",
+    "m6_json_output": "artifacts/review/m6_rc_evidence_verification.json",
+    "model_cache_dir": "/tmp/mib-strict-model-cache/model_cache"
+  },
+  "m6_rc_claimed_go": false,
+  "plan_only": false,
+  "planned_steps": [
+    {
+      "command": [
+        "/home/firewine/MIB-studio/.venv/bin/python",
+        "/home/firewine/MIB-studio/scripts/verify_real_adapter_artifact.py",
+        "--adapter-dir",
+        "/tmp/mib-real-adapter/adapter",
+        "--base-model",
+        "microsoft/Phi-3.5-mini-instruct",
+        "--manifest",
+        "/tmp/mib-real-adapter/manifest.json",
+        "--json-output",
+        "artifacts/review/real_adapter_artifact_intake.json"
+      ],
+      "id": "adapter_intake",
+      "timeout_seconds": 180
+    },
+    {
+      "command": [
+        "/home/firewine/MIB-studio/.venv/bin/python",
+        "/home/firewine/MIB-studio/scripts/capture_real_adapter_endpoint_evidence.py",
+        "--image",
+        "mib-export:test",
+        "--agent-id",
+        "finance.router.v1",
+        "--model-cache-dir",
+        "/tmp/mib-strict-model-cache/model_cache",
+        "--adapter-intake-report",
+        "artifacts/review/real_adapter_artifact_intake.json",
+        "--host-port",
+        "18084",
+        "--container-name",
+        "mib-real-adapter-rc-gate",
+        "--timeout-seconds",
+        "120",
+        "--input-text",
+        "finance_income income calculation",
+        "--output",
+        "artifacts/review/real_trained_adapter_endpoint_evidence.md",
+        "--json-output",
+        "artifacts/review/real_trained_adapter_endpoint_evidence.json",
+        "--token",
+        "<redacted-token>"
+      ],
+      "id": "endpoint_capture",
+      "timeout_seconds": 300
+    },
+    {
+      "command": [
+        "/home/firewine/MIB-studio/.venv/bin/python",
+        "/home/firewine/MIB-studio/scripts/verify_m6_rc_evidence.py",
+        "--expected-decision",
+        "GO",
+        "--real-endpoint-evidence",
+        "artifacts/review/real_trained_adapter_endpoint_evidence.md",
+        "--json-output",
+        "artifacts/review/m6_rc_evidence_verification.json"
+      ],
+      "id": "m6_go_verification",
+      "timeout_seconds": 180
+    }
+  ],
+  "preflight": [
+    {
+      "detail": "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset",
+      "id": "fake_backend_env_absent",
+      "ok": true
+    },
+    {
+      "detail": "MIB_RUNTIME_BEARER_TOKEN or --token must be at least 32 characters",
+      "id": "bearer_token_ready",
+      "ok": true
+    },
+    {
+      "detail": "missing adapter directory: /tmp/mib-real-adapter/adapter",
+      "id": "adapter_dir_present",
+      "ok": false
+    },
+    {
+      "detail": "missing adapter.safetensors under /tmp/mib-real-adapter/adapter",
+      "id": "adapter_safetensors_present",
+      "ok": false
+    },
+    {
+      "detail": "missing adapter_config.json under /tmp/mib-real-adapter/adapter",
+      "id": "adapter_config_present",
+      "ok": false
+    },
+    {
+      "detail": "missing adapter manifest: /tmp/mib-real-adapter/manifest.json",
+      "id": "adapter_manifest_present",
+      "ok": false
+    },
+    {
+      "detail": "ok",
+      "id": "model_cache_dir_present",
+      "ok": true
+    },
+    {
+      "command": [
+        "docker",
+        "image",
+        "inspect",
+        "mib-export:test"
+      ],
+      "detail": "Error response from daemon: No such image: mib-export:test",
+      "id": "docker_image_available",
+      "ok": false,
+      "returncode": 1
+    },
+    {
+      "command": [
+        "nvidia-smi"
+      ],
+      "detail": "[Errno 2] No such file or directory: 'nvidia-smi'",
+      "id": "host_cuda_visible",
+      "ok": false,
+      "returncode": null
+    }
+  ],
+  "preflight_only": true,
+  "schema_version": "mib_real_adapter_rc_gate_runner.v1",
+  "status": "NOT_READY_PRECHECK_FAILED",
+  "steps": []
+}

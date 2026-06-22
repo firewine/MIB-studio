@@ -20,9 +20,17 @@ def load_module(path: str, name: str):
 gate = load_module("scripts/run_m6_real_adapter_rc_gate.py", "run_m6_real_adapter_rc_gate")
 
 
-def args_for(tmp_path: Path, *, token: str = "x" * 32, plan_only: bool = False) -> SimpleNamespace:
+def args_for(
+    tmp_path: Path,
+    *,
+    token: str = "x" * 32,
+    plan_only: bool = False,
+    preflight_only: bool = False,
+) -> SimpleNamespace:
     adapter_dir = tmp_path / "run" / "adapter"
     adapter_dir.mkdir(parents=True)
+    (adapter_dir / "adapter.safetensors").write_bytes(b"real adapter placeholder for preflight presence")
+    (adapter_dir / "adapter_config.json").write_text("{}\n", encoding="utf-8")
     manifest = tmp_path / "run" / "manifest.json"
     manifest.write_text("{}\n", encoding="utf-8")
     model_cache = tmp_path / "model-cache"
@@ -48,6 +56,7 @@ def args_for(tmp_path: Path, *, token: str = "x" * 32, plan_only: bool = False) 
         m6_json_output=str(tmp_path / "m6_rc_evidence_verification.json"),
         json_output=str(tmp_path / "gate.json"),
         plan_only=plan_only,
+        preflight_only=preflight_only,
     )
 
 
@@ -61,7 +70,8 @@ def test_gate_runner_chains_intake_capture_and_m6_go(tmp_path: Path) -> None:
 
     def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
         commands.append(command)
-        if "verify_real_adapter_artifact.py" in command[1]:
+        script = command[1] if len(command) > 1 else ""
+        if "verify_real_adapter_artifact.py" in script:
             write_json(
                 args.adapter_intake_json_output,
                 {
@@ -72,7 +82,7 @@ def test_gate_runner_chains_intake_capture_and_m6_go(tmp_path: Path) -> None:
                     "errors": [],
                 },
             )
-        elif "capture_real_adapter_endpoint_evidence.py" in command[1]:
+        elif "capture_real_adapter_endpoint_evidence.py" in script:
             Path(args.endpoint_output).write_text("live endpoint evidence\n", encoding="utf-8")
             write_json(
                 args.endpoint_json_output,
@@ -83,7 +93,7 @@ def test_gate_runner_chains_intake_capture_and_m6_go(tmp_path: Path) -> None:
                     "decision": "GO_REAL_TRAINED_ADAPTER_ENDPOINT",
                 },
             )
-        elif "verify_m6_rc_evidence.py" in command[1]:
+        elif "verify_m6_rc_evidence.py" in script:
             write_json(
                 args.m6_json_output,
                 {
@@ -98,7 +108,8 @@ def test_gate_runner_chains_intake_capture_and_m6_go(tmp_path: Path) -> None:
 
     assert summary["status"] == "GO_M6_REAL_ADAPTER_RC_GATE"
     assert [row["id"] for row in summary["steps"]] == ["adapter_intake", "endpoint_capture", "m6_go_verification"]
-    assert [Path(command[1]).name for command in commands] == [
+    script_commands = [command for command in commands if len(command) > 1 and command[1].endswith(".py")]
+    assert [Path(command[1]).name for command in script_commands] == [
         "verify_real_adapter_artifact.py",
         "capture_real_adapter_endpoint_evidence.py",
         "verify_m6_rc_evidence.py",
@@ -113,13 +124,39 @@ def test_gate_runner_stops_before_endpoint_when_intake_command_fails(tmp_path: P
 
     def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
         commands.append(command)
-        return subprocess.CompletedProcess(command, 1, stdout="", stderr="adapter rejected")
+        if len(command) > 1 and command[1].endswith(".py"):
+            return subprocess.CompletedProcess(command, 1, stdout="", stderr="adapter rejected")
+        return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
 
     summary = gate.run_gate(args, runner=runner)
 
     assert summary["status"] == "NOT_GO_STEP_FAILED"
     assert summary["decision"] == "NOT_GO"
-    assert [Path(command[1]).name for command in commands] == ["verify_real_adapter_artifact.py"]
+    script_commands = [command for command in commands if len(command) > 1 and command[1].endswith(".py")]
+    assert [Path(command[1]).name for command in script_commands] == ["verify_real_adapter_artifact.py"]
+    assert summary["m6_rc_claimed_go"] is False
+
+
+def test_gate_runner_preflight_only_reports_not_ready_without_executing_steps(tmp_path: Path) -> None:
+    args = args_for(tmp_path, preflight_only=True)
+    commands: list[list[str]] = []
+
+    def runner(command: list[str], timeout: int) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        if command[:3] == ["docker", "image", "inspect"]:
+            return subprocess.CompletedProcess(command, 1, stdout="", stderr="No such image")
+        if command == ["nvidia-smi"]:
+            return subprocess.CompletedProcess(command, 127, stdout="", stderr="nvidia-smi: not found")
+        raise AssertionError(f"unexpected command in preflight-only: {command}")
+
+    summary = gate.run_gate(args, runner=runner)
+
+    assert summary["status"] == "NOT_READY_PRECHECK_FAILED"
+    assert summary["decision"] == "NOT_READY"
+    assert summary["steps"] == []
+    assert "docker_image_available" in {row["id"] for row in summary["preflight"]}
+    assert "host_cuda_visible" in {row["id"] for row in summary["preflight"]}
+    assert all(not (len(command) > 1 and command[1].endswith(".py")) for command in commands)
     assert summary["m6_rc_claimed_go"] is False
 
 
@@ -148,5 +185,5 @@ def test_gate_runner_refuses_fake_backend_env(tmp_path: Path, monkeypatch) -> No
     summary = gate.run_gate(args, runner=runner)
 
     assert summary["status"] == "NOT_GO_PRECHECK_FAILED"
-    assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in summary["errors"]
+    assert any("MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in error for error in summary["errors"])
     assert summary["m6_rc_claimed_go"] is False

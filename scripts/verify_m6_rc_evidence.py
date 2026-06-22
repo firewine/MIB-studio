@@ -160,37 +160,39 @@ def real_endpoint_json_check(path: Path) -> dict[str, object]:
     }
 
 
-def review_doc_check() -> dict[str, object]:
+def review_doc_check(expected_decision: str) -> dict[str, object]:
     fe_review = read_text("docs/reviews/M6/FE_REVIEW.md")
     signoff = read_text("docs/reviews/M6/SIGNOFF_MATRIX.md")
     cto = read_text("docs/reviews/M6/CTO_DECISION.md")
-    requirements = {
-        "fe_review_go": "Decision: GO" in fe_review,
-        "signoff_fe_go": "| M6 Export / v0 RC | GO |" in signoff,
-        "signoff_decision_not_go": "| NOT_GO |" in signoff,
-        "cto_decision_not_go": "Decision: NOT_GO" in cto,
-        "cto_real_adapter_blocker": "real trained adapter" in cto and "MIB_RUNTIME_ALLOW_FAKE_BACKEND" in cto,
-    }
+    if expected_decision == "GO":
+        requirements = {
+            "fe_review_go": "Decision: GO" in fe_review,
+            "signoff_final_go": "| M6 Export / v0 RC | GO | GO | GO | GO | GO | GO | GO | GO | GO | GO |" in signoff,
+            "cto_decision_go": "Decision: GO" in cto,
+        }
+    else:
+        requirements = {
+            "fe_review_go": "Decision: GO" in fe_review,
+            "signoff_fe_go": "| M6 Export / v0 RC | GO |" in signoff,
+            "signoff_decision_not_go": "| NOT_GO |" in signoff,
+            "cto_decision_not_go": "Decision: NOT_GO" in cto,
+            "cto_real_adapter_blocker": "real trained adapter" in cto and "MIB_RUNTIME_ALLOW_FAKE_BACKEND" in cto,
+        }
     return {
         "id": "m6_review_docs_current",
         "path": "docs/reviews/M6/",
         "present": bool(fe_review and signoff and cto),
         "ok": all(requirements.values()),
         "rc_required": True,
+        "expected_decision": expected_decision,
         "requirements": requirements,
     }
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--expected-decision", choices=["GO", "NOT_GO"], default="NOT_GO")
-    parser.add_argument("--real-endpoint-evidence", default="artifacts/review/real_trained_adapter_endpoint_evidence.md")
-    parser.add_argument("--json-output", default="artifacts/review/m6_rc_evidence_verification.json")
-    args = parser.parse_args()
-
+def evaluate(expected_decision: str, real_endpoint_evidence: str) -> dict[str, object]:
     checks = [evaluate_check(item) for item in CHECKS]
-    checks.append(real_endpoint_check(args.real_endpoint_evidence))
-    checks.append(review_doc_check())
+    checks.append(real_endpoint_check(real_endpoint_evidence))
+    checks.append(review_doc_check(expected_decision))
 
     blockers = []
     for item in checks:
@@ -200,14 +202,14 @@ def main() -> int:
     decision = "GO" if not blockers else "NOT_GO"
     acceptable_not_go_blockers = ["real_trained_adapter_no_fake_endpoint"]
     unexpected_blockers = [item for item in blockers if item not in acceptable_not_go_blockers]
-    verification_ok = decision == args.expected_decision
-    if args.expected_decision == "NOT_GO":
+    verification_ok = decision == expected_decision
+    if expected_decision == "NOT_GO":
         verification_ok = verification_ok and not unexpected_blockers
-    report = {
+    return {
         "schema_version": "mib_m6_rc_evidence_verification.v1",
         "decision": decision,
-        "expected_decision": args.expected_decision,
-        "decision_matches_expected": decision == args.expected_decision,
+        "expected_decision": expected_decision,
+        "decision_matches_expected": decision == expected_decision,
         "acceptable_not_go_blockers": acceptable_not_go_blockers,
         "unexpected_blockers": unexpected_blockers,
         "verification_ok": verification_ok,
@@ -219,11 +221,20 @@ def main() -> int:
         ],
     }
 
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--expected-decision", choices=["GO", "NOT_GO"], default="NOT_GO")
+    parser.add_argument("--real-endpoint-evidence", default="artifacts/review/real_trained_adapter_endpoint_evidence.md")
+    parser.add_argument("--json-output", default="artifacts/review/m6_rc_evidence_verification.json")
+    args = parser.parse_args()
+
+    report = evaluate(args.expected_decision, args.real_endpoint_evidence)
     output = Path(args.json_output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, sort_keys=True))
-    return 0 if verification_ok else 1
+    return 0 if report["verification_ok"] else 1
 
 
 if __name__ == "__main__":

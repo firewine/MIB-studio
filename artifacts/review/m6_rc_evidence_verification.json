@@ -82,6 +82,7 @@
       "source": null
     },
     {
+      "expected_decision": "NOT_GO",
       "id": "m6_review_docs_current",
       "ok": true,
       "path": "docs/reviews/M6/",

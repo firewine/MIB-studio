@@ -29,11 +29,11 @@ write_policy:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_EVIDENCE_BUNDLE_PROMOTION
+phase_id: M6_RC_REVIEW_DOC_DECISION_GATE
 milestone: M6_RC_Blocker_Remediation
-phase_status: real_adapter_evidence_bundle_promotion_verified_not_go
+phase_status: m6_rc_review_doc_decision_gate_verified_not_go
 active_slice: none
-gate_id: mib-studio-real-adapter-evidence-bundle-promotion
+gate_id: mib-studio-m6-rc-review-doc-decision-gate
 commit_policy: stage_commit_push_after_verified_phase_completion
 dev_environment:
   python: .venv
@@ -53,11 +53,11 @@ source_gate_packet: .codex/tasks/current.json
 review_tier: none
 
 last_completed_work:
-  gate: mib-studio-real-adapter-evidence-bundle-promotion
+  gate: mib-studio-m6-rc-review-doc-decision-gate
   implementation_commit: this_commit
   closeout_commit: this_commit
   pushed_to_origin_main: true
-  objective: add a verified real-adapter evidence bundle promotion step for externally produced CUDA evidence bundles
+  objective: make M6-RC review-doc requirements match expected verifier decision
   evidence:
     real_adapter_cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
     real_adapter_cuda_training_prereq_preflight: artifacts/review/real_adapter_cuda_training_prereq_preflight.json
@@ -82,6 +82,11 @@ last_completed_work:
     real_adapter_prereq_audit: artifacts/review/real_adapter_prereq_audit_evidence.md
     real_adapter_prereq_audit_json: artifacts/review/m6_real_adapter_prereq_audit.json
   summary:
+    - scripts/verify_m6_rc_evidence.py now evaluates M6 review docs against the requested expected decision
+    - --expected-decision NOT_GO still accepts the current blocker docs when real_trained_adapter_no_fake_endpoint is the only blocker
+    - --expected-decision GO now requires final M6 signoff GO and CTO Decision: GO markers before the verifier can return GO
+    - focused tests cover current NOT_GO docs, complete endpoint evidence rejected while docs remain NOT_GO, and complete endpoint plus GO docs accepted
+    - current M6 and v0 release readiness remain NOT_GO with real_trained_adapter_no_fake_endpoint as the only release blocker
     - scripts/promote_real_adapter_evidence_bundle.py now verifies an externally produced real-adapter evidence bundle with the existing strict verifier before promotion
     - promotion copies only the fixed files required by scripts/verify_real_adapter_evidence_bundle.py into the target review artifact directory, and only when GO_REAL_ADAPTER_EVIDENCE_BUNDLE is proven
     - NOT_GO dry-run promotion against current artifacts/review writes verification and promotion manifest under /tmp without mutating the target directory
@@ -196,15 +201,13 @@ do_not_start_without:
 ## 3. Verification State
 
 ```yaml
-status: real_adapter_evidence_bundle_promotion_verified_not_go
+status: m6_rc_review_doc_decision_gate_verified_not_go
 passed:
   - python3 -m json.tool .codex/tasks/current.json
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/promote_real_adapter_evidence_bundle.py
-  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_promote_real_adapter_evidence_bundle.py -q
-  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/promote_real_adapter_evidence_bundle.py --bundle-dir artifacts/review --target-dir /tmp/mib-real-adapter-promoted-review --expected-decision NOT_GO --dry-run --verification-output /tmp/mib-real-adapter-promotion-verification.json --promotion-manifest-output /tmp/mib-real-adapter-promotion-manifest.json
-  - python3 -m json.tool /tmp/mib-real-adapter-promotion-verification.json
-  - python3 -m json.tool /tmp/mib-real-adapter-promotion-manifest.json
-  - rg -n -- "promote_real_adapter_evidence_bundle|promotion_manifest|dry_run|GO_REAL_ADAPTER_EVIDENCE_BUNDLE" scripts/promote_real_adapter_evidence_bundle.py tests/scripts/test_promote_real_adapter_evidence_bundle.py docs/WORKING.md
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m py_compile scripts/verify_m6_rc_evidence.py
+  - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. ./.venv/bin/python -m pytest tests/scripts/test_verify_m6_rc_evidence.py -q
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_m6_rc_evidence.py --expected-decision NOT_GO --json-output artifacts/review/m6_rc_evidence_verification.json
+  - python3 -m json.tool artifacts/review/m6_rc_evidence_verification.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
   - COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
@@ -212,6 +215,7 @@ passed:
   - git diff --cached --check
 warnings:
   - M6-RC decision remains NOT_GO
+  - M6-RC --expected-decision GO now also requires final M6 signoff and CTO GO docs
   - no real trained CUDA lora_adapter artifact was found in the repo or current /tmp artifacts
   - current host has no visible CUDA device; nvidia-smi is unavailable and torch.cuda.is_available() is false
   - current CUDA training preflight is NOT_READY_CUDA_LORA_TRAINING
@@ -271,6 +275,7 @@ recorded_go:
   CUDA_Base_Image_Candidate_Propagation: true
   Real_Adapter_Evidence_Bundle_Assembly: true
   Real_Adapter_Evidence_Bundle_Promotion: true
+  M6_RC_Review_Doc_Decision_Gate: true
 
 recorded_not_go:
   M6_RC_Signoff: true
@@ -278,9 +283,9 @@ recorded_not_go:
   Real_Trained_Adapter_Artifact_Available: true
 
 last_completed_gate:
-  id: mib-studio-real-adapter-evidence-bundle-promotion
-  review_bundle: scripts/promote_real_adapter_evidence_bundle.py
-  decision: real_adapter_evidence_bundle_promotion_verified_not_go
+  id: mib-studio-m6-rc-review-doc-decision-gate
+  review_bundle: scripts/verify_m6_rc_evidence.py
+  decision: m6_rc_review_doc_decision_gate_verified_not_go
 
 active_release_blocker:
   id: m6-real-trained-adapter-no-fake-endpoint-evidence
@@ -317,6 +322,7 @@ immediate:
   - run scripts/run_m6_real_adapter_rc_gate.py without --preflight-only/--plan-only against the real adapter, exported Docker image, and model cache
   - run scripts/build_real_adapter_evidence_bundle.py after live RC gate success to assemble artifacts/review/real_adapter_evidence_bundle and require GO_REAL_ADAPTER_EVIDENCE_BUNDLE
   - if the GO bundle is produced on another CUDA host, copy that bundle locally and run scripts/promote_real_adapter_evidence_bundle.py --bundle-dir <copied_bundle> --target-dir artifacts/review --expected-decision GO before v0 readiness recheck
+  - update docs/reviews/M6/SIGNOFF_MATRIX.md and docs/reviews/M6/CTO_DECISION.md to final GO only after real endpoint evidence and bundle evidence are complete; scripts/verify_m6_rc_evidence.py --expected-decision GO now rejects otherwise complete endpoint evidence while those docs still say NOT_GO
   - rerun M6-RC sign-off only after that decision/evidence is complete
 ```
 
@@ -325,13 +331,17 @@ immediate:
 ```text
 Read docs/CONTEXT.md and docs/WORKING.md before edits. Use .venv for Python and
 COREPACK_HOME=/tmp/corepack for frontend commands. The latest completed gate is
-mib-studio-real-adapter-evidence-bundle-promotion. Before accepting any external
-CUDA evidence bundle, run scripts/promote_real_adapter_evidence_bundle.py against
-the copied bundle with --expected-decision GO. It first uses the existing strict
-bundle verifier and promotes only the fixed verifier-required files into
-artifacts/review when GO_REAL_ADAPTER_EVIDENCE_BUNDLE is proven. v0 readiness now
-also requires that bundle decision for release GO. The current local
-artifacts/review bundle is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE. Start with
+mib-studio-m6-rc-review-doc-decision-gate. scripts/verify_m6_rc_evidence.py now
+checks M6 review docs according to --expected-decision: NOT_GO accepts the
+current blocker docs, while GO requires final M6 signoff GO and CTO Decision:
+GO. Do not edit docs/reviews/M6 to GO until real no-fake endpoint evidence,
+M6-RC evidence, and the evidence bundle are complete. Before accepting any
+external CUDA evidence bundle, run scripts/promote_real_adapter_evidence_bundle.py
+against the copied bundle with --expected-decision GO. It first uses the
+existing strict bundle verifier and promotes only the fixed verifier-required
+files into artifacts/review when GO_REAL_ADAPTER_EVIDENCE_BUNDLE is proven. v0
+readiness now also requires that bundle decision for release GO. The current
+local artifacts/review bundle is NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE. Start with
 artifacts/review/real_adapter_cuda_training_handoff.sh on the CUDA host to
 produce the real trained adapter. That script refuses MIB_RUNTIME_ALLOW_FAKE_BACKEND,
 requires nvidia-smi and ./.venv/bin/llamafactory-cli, resolves

@@ -41,13 +41,15 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: DATASET_GEN_WORKER_VALIDATION_EXTRACTION
+phase_id: V0_CURRENT_HEAD_20701D1_BLOCKER_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: code_shape_soft_warnings_resolved_not_go_release
-gate_id: mib-studio-dataset-gen-worker-validation-extraction
+phase_status: current_head_recertified_not_go_release
+gate_id: mib-studio-current-head-20701d1-blocker-recertification
 mode: development
-product_code_changed: true
+product_code_changed: false
 verification_tooling_changed: false
+verification_artifacts_refreshed: true
+strict_bootstrap_reverified: true
 release_claimed_go: false
 
 current_decision:
@@ -57,6 +59,114 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-current-head-20701d1-blocker-recertification
+objective: refresh current-head release blocker diagnostics and rerun strict venv bootstrap smoke verification
+
+source_head: 20701d1
+recertification_timestamp_utc: "2026-06-22T19:35:02.438007+00:00"
+
+files:
+  regenerated_verification_artifacts:
+    - artifacts/review/real_adapter_candidate_scan.json
+    - artifacts/review/real_adapter_cuda_training_prereq_preflight.json
+    - artifacts/review/m6_real_adapter_prereq_audit.json
+    - artifacts/review/real_adapter_evidence_bundle_verification.json
+    - artifacts/review/real_adapter_cuda_handoff.json
+    - artifacts/review/real_adapter_cuda_handoff.md
+    - artifacts/review/v0_release_blocker_recertification.json
+  bootstrap_artifacts_verified:
+    - artifacts/review/toolchain_report.json
+    - artifacts/security/model_manifest_verification.json
+    - artifacts/review/file_size_report.json
+    - artifacts/review/import_boundary_report.json
+    - artifacts/security/pii_holdout_report.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+environment:
+  python_venv: .venv
+  venv_gitignored: true
+  toolchain_strict: true
+  toolchain_checks:
+    node: true
+    pnpm: true
+    python: true
+    rust: true
+    sqlite: true
+  bootstrap_smoke: passed
+  bootstrap_command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  failed_step: null
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  candidate_scan_decision: NO_GO_CANDIDATES_FOUND
+  go_candidate_count: 0
+  fixture_like_candidate_count: 0
+  cuda_training_status: NOT_READY_CUDA_LORA_TRAINING
+  m6_rc_prereq_status: NOT_READY_PRECHECK_FAILED
+  bundle_decision: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE
+  v0_readiness_decision: NOT_GO
+  v0_release_ready: false
+  v0_unexpected_blockers: []
+  sole_v0_blocker: real_trained_adapter_no_fake_endpoint
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  handoff_decision: WAITING_FOR_REAL_ADAPTER_INPUTS
+
+blocking_reasons:
+  - no_go_adapter_candidates
+  - docker_base_image_env_digest
+  - strict_model_cache_files
+  - cuda_visible
+  - docker_daemon_available
+  - docker_base_image_available
+  - adapter_safetensors_present
+  - adapter_config_present
+  - adapter_manifest_present
+  - docker_image_available
+  - host_cuda_visible
+  - endpoint_live_no_fake_json
+  - endpoint_markdown_present
+  - adapter_intake_go
+  - adapter_hash_crosscheck
+  - rc_gate_go
+  - m6_verification_go
+  - real_trained_adapter_no_fake_endpoint
+  - WAITING_FOR_REAL_ADAPTER_INPUTS
+
+code_shape:
+  files_checked: 119
+  violations: []
+  import_boundary_violations: []
+
+scope:
+  product_code_changed: false
+  tests_changed: false
+  scripts_changed: false
+  release_criteria_changed: false
+  docs_reviews_M6_changed: false
+  real_adapter_evidence_created: false
+
+verification:
+  recertification_unit_tests: 2 passed
+  py_compile_recertification_script: passed
+  strict_bootstrap_m1_smoke: 1 passed, 3 warnings
+  recertification_command: passed
+  recertification_expected_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  toolchain_mismatch: false
+
+summary:
+  - current HEAD 20701d1 was recertified after code-shape cleanup
+  - strict bootstrap m1-smoke was rerun with repo-local .venv and /tmp/corepack and passed
+  - v0 readiness still has no unexpected blockers
+  - release remains NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists
+```
 
 ```yaml
 gate: mib-studio-dataset-gen-worker-validation-extraction

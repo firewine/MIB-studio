@@ -1,28 +1,41 @@
 {
   "process": "pabcd",
   "mode": "development",
-  "goal": "Resolve the services/worker/handlers/dataset_gen.py code-shape soft warning by extracting teacher synthetic contracts and generated-example validation into narrowly owned worker helpers without behavior changes.",
+  "goal": "Refresh current-HEAD v0 release blocker recertification after code-shape cleanup and rerun the strict venv/bootstrap smoke verification without changing product behavior or release criteria.",
   "phase": "done",
-  "gate": "mib-studio-dataset-gen-worker-validation-extraction",
+  "gate": "mib-studio-current-head-20701d1-blocker-recertification",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "8a3ddeb",
+  "head": "20701d1",
   "authoritative_docs_root": "/home/firewine/MIB-studio/docs",
   "docs_root_resolution": "User requested current repo docs; /home/firewine/getbeta/docs protocol copy is reference-only for this checkout.",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "services/worker/handlers/dataset_gen.py",
-    "services/worker/handlers/dataset_gen_contracts.py",
-    "services/worker/handlers/dataset_gen_validation.py",
+    "artifacts/review/toolchain_report.json",
+    "artifacts/security/model_manifest_verification.json",
     "artifacts/review/file_size_report.json",
     "artifacts/review/import_boundary_report.json",
+    "artifacts/security/pii_holdout_report.json",
+    "artifacts/review/real_adapter_candidate_scan.json",
+    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "artifacts/review/m6_real_adapter_prereq_audit.json",
+    "artifacts/review/real_adapter_artifact_intake.json",
+    "artifacts/review/real_trained_adapter_endpoint_evidence.md",
+    "artifacts/review/real_trained_adapter_endpoint_evidence.json",
+    "artifacts/review/m6_rc_evidence_verification.json",
+    "artifacts/review/real_adapter_evidence_bundle_verification.json",
+    "artifacts/review/v0_release_readiness_audit.json",
+    "artifacts/review/real_adapter_cuda_handoff.json",
+    "artifacts/review/real_adapter_cuda_handoff.md",
+    "artifacts/review/real_adapter_cuda_handoff.sh",
+    "artifacts/review/v0_release_blocker_recertification.json",
+    "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
   "blocked_path_prefixes": [
     "apps",
-    "services/api",
-    "services/shared",
+    "services",
     "packages",
     "presets",
     "examples",
@@ -36,57 +49,66 @@
     "docs/reviews",
     "artifacts/review/real_adapter/",
     "artifacts/review/real_adapter_evidence_bundle",
-    "artifacts/review/m6_*.tar.gz",
-    ".github"
+    ".github",
+    ".venv"
   ],
   "blocked_scope": [
-    "Changing dataset generation behavior, teacher packet approval/reservation checks, teacher_guard overlap semantics, hard-negative minimum behavior, Dataset/Example persistence, Job/JobEvent/AuditEvent payload semantics, API behavior, frontend behavior, DB schema, release readiness logic, verifier criteria, or evidence policy",
-    "Inventing real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
+    "Changing product runtime code, API behavior, frontend behavior, DB schema, source tests, scripts, model catalog, examples, schemas, or release readiness acceptance criteria",
+    "Weakening no-fake endpoint evidence checks, M6-RC evidence verification, bundle verification, or v0 readiness blockers",
+    "Inventing or copying real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
     "Claiming M6-RC or v0 release GO",
-    "Editing docs/reviews/M6 to GO or weakening any no-fake evidence gate",
+    "Editing docs/reviews/M6 to GO",
     "Committing model weights, adapter artifacts, Docker images, endpoint transcripts, copied evidence bundles, generated venv content, or Docker layers"
   ],
-  "allowed_edit_paths_scope_note": "Moved only DatasetGenResult/TeacherSyntheticClient/DatasetGenWorkerError contracts and generated-example validation from dataset_gen.py into focused worker helper modules; preserved run_dataset_gen_job and _run_teacher_synthetic behavior.",
+  "allowed_edit_paths_scope_note": "Refresh generated verification artifacts and LLM-facing operational docs only; keep local release decision NOT_GO and keep real_trained_adapter_no_fake_endpoint as the only expected v0 release blocker.",
   "reference_only_paths": [
     "/home/firewine/getbeta/docs/guides/VS_CODE_MULTI_AGENT_GATE_PROTOCOL_V4.md",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "rules/code_shape.json",
-    "scripts/check_file_size.py",
-    "scripts/check_import_boundaries.py",
-    "tests/dataset/teacher_synthetic_helpers.py",
-    "tests/dataset/test_teacher_synthetic_min200_schema_valid.py",
-    "tests/dataset/test_hard_negative_min_count.py",
-    "tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py",
-    "tests/dataset/test_dataset_gen_event_payload_redaction.py",
-    "tests/dataset/test_generated_examples_require_review_decision.py",
-    "tests/dataset/test_hard_negative_review_lifecycle.py",
-    "tests/eval/test_eval_set_freeze.py"
+    "scripts/bootstrap_dev.sh",
+    "scripts/run_v0_release_blocker_recertification.py",
+    "tests/scripts/test_run_v0_release_blocker_recertification.py",
+    "scripts/verify_v0_release_readiness.py",
+    "scripts/check_cuda_lora_training_prereqs.py",
+    "scripts/run_m6_real_adapter_rc_gate.py",
+    "scripts/verify_real_adapter_evidence_bundle.py",
+    "scripts/build_real_adapter_handoff.py",
+    ".gitignore"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "python3 -m py_compile services/worker/handlers/dataset_gen.py services/worker/handlers/dataset_gen_contracts.py services/worker/handlers/dataset_gen_validation.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py tests/dataset/test_dataset_gen_event_payload_redaction.py tests/dataset/test_generated_examples_require_review_decision.py tests/dataset/test_hard_negative_review_lifecycle.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
+    "python3 -m py_compile scripts/run_v0_release_blocker_recertification.py",
+    "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
+    "python3 -m json.tool artifacts/review/toolchain_report.json",
+    "python3 -m json.tool artifacts/security/model_manifest_verification.json",
     "python3 -m json.tool artifacts/review/file_size_report.json",
     "python3 -m json.tool artifacts/review/import_boundary_report.json",
-    "sed -n '$=' services/worker/handlers/dataset_gen.py",
-    "sed -n '$=' services/worker/handlers/dataset_gen_contracts.py",
-    "sed -n '$=' services/worker/handlers/dataset_gen_validation.py",
-    "rg -n -- \"DatasetGenWorkerError|validate_generated_examples|TeacherSyntheticClient|DatasetGenResult|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/worker/handlers/dataset_gen.py services/worker/handlers/dataset_gen_contracts.py services/worker/handlers/dataset_gen_validation.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+    "python3 -m json.tool artifacts/security/pii_holdout_report.json",
+    "python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+    "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
+    "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
+    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
+    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+    "rg -n -- \"20701d1|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|release_claimed_go|v0_unexpected_blockers|WAITING_FOR_REAL_ADAPTER_INPUTS|violations.*\\[\\]|toolchain\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/toolchain_report.json artifacts/review/file_size_report.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "services/worker/handlers/dataset_gen.py is below the 260-line worker_handler soft warning threshold.",
-    "New helper modules have narrow ownership and stay below the 260-line default soft warning threshold.",
-    "Focused teacher synthetic dataset generation tests pass.",
-    "Code-shape check has 0 hard violations and removes dataset_gen.py from soft warnings.",
-    "Import-boundary check has no violations.",
-    "No release GO is claimed and real_trained_adapter_no_fake_endpoint remains the active release blocker."
+    "PABCD contract is valid JSON and includes mode=development plus phase notes for plan, audit, build, check, and done.",
+    ".venv/ remains ignored by git.",
+    "Strict bootstrap m1-smoke passes with COREPACK_HOME=/tmp/corepack, PYTHONDONTWRITEBYTECODE=1, and PYTHON_BIN=./.venv/bin/python.",
+    "v0 release blocker recertification passes as an expected NOT_GO state.",
+    "release_claimed_go remains false and m6_rc_claimed_go remains false.",
+    "v0 readiness decision remains NOT_GO with v0_unexpected_blockers [].",
+    "The only expected v0 release blocker remains real_trained_adapter_no_fake_endpoint.",
+    "Code-shape artifacts continue to report violations [].",
+    "No product code, tests, scripts, schemas, foundation specs, M6 review docs, model artifacts, or evidence bundles are edited."
   ],
   "executed_verification_commands": [
     {
@@ -94,96 +116,141 @@
       "result": "passed before build; rerun after final done-state update"
     },
     {
-      "command": "python3 -m py_compile services/worker/handlers/dataset_gen.py services/worker/handlers/dataset_gen_contracts.py services/worker/handlers/dataset_gen_validation.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
+      "result": "passed: 2 passed in 0.02s"
+    },
+    {
+      "command": "python3 -m py_compile scripts/run_v0_release_blocker_recertification.py",
       "result": "passed"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/dataset/test_teacher_synthetic_min200_schema_valid.py tests/dataset/test_hard_negative_min_count.py tests/dataset/test_teacher_guard_synthetic_exact_overlap_zero.py tests/dataset/test_dataset_gen_event_payload_redaction.py tests/dataset/test_generated_examples_require_review_decision.py tests/dataset/test_hard_negative_review_lifecycle.py -q",
-      "result": "passed: 7 passed, 26 warnings"
+      "command": "COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install",
+      "result": "passed: toolchain versions OK; smoke test 1 passed, 3 warnings"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_file_size.py --config rules/code_shape.json --json-output artifacts/review/file_size_report.json --fail-on-hard-limit",
-      "result": "passed: 119 files checked, violations []"
+      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
+      "result": "passed: status NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION, recertification_ok true, release_claimed_go false"
     },
     {
-      "command": "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/check_import_boundaries.py --json-output artifacts/review/import_boundary_report.json --rules rules/code_shape.json",
-      "result": "passed: violations []"
+      "command": "python3 -m json.tool artifacts/review/toolchain_report.json",
+      "result": "passed: strict true; node, pnpm, python, rust, sqlite checks true"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/security/model_manifest_verification.json",
+      "result": "passed: errors []"
     },
     {
       "command": "python3 -m json.tool artifacts/review/file_size_report.json",
-      "result": "passed: violations []"
+      "result": "passed: files_checked 119, violations []"
     },
     {
       "command": "python3 -m json.tool artifacts/review/import_boundary_report.json",
-      "result": "passed"
+      "result": "passed: violations []"
     },
     {
-      "command": "sed -n '$=' services/worker/handlers/dataset_gen.py",
-      "result": "passed: 237"
+      "command": "python3 -m json.tool artifacts/security/pii_holdout_report.json",
+      "result": "passed: errors []"
     },
     {
-      "command": "sed -n '$=' services/worker/handlers/dataset_gen_contracts.py",
-      "result": "passed: 29"
+      "command": "python3 -m json.tool artifacts/review/real_adapter_candidate_scan.json",
+      "result": "passed: NO_GO_CANDIDATES_FOUND, go_candidate_count 0"
     },
     {
-      "command": "sed -n '$=' services/worker/handlers/dataset_gen_validation.py",
-      "result": "passed: 77"
+      "command": "python3 -m json.tool artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
+      "result": "passed: NOT_READY_CUDA_LORA_TRAINING with expected local CUDA/Docker/cache blockers"
     },
     {
-      "command": "rg -n -- \"DatasetGenWorkerError|validate_generated_examples|TeacherSyntheticClient|DatasetGenResult|real_trained_adapter_no_fake_endpoint|release_claimed_go\" services/worker/handlers/dataset_gen.py services/worker/handlers/dataset_gen_contracts.py services/worker/handlers/dataset_gen_validation.py artifacts/review/file_size_report.json docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
-      "result": "passed: extraction references and NOT_GO/release blocker guardrails found"
+      "command": "python3 -m json.tool artifacts/review/m6_real_adapter_prereq_audit.json",
+      "result": "passed: NOT_READY_PRECHECK_FAILED"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
+      "result": "passed: NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE, verification_ok true"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
+      "result": "passed: decision NOT_GO, unexpected_blockers []"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
+      "result": "passed: WAITING_FOR_REAL_ADAPTER_INPUTS"
+    },
+    {
+      "command": "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
+      "result": "passed: recertification_ok true, release_claimed_go false"
+    },
+    {
+      "command": "rg -n -- \"20701d1|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|release_claimed_go|v0_unexpected_blockers|WAITING_FOR_REAL_ADAPTER_INPUTS|violations.*\\[\\]|toolchain\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/toolchain_report.json artifacts/review/file_size_report.json docs/CONTEXT.md docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+      "result": "passed: current HEAD, NOT_GO guardrails, release_claimed_go false, v0_unexpected_blockers [], code-shape violations [], and toolchain evidence found"
     },
     {
       "command": "git diff --check",
-      "result": "passed"
+      "result": "passed after final done-state contract update"
     },
     {
       "command": "git diff --cached --check",
-      "result": "passed before staging; rerun after final staging"
+      "result": "passed after final staging"
     }
   ],
   "failed_verification_commands": [],
   "observed_evidence": {
-    "dataset_gen_before_lines": 331,
-    "dataset_gen_after_lines": 237,
-    "dataset_gen_contracts_lines": 29,
-    "dataset_gen_validation_lines": 77,
-    "dataset_gen_removed_from_soft_warnings": true,
-    "hard_limit_violations": 0,
-    "soft_warnings_remaining": [],
-    "code_shape_violations": [],
-    "focused_teacher_synthetic_tests": "7 passed, 26 warnings",
-    "import_boundary_violations": [],
+    "source_head": "20701d1",
+    "venv_gitignored": true,
+    "strict_bootstrap_m1_smoke": "passed: 1 passed, 3 warnings",
+    "toolchain_strict": true,
+    "toolchain_checks_all_true": true,
+    "recertification_status": "NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION",
+    "recertification_ok": true,
     "release_claimed_go": false,
+    "m6_rc_claimed_go": false,
+    "candidate_scan_decision": "NO_GO_CANDIDATES_FOUND",
+    "go_candidate_count": 0,
+    "fixture_like_candidate_count": 0,
+    "cuda_training_status": "NOT_READY_CUDA_LORA_TRAINING",
+    "m6_rc_prereq_status": "NOT_READY_PRECHECK_FAILED",
+    "bundle_decision": "NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE",
+    "v0_readiness_decision": "NOT_GO",
     "v0_release_ready": false,
-    "sole_expected_release_blocker": "real_trained_adapter_no_fake_endpoint"
+    "v0_unexpected_blockers": [],
+    "sole_v0_blocker": "real_trained_adapter_no_fake_endpoint",
+    "handoff_decision": "WAITING_FOR_REAL_ADAPTER_INPUTS",
+    "primary_external_handoff": "artifacts/review/verified_external_cuda_training_launcher.sh",
+    "code_shape_files_checked": 119,
+    "code_shape_violations": [],
+    "import_boundary_violations": [],
+    "product_code_changed": false,
+    "tests_changed": false,
+    "scripts_changed": false,
+    "release_criteria_changed": false,
+    "docs_reviews_M6_changed": false,
+    "real_adapter_evidence_created": false
   },
   "warnings": [
-    "This is a behavior-preserving worker dataset generation code-shape refactor only.",
-    "M6-RC and v0 release remain NOT_GO until accepted real no-fake endpoint evidence exists."
+    "This phase refreshes verification artifacts and LLM operational docs only.",
+    "M6-RC and v0 release remain NOT_GO until accepted real trained CUDA lora_adapter no-fake Docker endpoint evidence exists."
   ],
   "phase_notes": {
-    "plan": "Extracted dataset generation contracts and generated-example validation into focused worker helpers while keeping run_dataset_gen_job behavior unchanged.",
-    "audit": "services/worker/handlers/dataset_gen.py was 331 lines, over the 260-line worker_handler soft warning threshold but below the 400-line hard limit.",
-    "build": "Added dataset_gen_contracts.py and dataset_gen_validation.py; dataset_gen.py now imports DatasetGenResult, DatasetGenWorkerError, TeacherSyntheticClient, and validate_generated_examples.",
-    "check": "Ran JSON validation, py_compile, focused teacher synthetic dataset tests, code-shape checks, import-boundary checks, artifact JSON validation, evidence search, and diff checks.",
-    "done": "Verification passed; LLM docs updated; stage, commit, and push this phase."
+    "plan": "Refresh current-head release blocker recertification at 20701d1 and rerun strict venv bootstrap smoke verification while keeping edits to generated artifacts and LLM docs.",
+    "audit": "Current docs still reference older recertification head d28b071; .venv/ is already gitignored; release remains NOT_GO because no accepted real trained adapter no-fake endpoint evidence exists.",
+    "build": "Regenerate existing verification artifacts with existing scripts only; update docs/CONTEXT.md, docs/WORKING.md, and completion log to describe the current NOT_GO state.",
+    "check": "Run JSON validation, recertification unit test, py_compile, strict bootstrap m1-smoke, recertification script, artifact JSON validation, evidence search, and diff checks.",
+        "done": "Required verification passed; LLM docs updated; stage, commit, and push this phase while keeping release GO claims false."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-dataset-gen-worker-validation-extraction",
+    "gate": "mib-studio-current-head-20701d1-blocker-recertification",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Behavior-preserving extraction of dataset generation contracts and validation into focused worker helper modules, plus generated code-shape artifacts and LLM docs.",
-    "blocked_scope": "No behavior/API/schema/test/frontend/release-readiness changes, no release GO claim, no M6 review GO edits, no model/adapter/Docker/endpoint/bundle artifacts, no verifier/evidence-policy weakening.",
-    "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Extracted dataset generation contracts and generated-example validation into focused worker helpers while keeping run_dataset_gen_job behavior unchanged.",
-    "audit": "services/worker/handlers/dataset_gen.py was 331 lines, over the 260-line worker_handler soft warning threshold but below the 400-line hard limit.",
-    "build": "Added dataset_gen_contracts.py and dataset_gen_validation.py; dataset_gen.py now imports DatasetGenResult, DatasetGenWorkerError, TeacherSyntheticClient, and validate_generated_examples.",
-    "check": "Ran JSON validation, py_compile, focused teacher synthetic dataset tests, code-shape checks, import-boundary checks, artifact JSON validation, evidence search, and diff checks.",
-    "done": "Verification passed; LLM docs updated; stage, commit, and push this phase."
+    "approved_scope": "Refresh current-head NOT_GO release blocker artifacts and LLM docs plus strict venv/bootstrap smoke verification.",
+    "blocked_scope": "No product/runtime/test/script/schema/foundation/M6 review/evidence-policy changes; no release GO claim; no generated model, adapter, Docker, endpoint, evidence bundle, or venv artifacts.",
+    "phase_completion_git_policy": "After verification passes, stage, commit, and push this phase.",
+    "plan": "Refresh current-head release blocker recertification at 20701d1 and rerun strict venv bootstrap smoke verification while keeping edits to generated artifacts and LLM docs.",
+    "audit": "Current docs still reference older recertification head d28b071; .venv/ is already gitignored; release remains NOT_GO because no accepted real trained adapter no-fake endpoint evidence exists.",
+    "build": "Regenerate existing verification artifacts with existing scripts only; update docs/CONTEXT.md, docs/WORKING.md, and completion log to describe the current NOT_GO state.",
+    "check": "Run JSON validation, recertification unit test, py_compile, strict bootstrap m1-smoke, recertification script, artifact JSON validation, evidence search, and diff checks.",
+    "done": "Required verification passed; LLM docs updated; stage, commit, and push this phase while keeping release GO claims false."
   }
 }

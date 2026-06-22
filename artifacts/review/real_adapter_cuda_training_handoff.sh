@@ -14,6 +14,16 @@ if ! command -v nvidia-smi >/dev/null 2>&1; then
   exit 2
 fi
 
+if [ ! -x ./.venv/bin/python ]; then
+  echo "Refusing to run: Python executable is missing or not executable: ./.venv/bin/python" >&2
+  exit 2
+fi
+
+if [ ! -f examples/fixtures/router_20.jsonl ]; then
+  echo "Refusing to run: dataset JSONL is missing: examples/fixtures/router_20.jsonl" >&2
+  exit 2
+fi
+
 if [ ! -x ./.venv/bin/llamafactory-cli ]; then
   echo "Refusing to run: LLaMA-Factory CLI is not executable: ./.venv/bin/llamafactory-cli" >&2
   exit 2
@@ -26,6 +36,11 @@ fi
 
 if [ ! -f /tmp/mib-real-adapter/backend_config.yaml ]; then
   echo "Refusing to run: backend_config.yaml is missing under /tmp/mib-real-adapter" >&2
+  exit 2
+fi
+
+if [ ! -f artifacts/review/real_adapter_cuda_handoff.sh ]; then
+  echo "Refusing to run: RC handoff shell is missing: artifacts/review/real_adapter_cuda_handoff.sh" >&2
   exit 2
 fi
 

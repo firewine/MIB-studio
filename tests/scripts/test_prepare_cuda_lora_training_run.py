@@ -94,11 +94,24 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert report["status"] == "PREPARED_NOT_RUN"
     assert report["release_claimed_go"] is False
     assert report["m6_rc_claimed_go"] is False
+    assert [row["id"] for row in report["package_readiness_checks"]] == [
+        "dataset_jsonl_present",
+        "python_executable_present",
+        "llamafactory_cli_present",
+        "model_cache_dir_present",
+        "backend_config_present",
+        "rc_handoff_shell_present",
+    ]
+    assert all(row["required_before_run"] is True for row in report["package_readiness_checks"])
+    assert all(row["shell_guard"] is True for row in report["package_readiness_checks"])
     assert backend_config["lora_rank"] == 8
     assert backend_config["lora_alpha"] == 16
     assert report["backend_config_summary"]["lora_rank"] == 8
     assert "mib_router_unit_router" in dataset_info
     assert "scripts/check_cuda_lora_training_prereqs.py" in shell
+    assert "Python executable is missing or not executable" in shell
+    assert "dataset JSONL is missing" in shell
+    assert "RC handoff shell is missing" in shell
     assert "scripts/resolve_cuda_base_image.py" in shell
     assert "pytorch/pytorch:2.4.1-cuda12.1-cudnn9-runtime" in shell
     assert "artifacts/review/real_adapter_cuda_base_image.env" in shell
@@ -117,5 +130,9 @@ def test_prepare_writes_llamafactory_config_and_operator_shell(tmp_path: Path) -
     assert shell.index("== prepare_docker_image ==") < shell.index("== run_rc_handoff ==")
     assert "MIB_RUNTIME_ALLOW_FAKE_BACKEND must be unset" in shell
     assert "MIB_DOCKER_BASE_IMAGE_WITH_DIGEST must include @sha256" in shell
+    assert "## Package Readiness Checks" in markdown
+    assert "`dataset_jsonl_present`" in markdown
+    assert "`python_executable_present`" in markdown
+    assert "`rc_handoff_shell_present`" in markdown
     assert "lora_rank: 8" in markdown
     assert "lora_alpha: 16" in markdown

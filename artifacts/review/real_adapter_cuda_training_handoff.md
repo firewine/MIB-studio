@@ -1,7 +1,7 @@
 # CUDA LoRA Training Handoff
 
 ```yaml
-date: 2026-06-22T03:32:38.691371+00:00
+date: 2026-06-22T14:19:51.251122+00:00
 gate: mib-studio-cuda-real-adapter-training-handoff
 status: PREPARED_NOT_RUN
 release_claimed_go: false
@@ -42,6 +42,17 @@ output_dir: /tmp/mib-real-adapter/adapter
 - If MIB_DOCKER_BASE_IMAGE_WITH_DIGEST is unset, resolve a local CUDA/PyTorch base image with scripts/resolve_cuda_base_image.py before preflight.
 - Do not use fixture-sized or self-test adapters as release evidence.
 - Do not claim M6-RC or v0 GO until the downstream real adapter handoff and verifiers return GO.
+
+## Package Readiness Checks
+
+The generated shell refuses to run until these package prerequisites are present:
+
+- `dataset_jsonl_present`: `examples/fixtures/router_20.jsonl` - Training dataset JSONL exists on the CUDA host.
+- `python_executable_present`: `./.venv/bin/python` - Repo virtualenv Python exists and is executable.
+- `llamafactory_cli_present`: `./.venv/bin/llamafactory-cli` - LLaMA-Factory CLI exists and is executable.
+- `model_cache_dir_present`: `/tmp/mib-strict-model-cache-phi/model_cache` - Strict base-model cache directory is present on the CUDA host.
+- `backend_config_present`: `/tmp/mib-real-adapter/backend_config.yaml` - Generated LLaMA-Factory backend_config.yaml is present under the adapter output root.
+- `rc_handoff_shell_present`: `artifacts/review/real_adapter_cuda_handoff.sh` - Downstream real-adapter RC handoff shell is present before endpoint evidence capture.
 
 ## Command Sequence
 

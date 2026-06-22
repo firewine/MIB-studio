@@ -1,25 +1,19 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Make v0 release blocker recertification summaries explicitly report blocking reasons and operator next actions while preserving the current NOT_GO release gate.",
+  "goal": "Harden the external CUDA real-adapter training handoff preflight package so the remaining real_trained_adapter_no_fake_endpoint blocker is easier to resolve without weakening release gates.",
   "phase": "done",
-  "gate": "mib-studio-v0-recertification-actionable-blockers",
+  "gate": "mib-studio-cuda-training-handoff-preflight-guards",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "ea097e3",
+  "head": "448562b",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/run_v0_release_blocker_recertification.py",
-    "tests/scripts/test_run_v0_release_blocker_recertification.py",
-    "artifacts/review/real_adapter_candidate_scan.json",
-    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "artifacts/review/m6_real_adapter_prereq_audit.json",
-    "artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "artifacts/review/v0_release_readiness_audit.json",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/real_adapter_cuda_handoff.md",
-    "artifacts/review/real_adapter_cuda_handoff.sh",
-    "artifacts/review/v0_release_blocker_recertification.json",
+    "scripts/prepare_cuda_lora_training_run.py",
+    "tests/scripts/test_prepare_cuda_lora_training_run.py",
+    "artifacts/review/real_adapter_cuda_training_handoff.json",
+    "artifacts/review/real_adapter_cuda_training_handoff.md",
+    "artifacts/review/real_adapter_cuda_training_handoff.sh",
     "docs/CONTEXT.md",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
@@ -38,78 +32,78 @@
     ".github"
   ],
   "blocked_scope": [
-    "Product runtime/API/UI/DB/schema/training behavior changes",
+    "Product runtime/API/UI/DB/schema/training algorithm behavior changes",
     "Changing verifier acceptance policy or weakening release gates",
     "Editing M6 review docs to GO",
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may update the local v0 release blocker recertification summary contract so NOT_GO outputs contain explicit blocking_reasons and operator_next_actions, focused recertification tests, refreshed current NOT_GO review artifacts, LLM context/working state, completion log, and PABCD only.",
+  "allowed_edit_paths_scope_note": "This gate may add fail-fast input and package readiness checks to the generated external CUDA training handoff, focused tests, refreshed PREPARED_NOT_RUN handoff artifacts, LLM context/working state, completion log, and PABCD only.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/reviews/M6/SIGNOFF_MATRIX.md",
     "docs/reviews/M6/CTO_DECISION.md",
-    "scripts/find_real_adapter_candidates.py",
     "scripts/check_cuda_lora_training_prereqs.py",
+    "scripts/resolve_cuda_base_image.py",
+    "scripts/prepare_real_adapter_docker_image.py",
     "scripts/run_m6_real_adapter_rc_gate.py",
-    "scripts/verify_real_adapter_evidence_bundle.py",
-    "scripts/verify_v0_release_readiness.py",
-    "scripts/build_real_adapter_handoff.py"
+    "scripts/build_real_adapter_evidence_bundle.py",
+    "scripts/run_v0_release_blocker_recertification.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
-    "python3 -m py_compile scripts/run_v0_release_blocker_recertification.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"blocking_reasons|operator_next_actions|real_trained_adapter_no_fake_endpoint|adapter_dir_present|docker_base_image_env_digest|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION\" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py artifacts/review/v0_release_blocker_recertification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_prepare_cuda_lora_training_run.py -q",
+    "python3 -m py_compile scripts/prepare_cuda_lora_training_run.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --dataset-jsonl examples/fixtures/router_20.jsonl --dataset-id review_router_20 --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --training-preset quick",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_handoff.json",
+    "rg -n -- \"package_readiness_checks|dataset_jsonl_present|python_executable_present|rc_handoff_shell_present|real_trained_adapter_no_fake_endpoint|PREPARED_NOT_RUN|MIB_RUNTIME_ALLOW_FAKE_BACKEND\" scripts/prepare_cuda_lora_training_run.py tests/scripts/test_prepare_cuda_lora_training_run.py artifacts/review/real_adapter_cuda_training_handoff.json artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Recertification summary includes blocking_reasons and operator_next_actions for current NOT_GO states.",
-    "Focused recertification tests verify actionable summaries for current expected NOT_GO and failed child command paths.",
-    "Host-access recertification refresh remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker.",
-    "No release GO is claimed from current local artifacts."
+    "Generated CUDA training handoff JSON includes package_readiness_checks for host-execution prerequisites.",
+    "Generated shell fails fast when dataset, Python executable, LLaMA-Factory CLI, model cache, backend config, or RC handoff shell is missing.",
+    "Focused tests verify the new package readiness checks and shell guards.",
+    "Generated handoff status remains PREPARED_NOT_RUN and does not claim M6-RC or v0 release GO."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q",
-    "python3 -m py_compile scripts/run_v0_release_blocker_recertification.py",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"blocking_reasons|operator_next_actions|real_trained_adapter_no_fake_endpoint|adapter_dir_present|docker_base_image_env_digest|NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION\" scripts/run_v0_release_blocker_recertification.py tests/scripts/test_run_v0_release_blocker_recertification.py artifacts/review/v0_release_blocker_recertification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_prepare_cuda_lora_training_run.py -q",
+    "python3 -m py_compile scripts/prepare_cuda_lora_training_run.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --dataset-jsonl examples/fixtures/router_20.jsonl --dataset-id review_router_20 --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --training-preset quick",
+    "python3 -m json.tool artifacts/review/real_adapter_cuda_training_handoff.json",
+    "rg -n -- \"package_readiness_checks|dataset_jsonl_present|python_executable_present|rc_handoff_shell_present|real_trained_adapter_no_fake_endpoint|PREPARED_NOT_RUN|MIB_RUNTIME_ALLOW_FAKE_BACKEND\" scripts/prepare_cuda_lora_training_run.py tests/scripts/test_prepare_cuda_lora_training_run.py artifacts/review/real_adapter_cuda_training_handoff.json artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
     "The current host still lacks real trained adapter no-fake Docker endpoint evidence.",
-    "This gate improves recertification diagnostics only; it does not accept evidence or relax readiness."
+    "This gate hardens external CUDA execution handoff only; it does not accept evidence or relax readiness."
   ],
   "phase_notes": {
-    "plan": "Add explicit blocking_reasons and operator_next_actions to run_v0_release_blocker_recertification.py summaries.",
-    "audit": "The recertification script currently records current_state and a one-line operator_next_step, but top-level NOT_GO output does not enumerate actionable blocker categories.",
-    "build": "Patch recertification summary helper logic, focused tests, docs/CONTEXT.md, docs/WORKING.md, completion log, and refresh current NOT_GO artifacts.",
-    "check": "Run focused recertification tests, py_compile, host-access current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this recertification diagnostics phase."
+    "plan": "Add explicit package_readiness_checks and shell fail-fast guards to scripts/prepare_cuda_lora_training_run.py outputs.",
+    "audit": "The existing handoff prepares training commands, but generated shell does not check dataset/Python/RC handoff availability before starting the CUDA sequence.",
+    "build": "Patch handoff generator, focused tests, generated PREPARED_NOT_RUN handoff artifacts, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD.",
+    "check": "Run focused tests, py_compile, regenerate handoff artifacts, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this handoff hardening phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-v0-recertification-actionable-blockers",
+    "gate": "mib-studio-cuda-training-handoff-preflight-guards",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Local v0 release blocker recertification actionable NOT_GO summary, focused recertification tests, refreshed current NOT_GO review artifacts, LLM context/working state, completion log, and PABCD only.",
+    "approved_scope": "External CUDA real-adapter training handoff preflight/package readiness guards, focused tests, refreshed PREPARED_NOT_RUN handoff artifacts, LLM context/working state, completion log, and PABCD only.",
     "blocked_scope": "No product behavior changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Add explicit blocking_reasons and operator_next_actions to run_v0_release_blocker_recertification.py summaries.",
-    "audit": "The recertification script currently records current_state and a one-line operator_next_step, but top-level NOT_GO output does not enumerate actionable blocker categories.",
-    "build": "Patch recertification summary helper logic, focused tests, docs/CONTEXT.md, docs/WORKING.md, completion log, and refresh current NOT_GO artifacts.",
-    "check": "Run focused recertification tests, py_compile, host-access current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this recertification diagnostics phase."
+    "plan": "Add explicit package_readiness_checks and shell fail-fast guards to scripts/prepare_cuda_lora_training_run.py outputs.",
+    "audit": "The existing handoff prepares training commands, but generated shell does not check dataset/Python/RC handoff availability before starting the CUDA sequence.",
+    "build": "Patch handoff generator, focused tests, generated PREPARED_NOT_RUN handoff artifacts, docs/CONTEXT.md, docs/WORKING.md, completion log, and PABCD.",
+    "check": "Run focused tests, py_compile, regenerate handoff artifacts, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this handoff hardening phase."
   }
 }

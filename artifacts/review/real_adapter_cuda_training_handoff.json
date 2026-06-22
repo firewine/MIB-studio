@@ -135,7 +135,7 @@
       "shell": "bash artifacts/review/real_adapter_cuda_handoff.sh"
     }
   ],
-  "date": "2026-06-22T03:32:38.691371+00:00",
+  "date": "2026-06-22T14:19:51.251122+00:00",
   "gate": "mib-studio-cuda-real-adapter-training-handoff",
   "inputs": {
     "base_model": "microsoft/Phi-3.5-mini-instruct",
@@ -175,6 +175,50 @@
     "rc_handoff_shell": "artifacts/review/real_adapter_cuda_handoff.sh",
     "train_config": "/tmp/mib-real-adapter/train_config.json"
   },
+  "package_readiness_checks": [
+    {
+      "description": "Training dataset JSONL exists on the CUDA host.",
+      "id": "dataset_jsonl_present",
+      "path": "examples/fixtures/router_20.jsonl",
+      "required_before_run": true,
+      "shell_guard": true
+    },
+    {
+      "description": "Repo virtualenv Python exists and is executable.",
+      "id": "python_executable_present",
+      "path": "./.venv/bin/python",
+      "required_before_run": true,
+      "shell_guard": true
+    },
+    {
+      "description": "LLaMA-Factory CLI exists and is executable.",
+      "id": "llamafactory_cli_present",
+      "path": "./.venv/bin/llamafactory-cli",
+      "required_before_run": true,
+      "shell_guard": true
+    },
+    {
+      "description": "Strict base-model cache directory is present on the CUDA host.",
+      "id": "model_cache_dir_present",
+      "path": "/tmp/mib-strict-model-cache-phi/model_cache",
+      "required_before_run": true,
+      "shell_guard": true
+    },
+    {
+      "description": "Generated LLaMA-Factory backend_config.yaml is present under the adapter output root.",
+      "id": "backend_config_present",
+      "path": "/tmp/mib-real-adapter/backend_config.yaml",
+      "required_before_run": true,
+      "shell_guard": true
+    },
+    {
+      "description": "Downstream real-adapter RC handoff shell is present before endpoint evidence capture.",
+      "id": "rc_handoff_shell_present",
+      "path": "artifacts/review/real_adapter_cuda_handoff.sh",
+      "required_before_run": true,
+      "shell_guard": true
+    }
+  ],
   "release_claimed_go": false,
   "schema_version": "mib_cuda_lora_training_handoff.v1",
   "status": "PREPARED_NOT_RUN"

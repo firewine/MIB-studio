@@ -88,6 +88,53 @@ def cuda_base_image_resolver_command(args: argparse.Namespace) -> list[str]:
     return command
 
 
+def package_readiness_checks(args: argparse.Namespace, backend_config_path: Path) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": "dataset_jsonl_present",
+            "path": args.dataset_jsonl,
+            "required_before_run": True,
+            "shell_guard": True,
+            "description": "Training dataset JSONL exists on the CUDA host.",
+        },
+        {
+            "id": "python_executable_present",
+            "path": args.python,
+            "required_before_run": True,
+            "shell_guard": True,
+            "description": "Repo virtualenv Python exists and is executable.",
+        },
+        {
+            "id": "llamafactory_cli_present",
+            "path": args.llamafactory_cli,
+            "required_before_run": True,
+            "shell_guard": True,
+            "description": "LLaMA-Factory CLI exists and is executable.",
+        },
+        {
+            "id": "model_cache_dir_present",
+            "path": args.model_cache_dir,
+            "required_before_run": True,
+            "shell_guard": True,
+            "description": "Strict base-model cache directory is present on the CUDA host.",
+        },
+        {
+            "id": "backend_config_present",
+            "path": str(backend_config_path),
+            "required_before_run": True,
+            "shell_guard": True,
+            "description": "Generated LLaMA-Factory backend_config.yaml is present under the adapter output root.",
+        },
+        {
+            "id": "rc_handoff_shell_present",
+            "path": args.rc_handoff_shell,
+            "required_before_run": True,
+            "shell_guard": True,
+            "description": "Downstream real-adapter RC handoff shell is present before endpoint evidence capture.",
+        },
+    ]
+
+
 def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
     output_root = Path(args.output_root)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -210,6 +257,7 @@ def build_prepare_report(args: argparse.Namespace) -> dict[str, Any]:
             "template": backend_config.get("template"),
             "output_dir": backend_config.get("output_dir"),
         },
+        "package_readiness_checks": package_readiness_checks(args, config_path),
         "command_sequence": [
             command_row("resolve_cuda_base_image", resolver_command, note=f"Run only when {DOCKER_BASE_IMAGE_ENV} is unset; writes a digest-pinned CUDA base image env file for downstream preflight and Docker build."),
             command_row("preflight_cuda_training", preflight_command, note="Fail fast unless CUDA, LLaMA-Factory, Docker base image, backend config, dataset, and strict model cache prerequisites are ready."),
@@ -252,6 +300,10 @@ def build_finalize_report(args: argparse.Namespace) -> dict[str, Any]:
 def render_markdown(report: dict[str, Any]) -> str:
     commands = "\n\n".join(f"### {row['id']}\n\n```bash\n{row['shell']}\n```" for row in report["command_sequence"])
     rules = "\n".join(f"- {item}" for item in report["operator_rules"])
+    readiness = "\n".join(
+        f"- `{row['id']}`: `{row['path']}` - {row['description']}"
+        for row in report["package_readiness_checks"]
+    )
     summary = report["backend_config_summary"]
     return f"""# CUDA LoRA Training Handoff
 
@@ -294,6 +346,12 @@ output_dir: {summary["output_dir"]}
 
 {rules}
 
+## Package Readiness Checks
+
+The generated shell refuses to run until these package prerequisites are present:
+
+{readiness}
+
 ## Command Sequence
 
 {commands}
@@ -309,6 +367,14 @@ def render_shell(report: dict[str, Any]) -> str:
     )
     output_root = shlex.quote(report["inputs"]["output_root"])
     model_cache_dir = shlex.quote(report["inputs"]["model_cache_dir"])
+    dataset_jsonl = shlex.quote(report["inputs"]["dataset_jsonl"])
+    python_path = next(
+        row["path"]
+        for row in report["package_readiness_checks"]
+        if row["id"] == "python_executable_present"
+    )
+    python = shlex.quote(python_path)
+    rc_handoff_shell = shlex.quote(report["outputs"]["rc_handoff_shell"])
     cuda_base_image_env = shlex.quote(report["outputs"]["cuda_base_image_env"])
     llamafactory_cli_raw = report["inputs"]["llamafactory_cli"]
     llamafactory_cli = shlex.quote(llamafactory_cli_raw)
@@ -338,6 +404,16 @@ if ! command -v nvidia-smi >/dev/null 2>&1; then
   exit 2
 fi
 
+if [ ! -x {python} ]; then
+  echo "Refusing to run: Python executable is missing or not executable: {python}" >&2
+  exit 2
+fi
+
+if [ ! -f {dataset_jsonl} ]; then
+  echo "Refusing to run: dataset JSONL is missing: {dataset_jsonl}" >&2
+  exit 2
+fi
+
 {llamafactory_check}
 
 if [ ! -d {model_cache_dir} ]; then
@@ -347,6 +423,11 @@ fi
 
 if [ ! -f {output_root}/backend_config.yaml ]; then
   echo "Refusing to run: backend_config.yaml is missing under {output_root}" >&2
+  exit 2
+fi
+
+if [ ! -f {rc_handoff_shell} ]; then
+  echo "Refusing to run: RC handoff shell is missing: {rc_handoff_shell}" >&2
   exit 2
 fi
 

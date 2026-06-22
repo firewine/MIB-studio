@@ -367,6 +367,7 @@ frontend_evidence: artifacts/review/fe_v6_evidence.md
 latest_operational_state: docs/WORKING.md
 release_readiness_report: artifacts/review/v0_release_readiness_audit.json
 release_blocker_recertification: artifacts/review/v0_release_blocker_recertification.json
+cuda_training_handoff: artifacts/review/real_adapter_cuda_training_handoff.json
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
 current_local_unexpected_blockers: []
@@ -441,6 +442,24 @@ current_blocking_reasons_include:
   - endpoint_live_no_fake_json
   - real_trained_adapter_no_fake_endpoint
 next_actions_are_in_artifact: true
+```
+
+Current external CUDA training handoff package:
+
+```yaml
+handoff_file: artifacts/review/real_adapter_cuda_training_handoff.json
+status: PREPARED_NOT_RUN
+release_claimed_go: false
+top_level_fields:
+  - package_readiness_checks
+shell_guarded_prereqs:
+  - dataset_jsonl_present
+  - python_executable_present
+  - llamafactory_cli_present
+  - model_cache_dir_present
+  - backend_config_present
+  - rc_handoff_shell_present
+purpose: fail fast on CUDA host package/setup mistakes before real adapter training and endpoint evidence capture
 ```
 
 Recommended external CUDA host sequence:

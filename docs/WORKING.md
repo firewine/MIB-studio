@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_RECERTIFICATION_ACTIONABLE_BLOCKERS
+phase_id: V0_CUDA_TRAINING_HANDOFF_PREFLIGHT_GUARDS
 milestone: Final_Program_Development_Closeout
-phase_status: v0_recertification_actionable_blockers_verified_not_go
-gate_id: mib-studio-v0-recertification-actionable-blockers
+phase_status: v0_cuda_training_handoff_preflight_guards_prepared_not_go
+gate_id: mib-studio-cuda-training-handoff-preflight-guards
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,39 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-cuda-training-handoff-preflight-guards
+objective: harden the external CUDA training handoff package before real-adapter execution
+
+files:
+  training_handoff_generator: scripts/prepare_cuda_lora_training_run.py
+  training_handoff_tests: tests/scripts/test_prepare_cuda_lora_training_run.py
+  generated_training_handoff:
+    - artifacts/review/real_adapter_cuda_training_handoff.json
+    - artifacts/review/real_adapter_cuda_training_handoff.md
+    - artifacts/review/real_adapter_cuda_training_handoff.sh
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+package_readiness_checks:
+  top_level_field: package_readiness_checks
+  shell_guarded_ids:
+    - dataset_jsonl_present
+    - python_executable_present
+    - llamafactory_cli_present
+    - model_cache_dir_present
+    - backend_config_present
+    - rc_handoff_shell_present
+
+summary:
+  - generated CUDA training handoff JSON now lists package_readiness_checks for host-execution prerequisites
+  - generated shell refuses to run when dataset JSONL, repo Python, LLaMA-Factory CLI, strict model cache, backend_config.yaml, or RC handoff shell is missing
+  - focused tests verify the package readiness list and shell guard strings
+  - generated training handoff remains PREPARED_NOT_RUN and does not claim M6-RC GO or v0 GO
+  - current release blocker remains real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-v0-recertification-actionable-blockers
@@ -339,6 +372,7 @@ recorded_go_markers_required_by_v0_verifier:
   V0_Release_Readiness_Audit: true
 
 recorded_tooling_ready:
+  Real_Adapter_CUDA_Training_Handoff_Preflight_Guards: true
   V0_Release_Blocker_Recertification: true
   V0_Release_Blocker_Recertification_Actionable_Blockers: true
   V0_Release_Closeout_From_Bundle: true
@@ -363,8 +397,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: v0_recertification_actionable_blockers_verified_not_go
+status: v0_cuda_training_handoff_preflight_guards_prepared_not_go
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_prepare_cuda_lora_training_run.py -q
+  - python3 -m py_compile scripts/prepare_cuda_lora_training_run.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/prepare_cuda_lora_training_run.py --dataset-jsonl examples/fixtures/router_20.jsonl --dataset-id review_router_20 --base-model microsoft/Phi-3.5-mini-instruct --model-cache-dir /tmp/mib-strict-model-cache-phi/model_cache --output-root /tmp/mib-real-adapter --training-preset quick
+  - python3 -m json.tool artifacts/review/real_adapter_cuda_training_handoff.json
+  - rg -n -- "package_readiness_checks|dataset_jsonl_present|python_executable_present|rc_handoff_shell_present|real_trained_adapter_no_fake_endpoint|PREPARED_NOT_RUN|MIB_RUNTIME_ALLOW_FAKE_BACKEND" scripts/prepare_cuda_lora_training_run.py tests/scripts/test_prepare_cuda_lora_training_run.py artifacts/review/real_adapter_cuda_training_handoff.json artifacts/review/real_adapter_cuda_training_handoff.md artifacts/review/real_adapter_cuda_training_handoff.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_blocker_recertification.py -q
   - python3 -m py_compile scripts/run_v0_release_blocker_recertification.py
@@ -524,6 +564,9 @@ commands. The active closeout tool is
 scripts/run_v0_release_blocker_recertification.py. It refreshes the current
 candidate scan, CUDA training preflight, M6 RC preflight, real-adapter bundle
 verification, v0 readiness, and CUDA handoff artifacts with one command.
+The generated CUDA training handoff now embeds package_readiness_checks and its
+shell fails fast if the dataset JSONL, repo Python, LLaMA-Factory CLI, strict
+model cache, backend_config.yaml, or downstream RC handoff shell is missing.
 The generated CUDA handoff now embeds bundle_archive_contract and
 local_closeout_after_bundle_transfer. After copying the metadata-bearing
 artifacts/review/real_adapter_evidence_bundle.tar.gz back into this repo, run

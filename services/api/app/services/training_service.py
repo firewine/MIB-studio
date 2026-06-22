@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from services.api.app.core.errors import APIError, json_safe_errors
 from services.api.app.schemas.job import JobAcceptedResponse, JobSubmitRequest, TrainParams
 from services.api.app.schemas.training import ModelRunPage, ModelRunRead
+from services.api.app.services.training_read_models import read_model_run
 from services.shared.db.models import Dataset, Example, HardwareProfile, Job, JobResource, ModelRun, Preset, Project
 from services.shared.db.repositories.dataset_store import canonical_json, sha256_text
 from services.shared.db.repositories.training_store import TrainingRunInput, TrainingStore
@@ -251,26 +252,7 @@ class TrainingService:
         )
 
     def _read_model_run(self, model_run: ModelRun) -> ModelRunRead:
-        return ModelRunRead(
-            id=model_run.id,
-            job_id=self.store.current_job_id_for_model_run(model_run.id),
-            project_id=model_run.project_id,
-            dataset_id=model_run.dataset_id,
-            base_model=model_run.base_model,  # type: ignore[arg-type]
-            backend=model_run.backend,  # type: ignore[arg-type]
-            method=model_run.method,  # type: ignore[arg-type]
-            adapter_path=model_run.adapter_path,
-            adapter_sha256=model_run.adapter_sha256,
-            artifact_manifest_sha256=model_run.artifact_manifest_sha256,
-            status=model_run.status,  # type: ignore[arg-type]
-            seed=model_run.seed,
-            config_hash=model_run.config_hash,
-            best_checkpoint_id=model_run.best_checkpoint_id,
-            resumable=bool(model_run.resumable),
-            started_at=model_run.started_at,
-            ended_at=model_run.ended_at,
-            created_at=model_run.created_at,
-        )
+        return read_model_run(model_run, job_id=self.store.current_job_id_for_model_run(model_run.id))
 
 
 def _format_ts(value: datetime) -> str:

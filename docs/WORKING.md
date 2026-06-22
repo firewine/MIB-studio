@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: DATASET_SERVICE_READ_MODEL_EXTRACTION
+phase_id: TRAINING_SERVICE_READ_MODEL_EXTRACTION
 milestone: Final_Program_Development_Closeout
-phase_status: dataset_service_soft_warning_resolved_not_go_release
-gate_id: mib-studio-dataset-service-read-model-extraction
+phase_status: training_service_soft_warning_resolved_not_go_release
+gate_id: mib-studio-training-service-read-model-extraction
 mode: development
 product_code_changed: true
 verification_tooling_changed: false
@@ -57,6 +57,61 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-training-service-read-model-extraction
+objective: resolve the training_service.py code-shape soft warning without behavior changes
+
+files:
+  api_services:
+    - services/api/app/services/training_service.py
+    - services/api/app/services/training_read_models.py
+  regenerated_verification_artifacts:
+    - artifacts/review/file_size_report.json
+    - artifacts/review/import_boundary_report.json
+  llm_context:
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+line_counts:
+  training_service_before_lines: 277
+  training_service_after_lines: 259
+  training_read_models_lines: 27
+  service_soft_warning_threshold: 260
+  training_service_below_soft_warning_threshold: true
+
+scope:
+  behavior_preserving: true
+  model_run_read_conversion_extracted: true
+  training_service_public_api_changed: false
+  api_schema_changed: false
+  db_schema_changed: false
+  tests_changed: false
+
+verification:
+  py_compile: passed
+  focused_training_preflight_tests: 4 passed, 8 warnings
+  import_boundary_violations: []
+
+code_shape:
+  files_checked: 117
+  hard_limit_violations: 0
+  soft_warnings_remaining:
+    - services/worker/handlers/dataset_gen.py
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - ModelRun ORM-to-schema conversion moved into training_read_models.py
+  - TrainingService keeps the same public methods and still resolves current job id through TrainingStore
+  - focused train submission/list/read preflight tests pass
+  - this phase does not change release readiness or create real adapter evidence
+```
 
 ```yaml
 gate: mib-studio-dataset-service-read-model-extraction

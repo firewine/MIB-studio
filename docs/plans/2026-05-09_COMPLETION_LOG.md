@@ -36,3 +36,4 @@
 - 외부 CUDA operator packet을 source commit `222f00c` 기준으로 갱신하고 verifier가 17개 required file blob을 해당 commit에서 검증하도록 재확인했다.
 - training store의 status transition/Event 기록 로직을 `training_status_store.py`로 분리해 `training_store.py` code-shape soft warning을 해소했다.
 - dataset service의 Dataset/Example read-model 변환 로직을 `dataset_read_models.py`로 분리해 `dataset_service.py` code-shape soft warning을 해소하고 strict bootstrap m1-smoke를 재확인했다.
+- training service의 ModelRun read-model 변환 로직을 `training_read_models.py`로 분리해 `training_service.py` code-shape soft warning을 해소했다.

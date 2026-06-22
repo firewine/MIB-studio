@@ -249,6 +249,8 @@ def test_closeout_promotes_go_archive_and_returns_release_go(tmp_path: Path) -> 
     assert summary["status"] == "GO_V0_RELEASE_CLOSEOUT"
     assert summary["closeout_ok"] is True
     assert summary["release_claimed_go"] is True
+    assert summary["blocking_reasons"] == []
+    assert summary["operator_next_actions"] == []
     assert summary["resolved_bundle_archive"] == str(archive)
     assert v0_report["decision"] == "GO"
     assert (root / "artifacts/review/real_adapter_evidence_bundle_verification.json").is_file()
@@ -269,6 +271,9 @@ def test_closeout_refuses_go_archive_without_builder_metadata(tmp_path: Path) ->
     assert summary["status"] == "NOT_GO_BUNDLE_PROMOTION"
     assert summary["closeout_ok"] is False
     assert summary["release_claimed_go"] is False
+    assert summary["blocking_reasons"] == ["archive_metadata_not_verified"]
+    assert any("build_real_adapter_evidence_bundle.py" in action for action in summary["operator_next_actions"])
+    assert any("real_adapter_evidence_bundle_manifest.json" in action for action in summary["operator_next_actions"])
     assert summary["promotion_summary"]["reason"] == "archive_metadata_not_verified"
     assert promotion_manifest["archive_metadata"]["ok"] is False
     assert "manifest:missing" in promotion_manifest["archive_metadata"]["failures"]
@@ -298,6 +303,8 @@ def test_closeout_refuses_not_go_bundle_before_readiness_go(tmp_path: Path) -> N
     assert summary["status"] == "NOT_GO_BUNDLE_PROMOTION"
     assert summary["closeout_ok"] is False
     assert summary["release_claimed_go"] is False
+    assert summary["blocking_reasons"] == ["source_bundle_not_go"]
+    assert any("external CUDA host flow" in action for action in summary["operator_next_actions"])
     assert promotion_manifest["reason"] == "source_bundle_not_go"
     assert v0_report["decision"] == "NOT_GO"
 
@@ -313,5 +320,8 @@ def test_closeout_keeps_not_go_when_bundle_go_but_m6_review_docs_not_go(tmp_path
     assert summary["status"] == "NOT_GO_V0_READINESS"
     assert summary["closeout_ok"] is False
     assert summary["release_claimed_go"] is False
+    assert summary["blocking_reasons"] == ["m6_review_docs_not_current"]
+    assert any("docs/reviews/M6/SIGNOFF_MATRIX.md" in action for action in summary["operator_next_actions"])
+    assert any("same release workstation checkout" in action for action in summary["operator_next_actions"])
     assert v0_report["decision"] == "NOT_GO"
     assert "m6_review_docs_not_current" in v0_report["blockers"]

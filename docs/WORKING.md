@@ -41,10 +41,10 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: REAL_ADAPTER_LOCAL_CLOSEOUT_M6_DOC_PREREQ
+phase_id: V0_CLOSEOUT_ACTIONABLE_BLOCKERS
 milestone: Final_Program_Development_Closeout
-phase_status: real_adapter_local_closeout_m6_doc_prereq_verified_not_go
-gate_id: mib-studio-real-adapter-local-closeout-m6-doc-prereq
+phase_status: v0_closeout_actionable_blockers_verified_not_go
+gate_id: mib-studio-v0-closeout-actionable-blockers
 mode: implement
 product_code_changed: false
 release_claimed_go: false
@@ -56,6 +56,38 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-v0-closeout-actionable-blockers
+objective: make failed local closeout summaries directly actionable
+
+files:
+  closeout_tool: scripts/run_v0_release_closeout_from_bundle.py
+  closeout_tests: tests/scripts/test_run_v0_release_closeout_from_bundle.py
+  readiness_audit: artifacts/review/v0_release_readiness_audit.json
+  llm_context:
+    - docs/CONTEXT.md
+    - docs/WORKING.md
+
+closeout_summary_contract:
+  top_level_fields:
+    - blocking_reasons
+    - operator_next_actions
+  covered_not_go_reasons:
+    - archive_metadata_not_verified
+    - source_bundle_not_go
+    - target_verification_not_go
+    - m6_review_docs_not_current
+    - real_trained_adapter_no_fake_endpoint
+  release_claimed_go: false
+
+summary:
+  - run_v0_release_closeout_from_bundle.py now emits top-level blocking_reasons for NOT_GO closeout states
+  - operator_next_actions maps metadata, bundle, M6 review-doc, and real endpoint blockers to concrete next steps
+  - focused closeout tests cover GO, archive metadata rejection, NOT_GO bundle, and M6 review-doc NOT_GO readiness
+  - current v0 readiness remains NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker
+  - no M6-RC GO or v0 GO is claimed from current local artifacts
+```
 
 ```yaml
 gate: mib-studio-real-adapter-local-closeout-m6-doc-prereq
@@ -268,6 +300,7 @@ recorded_go_markers_required_by_v0_verifier:
 recorded_tooling_ready:
   V0_Release_Blocker_Recertification: true
   V0_Release_Closeout_From_Bundle: true
+  V0_Release_Closeout_Actionable_Blockers: true
   Real_Adapter_Evidence_Bundle_Archive: true
   Real_Adapter_Evidence_Bundle_Promotion: true
   Real_Adapter_Evidence_Bundle_Assembly: true
@@ -288,8 +321,14 @@ recorded_not_go:
 ## 4. Verification State
 
 ```yaml
-status: real_adapter_local_closeout_m6_doc_prereq_verified_not_go
+status: v0_closeout_actionable_blockers_verified_not_go
 passed:
+  - python3 -m json.tool .codex/tasks/current.json
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_closeout_from_bundle.py -q
+  - python3 -m py_compile scripts/run_v0_release_closeout_from_bundle.py
+  - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json
+  - python3 -m json.tool artifacts/review/v0_release_readiness_audit.json
+  - rg -n -- "blocking_reasons|operator_next_actions|archive_metadata_not_verified|m6_review_docs_not_current|real_trained_adapter_no_fake_endpoint|GO_V0_RELEASE_CLOSEOUT|NOT_GO_V0_READINESS|NOT_GO_BUNDLE_PROMOTION" scripts/run_v0_release_closeout_from_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json artifacts/review/v0_release_readiness_audit.json
   - python3 -m json.tool .codex/tasks/current.json
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q
   - PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED
@@ -339,6 +378,7 @@ fixed_verification_blockers:
   - bundle_archive_promotion_did_not_require_builder_metadata
   - handoff_did_not_explain_metadata_bearing_archive_requirement
   - local_closeout_handoff_did_not_explicitly_require_same_checkout_m6_go_review_docs
+  - local_closeout_summary_did_not_emit_actionable_not_go_reasons
 
 warnings:
   - M6-RC remains NOT_GO.
@@ -421,6 +461,9 @@ local_closeout_after_bundle_transfer:
     - docs/reviews/M6/CTO_DECISION.md
   missing_local_m6_review_docs_go_status: m6_review_docs_not_current
   missing_or_mismatched_metadata_status: archive_metadata_not_verified
+  not_go_summary_fields:
+    - blocking_reasons
+    - operator_next_actions
   expected_success_status: GO_V0_RELEASE_CLOSEOUT
 ```
 
@@ -444,6 +487,9 @@ returns archive_metadata_not_verified and prevents promotion. This same release
 workstation checkout must also contain accepted GO updates to
 docs/reviews/M6/SIGNOFF_MATRIX.md and docs/reviews/M6/CTO_DECISION.md before
 local closeout; otherwise v0 readiness returns m6_review_docs_not_current.
+NOT_GO closeout summaries include blocking_reasons and operator_next_actions so
+the next agent can distinguish archive metadata, source bundle, M6 review-doc,
+and real endpoint evidence blockers without weakening release acceptance.
 The latest host-access recertification confirmed docker_daemon_available ok:true
 and mib-export:test missing as "No such image", so Docker permission denial is
 not the current release blocker.

@@ -441,6 +441,9 @@ requires_local_m6_review_docs_go:
   - docs/reviews/M6/CTO_DECISION.md
 missing_local_m6_review_docs_go_status: m6_review_docs_not_current
 expected_success_status: GO_V0_RELEASE_CLOSEOUT
+not_go_summary_fields:
+  - blocking_reasons
+  - operator_next_actions
 ```
 
 Closeout guardrails:

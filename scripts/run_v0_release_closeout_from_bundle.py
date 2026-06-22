@@ -31,6 +31,31 @@ readiness = load_script_module("verify_v0_release_readiness.py", "verify_v0_rele
 SCHEMA_VERSION = "mib_v0_release_closeout_from_bundle.v1"
 
 
+NEXT_ACTIONS = {
+    "archive_metadata_not_verified": (
+        "Rebuild the transferred archive with scripts/build_real_adapter_evidence_bundle.py "
+        "--archive-output so it includes real_adapter_evidence_bundle_manifest.json and "
+        "real_adapter_evidence_bundle_verification.json."
+    ),
+    "source_bundle_not_go": (
+        "Rerun the external CUDA host flow until the evidence bundle verifier returns "
+        "GO_REAL_ADAPTER_EVIDENCE_BUNDLE."
+    ),
+    "target_verification_not_go": (
+        "Inspect copied bundle files under artifacts/review and rerun real-adapter bundle "
+        "verification before retrying closeout."
+    ),
+    "m6_review_docs_not_current": (
+        "After accepted live no-fake endpoint evidence review, update docs/reviews/M6/SIGNOFF_MATRIX.md "
+        "and docs/reviews/M6/CTO_DECISION.md to GO in this same release workstation checkout."
+    ),
+    "real_trained_adapter_no_fake_endpoint": (
+        "Run the external CUDA host handoff to produce a real trained lora_adapter, matching Docker "
+        "image, and live no-fake endpoint evidence."
+    ),
+}
+
+
 def now_utc() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -60,6 +85,40 @@ def readiness_report(root: Path, expected_decision: str) -> dict[str, Any]:
         expected_decision == "GO" or not report["unexpected_blockers"]
     )
     return report
+
+
+def unique(values: list[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        if value not in result:
+            result.append(value)
+    return result
+
+
+def closeout_blocking_reasons(
+    status: str, promotion_manifest: dict[str, Any], v0_report: dict[str, Any]
+) -> list[str]:
+    reasons: list[str] = []
+    if status == "GO_V0_RELEASE_CLOSEOUT":
+        return reasons
+
+    promotion_reason = promotion_manifest.get("reason")
+    if promotion_manifest.get("promotion_ok") is not True and isinstance(promotion_reason, str):
+        reasons.append(promotion_reason)
+
+    if status == "NOT_GO_V0_READINESS":
+        blockers = v0_report.get("blockers", [])
+        if isinstance(blockers, list):
+            reasons.extend(str(blocker) for blocker in blockers if isinstance(blocker, str))
+
+    return unique(reasons)
+
+
+def operator_next_actions(blocking_reasons: list[str]) -> list[str]:
+    actions = [NEXT_ACTIONS[reason] for reason in blocking_reasons if reason in NEXT_ACTIONS]
+    if not actions and blocking_reasons:
+        actions.append("Inspect the closeout summary, promotion manifest, bundle verification, and v0 readiness audit.")
+    return actions
 
 
 def closeout(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
@@ -101,6 +160,8 @@ def closeout(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any], 
         status = "NOT_GO_V0_READINESS"
         closeout_ok = False
 
+    blocking_reasons = closeout_blocking_reasons(status, promotion_manifest, v0_report)
+
     summary = {
         "schema_version": SCHEMA_VERSION,
         "date": now_utc(),
@@ -116,6 +177,8 @@ def closeout(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any], 
         "status": status,
         "closeout_ok": closeout_ok,
         "release_claimed_go": status == "GO_V0_RELEASE_CLOSEOUT",
+        "blocking_reasons": blocking_reasons,
+        "operator_next_actions": operator_next_actions(blocking_reasons),
         "promotion_manifest_output": args.promotion_manifest_output,
         "bundle_verification_output": args.bundle_verification_output,
         "readiness_output": args.readiness_output,

@@ -1,25 +1,17 @@
 {
   "process": "pabcd",
   "mode": "implement",
-  "goal": "Make the real-adapter CUDA handoff state that local v0 closeout requires accepted M6 GO review docs to be present in the same release workstation checkout before running bundle closeout.",
+  "goal": "Make local v0 release closeout summaries explicitly report blocking reasons and next actions when transferred real-adapter evidence cannot yet close the release.",
   "phase": "done",
-  "gate": "mib-studio-real-adapter-local-closeout-m6-doc-prereq",
+  "gate": "mib-studio-v0-closeout-actionable-blockers",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "aaac0f5",
+  "head": "3719247",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "scripts/build_real_adapter_handoff.py",
-    "tests/scripts/test_build_real_adapter_handoff.py",
-    "artifacts/review/real_adapter_candidate_scan.json",
-    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "artifacts/review/m6_real_adapter_prereq_audit.json",
-    "artifacts/review/real_adapter_evidence_bundle_verification.json",
+    "scripts/run_v0_release_closeout_from_bundle.py",
+    "tests/scripts/test_run_v0_release_closeout_from_bundle.py",
     "artifacts/review/v0_release_readiness_audit.json",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/real_adapter_cuda_handoff.md",
-    "artifacts/review/real_adapter_cuda_handoff.sh",
-    "artifacts/review/v0_release_blocker_recertification.json",
     "docs/CONTEXT.md",
     "docs/WORKING.md"
   ],
@@ -43,70 +35,69 @@
     "Creating or committing model weights, adapters, Docker images, endpoint transcripts, copied external evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO from current local artifacts"
   ],
-  "allowed_edit_paths_scope_note": "This gate may update generated CUDA handoff local-closeout prerequisite text/contract, focused tests, current NOT_GO regenerated artifacts, and LLM working context only.",
+  "allowed_edit_paths_scope_note": "This gate may update the local closeout summary contract so NOT_GO outputs contain explicit blocking_reasons/operator_next_actions, focused closeout tests, current v0 readiness audit, and LLM context/working state only.",
   "reference_only_paths": [
     "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
     "docs/reviews/M6/SIGNOFF_MATRIX.md",
     "docs/reviews/M6/CTO_DECISION.md",
-    "scripts/run_v0_release_closeout_from_bundle.py",
+    "scripts/promote_real_adapter_evidence_bundle.py",
     "scripts/verify_v0_release_readiness.py",
-    "scripts/build_real_adapter_evidence_bundle.py"
+    "scripts/build_real_adapter_handoff.py"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"local_closeout_requires_m6_review_docs_go|same release workstation checkout|m6_review_docs_not_current|docs/reviews/M6|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_closeout_from_bundle.py -q",
+    "python3 -m py_compile scripts/run_v0_release_closeout_from_bundle.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
+    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
+    "rg -n -- \"blocking_reasons|operator_next_actions|archive_metadata_not_verified|m6_review_docs_not_current|real_trained_adapter_no_fake_endpoint|GO_V0_RELEASE_CLOSEOUT|NOT_GO_V0_READINESS|NOT_GO_BUNDLE_PROMOTION\" scripts/run_v0_release_closeout_from_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json artifacts/review/v0_release_readiness_audit.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Generated CUDA handoff JSON includes a local closeout prerequisite requiring accepted M6 GO review docs in the same release checkout.",
-    "Generated markdown and shell tell operators that copying the metadata-bearing archive is insufficient unless docs/reviews/M6 GO approval is present in the local release checkout.",
-    "Focused handoff tests cover the M6 review-doc prerequisite in JSON/Markdown/Shell.",
+    "Closeout summary includes blocking_reasons and operator_next_actions for metadata, bundle, M6-doc, and readiness failures.",
+    "Focused closeout tests verify actionable summaries for archive metadata rejection and M6 review-doc NOT_GO readiness.",
     "Current v0 readiness remains expected NOT_GO with real_trained_adapter_no_fake_endpoint as the sole release blocker.",
     "No release GO is claimed from current local artifacts."
   ],
   "executed_verification_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_build_real_adapter_handoff.py -q",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/real_adapter_cuda_handoff.json",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "rg -n -- \"local_closeout_requires_m6_review_docs_go|same release workstation checkout|m6_review_docs_not_current|docs/reviews/M6|GO_V0_RELEASE_CLOSEOUT|real_trained_adapter_no_fake_endpoint\" scripts/build_real_adapter_handoff.py tests/scripts/test_build_real_adapter_handoff.py artifacts/review/real_adapter_cuda_handoff.json artifacts/review/real_adapter_cuda_handoff.md artifacts/review/real_adapter_cuda_handoff.sh docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python -m pytest tests/scripts/test_run_v0_release_closeout_from_bundle.py -q",
+    "python3 -m py_compile scripts/run_v0_release_closeout_from_bundle.py",
+    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/verify_v0_release_readiness.py --expected-decision NOT_GO --json-output artifacts/review/v0_release_readiness_audit.json",
+    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
+    "rg -n -- \"blocking_reasons|operator_next_actions|archive_metadata_not_verified|m6_review_docs_not_current|real_trained_adapter_no_fake_endpoint|GO_V0_RELEASE_CLOSEOUT|NOT_GO_V0_READINESS|NOT_GO_BUNDLE_PROMOTION\" scripts/run_v0_release_closeout_from_bundle.py tests/scripts/test_run_v0_release_closeout_from_bundle.py docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json artifacts/review/v0_release_readiness_audit.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "failed_verification_commands": [],
   "warnings": [
     "The current host still lacks real trained adapter no-fake Docker endpoint evidence.",
-    "This gate only clarifies local closeout prerequisites; it does not approve or edit M6 review docs."
+    "This gate improves closeout diagnostics only; it does not accept evidence or relax readiness."
   ],
   "phase_notes": {
-    "plan": "Add a same-checkout M6 GO review-doc prerequisite to the generated CUDA handoff local closeout contract.",
-    "audit": "run_v0_release_closeout_from_bundle.py already fails with m6_review_docs_not_current when local docs/reviews/M6 are not GO, but the handoff currently overemphasizes copying only the metadata-bearing archive.",
-    "build": "Patch build_real_adapter_handoff.py, focused tests, docs/CONTEXT.md, docs/WORKING.md, then regenerate current NOT_GO handoff artifacts through recertification.",
-    "check": "Run focused handoff tests, host-access current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this closeout-prerequisite clarification phase."
+    "plan": "Add explicit blocking_reasons and operator_next_actions to run_v0_release_closeout_from_bundle.py summaries.",
+    "audit": "The closeout script currently records status plus promotion/readiness summaries, but the top-level summary does not directly tell operators which action unblocks the failed closeout.",
+    "build": "Patch closeout summary helper logic, focused tests, docs/CONTEXT.md, docs/WORKING.md, and refresh current NOT_GO readiness audit.",
+    "check": "Run focused closeout tests, py_compile, current NOT_GO readiness verification, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this closeout diagnostics phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-real-adapter-local-closeout-m6-doc-prereq",
+    "gate": "mib-studio-v0-closeout-actionable-blockers",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Generated CUDA handoff local closeout M6 review-doc prerequisite, focused handoff tests, regenerated current NOT_GO handoff artifacts, LLM context/working state, and PABCD only.",
+    "approved_scope": "Local v0 closeout actionable NOT_GO summary, focused closeout tests, current v0 readiness audit, LLM context/working state, and PABCD only.",
     "blocked_scope": "No product behavior changes, no verifier acceptance weakening, no M6 GO doc edits, no adapter/model/Docker evidence commits, no release GO claim.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Add a same-checkout M6 GO review-doc prerequisite to the generated CUDA handoff local closeout contract.",
-    "audit": "run_v0_release_closeout_from_bundle.py already fails with m6_review_docs_not_current when local docs/reviews/M6 are not GO, but the handoff currently overemphasizes copying only the metadata-bearing archive.",
-    "build": "Patch build_real_adapter_handoff.py, focused tests, docs/CONTEXT.md, docs/WORKING.md, then regenerate current NOT_GO handoff artifacts through recertification.",
-    "check": "Run focused handoff tests, host-access current NOT_GO recertification, JSON validation, search evidence, and diff checks.",
-    "done": "After verification passes, stage, commit, and push this closeout-prerequisite clarification phase."
+    "plan": "Add explicit blocking_reasons and operator_next_actions to run_v0_release_closeout_from_bundle.py summaries.",
+    "audit": "The closeout script currently records status plus promotion/readiness summaries, but the top-level summary does not directly tell operators which action unblocks the failed closeout.",
+    "build": "Patch closeout summary helper logic, focused tests, docs/CONTEXT.md, docs/WORKING.md, and refresh current NOT_GO readiness audit.",
+    "check": "Run focused closeout tests, py_compile, current NOT_GO readiness verification, JSON validation, search evidence, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this closeout diagnostics phase."
   }
 }

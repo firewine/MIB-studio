@@ -82,6 +82,14 @@
     {
       "hard_limit": 400,
       "kind": "service",
+      "loc": 380,
+      "path": "services/api/app/services/dataset_job_service.py",
+      "severity": "soft",
+      "soft_limit": 260
+    },
+    {
+      "hard_limit": 400,
+      "kind": "service",
       "loc": 277,
       "path": "services/api/app/services/training_service.py",
       "severity": "soft",

@@ -41,12 +41,12 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: FE_WORKFLOW_VIEW_EXTRACTION
+phase_id: STRICT_BOOTSTRAP_M1_SMOKE_REVERIFY
 milestone: Final_Program_Development_Closeout
-phase_status: fe_workflow_view_extracted_not_go_release
-gate_id: mib-studio-fe-workflow-view-extraction
+phase_status: strict_bootstrap_m1_smoke_reverified_not_go_release
+gate_id: mib-studio-strict-bootstrap-m1-smoke-reverify
 mode: development
-product_code_changed: true
+product_code_changed: false
 verification_tooling_changed: false
 release_claimed_go: false
 
@@ -57,6 +57,68 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-strict-bootstrap-m1-smoke-reverify
+objective: re-run the hook-reported strict bootstrap m1-smoke command with repo-local .venv and /tmp/corepack
+
+files:
+  pabcd_contract:
+    - .codex/tasks/current.json
+  regenerated_verification_artifacts:
+    - artifacts/review/file_size_report.json
+  llm_context:
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+baseline:
+  source_head: a620943
+  command_rechecked: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+
+bootstrap_result:
+  command_status: passed
+  toolchain_mismatch_reproduced: false
+  toolchain_report:
+    strict: true
+    node: 20.18.1
+    pnpm: 9.15.0
+    python: 3.11.15
+    rust: rustc 1.83.0
+    sqlite: 3.50.4
+    checks_all_true: true
+  m1_smoke:
+    pytest_file: tests/smoke/test_m1_smoke.py
+    result: 1 passed
+    warnings:
+      - FastAPI ORJSONResponse deprecation warnings only
+  pip_audit_cuda:
+    status: skipped
+    reason: skip-install environment could not complete pip-audit upgrade; run without --skip-install for required network-backed audit
+
+code_shape:
+  file_size_report_updated: true
+  hard_limit_violations: 0
+  soft_warnings_remaining:
+    - services/shared/db/repositories/training_store.py
+    - services/worker/handlers/export.py
+    - services/worker/handlers/dataset_gen.py
+    - services/api/app/services/dataset_service.py
+    - services/api/app/services/dataset_job_service.py
+    - services/api/app/services/training_service.py
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - the exact hook-reported strict bootstrap command now passes on current checkout
+  - current toolchain_report.json has strict=true and all toolchain checks true
+  - this phase does not change product runtime behavior or release readiness
+  - remaining final-release work still requires accepted real adapter no-fake endpoint evidence
+```
 
 ```yaml
 gate: mib-studio-fe-workflow-view-extraction

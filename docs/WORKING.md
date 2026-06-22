@@ -41,39 +41,88 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_5DFB80F_TRAINING_HANDOFF
+phase_id: CURRENT_HEAD_POST_MERGE_SMOKE_V0_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-external-cuda-operator-packet-refresh-after-5dfb80f-training-handoff
+gate_id: mib-studio-current-head-post-merge-smoke-v0-recertification
 mode: development
 product_code_changed: false
 frontend_code_changed: false
 verification_tooling_changed: false
 training_handoff_artifacts_refreshed: false
-external_operator_packet_refreshed: true
-external_operator_packet_refresh_required_after_phase_commit: false
+external_operator_packet_refreshed: false
+external_operator_packet_refresh_required_after_phase_commit: true
 external_cuda_handoff_readiness_refreshed: false
-operator_packet_ready: true
+operator_packet_ready_for_current_source: false
 strict_model_cache_ready: true
 cuda_base_image_resolved: true
 docker_daemon_available: true
 release_claimed_go: false
 
 current_decision:
+  strict_m1_smoke: passed
+  current_head_v0_recertification: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  current_packet_source_commit: 5dfb80f
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
   training_handoff_command_order_suffix:
     - prepare_docker_image
     - run_docker_image_handoff
     - run_rc_handoff
-  packet_handoff_source_commit: 5dfb80f
-  current_phase_changes_make_packet_stale_until_follow_up_refresh: false
   v0_release_ready: false
   expected_local_decision: NOT_GO
   sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-current-head-post-merge-smoke-v0-recertification
+objective: refresh strict smoke and v0 release blocker evidence after updated remote HEAD
+
+baseline_head: 7091a10
+
+strict_m1_smoke:
+  command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+  result: passed
+  pytest: tests/smoke/test_m1_smoke.py 1 passed
+  openapi_export: ok
+  pip_audit_cuda: skipped_by_skip_install_environment
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_readiness_decision: NOT_GO
+  v0_release_ready: false
+  unexpected_blockers: []
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+cuda_host_diagnostics:
+  strict_model_cache_files: ok
+  docker_daemon_available: ok
+  docker_base_image_available: ok
+  cuda_visible: false
+  docker_image_available: false
+  adapter_files_present: false
+
+operator_next_step:
+  run: bash artifacts/review/verified_external_cuda_training_launcher.sh
+  host: external CUDA host with full repository checkout at or after the next packet refresh commit, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, real runtime token, and real adapter output paths
+
+follow_up_required:
+  - refresh artifacts/review/external_cuda_operator_packet.json after this recertification source commit exists
+  - rerun operator packet verifier and transfer manifest before external CUDA operator execution
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+```
 
 ```yaml
 gate: mib-studio-external-cuda-operator-packet-refresh-after-5dfb80f-training-handoff

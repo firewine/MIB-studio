@@ -1,33 +1,20 @@
 {
   "process": "pabcd",
-  "mode": "implement",
-  "goal": "Refresh the v0 release blocker recertification after FE v6 Export workflow unlock, proving the current HEAD still has only the expected real-adapter/no-fake-endpoint blocker.",
+  "mode": "development",
+  "goal": "Remove the FE desktop main.mjs 900+ God File soft warning by extracting Package and Export workflow view rendering into a focused module without behavior changes.",
   "phase": "done",
-  "gate": "mib-studio-v0-current-head-release-blocker-recertification",
+  "gate": "mib-studio-fe-workflow-view-extraction",
   "workspace_root": "/home/firewine/MIB-studio",
   "branch": "main",
-  "head": "2686c78",
+  "head": "8c94b06",
   "allowed_edit_paths": [
     ".codex/tasks/current.json",
-    "artifacts/review/real_adapter_candidate_scan.json",
-    "artifacts/review/real_adapter_cuda_training_prereq_preflight.json",
-    "artifacts/review/m6_real_adapter_prereq_audit.json",
-    "artifacts/review/real_adapter_artifact_intake.json",
-    "artifacts/review/real_trained_adapter_endpoint_evidence.md",
-    "artifacts/review/real_trained_adapter_endpoint_evidence.json",
-    "artifacts/review/m6_rc_evidence_verification.json",
-    "artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "artifacts/review/v0_release_readiness_audit.json",
-    "artifacts/review/real_adapter_cuda_handoff.json",
-    "artifacts/review/real_adapter_cuda_handoff.md",
-    "artifacts/review/real_adapter_cuda_handoff.sh",
-    "artifacts/review/v0_release_blocker_recertification.json",
-    "docs/CONTEXT.md",
+    "apps/desktop/src/main.mjs",
+    "apps/desktop/src/lib/workflowViews.mjs",
     "docs/WORKING.md",
     "docs/plans/2026-05-09_COMPLETION_LOG.md"
   ],
   "blocked_path_prefixes": [
-    "apps",
     "services",
     "schemas",
     "packages",
@@ -40,83 +27,118 @@
     "docs/mockup",
     "docs/handoffs",
     "docs/reviews",
+    "artifacts/security",
+    "artifacts/review",
     ".github"
   ],
   "blocked_scope": [
-    "Product code, backend, schema, worker, runtime, frontend, tests, scripts, preset, fixture, or mockup changes",
+    "Behavior changes to Package, Playground, Export, API requests, backend contracts, mock API, tests, or release readiness",
     "Changing verifier acceptance criteria, release readiness logic, model catalog, M6 review docs, or evidence policy",
     "Inventing real adapter, endpoint, Docker, benchmark, package, export, or release evidence",
     "Downloading or committing model weights, adapters, Docker images, endpoint transcripts, copied evidence bundles, or GO release evidence",
     "Claiming M6-RC or v0 release GO"
   ],
-  "allowed_edit_paths_scope_note": "This gate may only refresh current-head release recertification output artifacts using existing strict scripts, then update LLM handoff docs and completion log. It must keep the expected NOT_GO release decision.",
+  "allowed_edit_paths_scope_note": "This gate may only move Package/Playground and Export page rendering helpers from apps/desktop/src/main.mjs into apps/desktop/src/lib/workflowViews.mjs, preserving runtime behavior, plus LLM handoff docs and PABCD contract.",
   "reference_only_paths": [
-    "docs/foundation/MIB_Studio_Dev_Plan_v0.3.md",
-    "docs/CONTEXT.md",
     "docs/WORKING.md",
-    "scripts/run_v0_release_blocker_recertification.py",
-    "scripts/verify_v0_release_readiness.py",
-    "scripts/verify_real_adapter_evidence_bundle.py",
-    "scripts/check_cuda_lora_training_prereqs.py",
-    "scripts/run_m6_real_adapter_rc_gate.py",
-    "scripts/build_real_adapter_handoff.py",
-    "tests/scripts/test_run_v0_release_blocker_recertification.py"
+    "docs/CONTEXT.md",
+    "apps/desktop/src/main.mjs",
+    "apps/desktop/e2e/m1_happy_path.test.mjs",
+    "apps/desktop/src/lib/routeContractView.mjs"
   ],
   "run_required_commands": true,
   "required_commands": [
     "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-go-candidates 0 --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "rg -n -- \"NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|operator_next_actions|verified_external_cuda_training_launcher.sh|FE_V6_Export_Workflow_Unlocked|release_claimed_go: false|release_claimed_go\\\": false\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/real_adapter_evidence_bundle_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
+    "node --check apps/desktop/src/main.mjs",
+    "node --check apps/desktop/src/lib/workflowViews.mjs",
+    "COREPACK_HOME=/tmp/corepack node --experimental-websocket --test apps/desktop/e2e/m1_happy_path.test.mjs",
+    "sed -n '$=' apps/desktop/src/main.mjs",
+    "sed -n '$=' apps/desktop/src/lib/workflowViews.mjs",
+    "rg -n -- \"workflowViews|renderPackagePage|renderExportPage|Package workflow|Export workflow|real_trained_adapter_no_fake_endpoint|God File\" apps/desktop/src/main.mjs apps/desktop/src/lib/workflowViews.mjs docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
     "git diff --check",
     "git diff --cached --check"
   ],
   "required_evidence": [
-    "Recertification returns recertification_ok=true and status NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION.",
-    "V0 readiness remains NOT_GO with unexpected_blockers empty and real_trained_adapter_no_fake_endpoint as the sole v0 blocker.",
-    "Real adapter bundle verification remains NOT_GO_REAL_ADAPTER_EVIDENCE_BUNDLE and does not claim release readiness.",
-    "Docs identify artifacts/review/verified_external_cuda_training_launcher.sh as the primary external CUDA host action.",
-    "No M6-RC GO or v0 release GO is claimed."
+    "apps/desktop/src/main.mjs line count is below the 900-line God File soft warning threshold.",
+    "The new workflow view module has narrow ownership for Package/Playground and Export page rendering.",
+    "Browser happy path still reaches Package, Playground, Export, and job monitor.",
+    "No release GO is claimed and real_trained_adapter_no_fake_endpoint remains the active release blocker."
   ],
   "executed_verification_commands": [
-    "python3 -m json.tool .codex/tasks/current.json",
-    "PYTHONDONTWRITEBYTECODE=1 ./.venv/bin/python scripts/run_v0_release_blocker_recertification.py --expected-go-candidates 0 --expected-readiness-decision NOT_GO --expected-bundle-decision NOT_GO --expected-training-status NOT_READY_CUDA_LORA_TRAINING --expected-rc-status NOT_READY_PRECHECK_FAILED",
-    "python3 -m json.tool artifacts/review/v0_release_blocker_recertification.json",
-    "python3 -m json.tool artifacts/review/v0_release_readiness_audit.json",
-    "python3 -m json.tool artifacts/review/real_adapter_evidence_bundle_verification.json",
-    "rg -n -- \"NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION|real_trained_adapter_no_fake_endpoint|operator_next_actions|verified_external_cuda_training_launcher.sh|FE_V6_Export_Workflow_Unlocked|release_claimed_go: false|release_claimed_go\\\": false\" artifacts/review/v0_release_blocker_recertification.json artifacts/review/v0_release_readiness_audit.json artifacts/review/real_adapter_evidence_bundle_verification.json docs/CONTEXT.md docs/WORKING.md .codex/tasks/current.json",
-    "git diff --check",
-    "git diff --cached --check"
+    {
+      "command": "python3 -m json.tool .codex/tasks/current.json",
+      "result": "passed"
+    },
+    {
+      "command": "node --check apps/desktop/src/main.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node --check apps/desktop/src/lib/workflowViews.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "COREPACK_HOME=/tmp/corepack node --experimental-websocket --test apps/desktop/e2e/m1_happy_path.test.mjs",
+      "result": "passed outside sandbox after sandbox execution returned exit code 1 without actionable diagnostics"
+    },
+    {
+      "command": "sed -n '$=' apps/desktop/src/main.mjs",
+      "result": "passed: 884"
+    },
+    {
+      "command": "sed -n '$=' apps/desktop/src/lib/workflowViews.mjs",
+      "result": "passed: 69"
+    },
+    {
+      "command": "rg -n -- \"workflowViews|renderPackagePage|renderExportPage|Package workflow|Export workflow|real_trained_adapter_no_fake_endpoint|God File\" apps/desktop/src/main.mjs apps/desktop/src/lib/workflowViews.mjs docs/WORKING.md docs/plans/2026-05-09_COMPLETION_LOG.md .codex/tasks/current.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "passed"
+    }
   ],
   "failed_verification_commands": [],
+  "observed_evidence": {
+    "main_before_lines": 921,
+    "main_after_lines": 884,
+    "workflowViews_lines": 69,
+    "main_below_900_soft_warning_threshold": true,
+    "browser_happy_path": "reached project, dataset, hardware, train, benchmark, package, playground, export, and job monitor",
+    "release_claimed_go": false,
+    "active_release_blocker": "real_trained_adapter_no_fake_endpoint"
+  },
   "warnings": [
-    "This gate refreshes local NOT_GO diagnostics only; it cannot produce real adapter endpoint evidence on this host.",
-    "M6-RC and v0 release remain NOT_GO."
+    "This is a behavior-preserving FE decomposition phase only.",
+    "M6-RC and v0 release remain NOT_GO.",
+    "The browser happy path command returned exit code 1 inside the sandbox and passed when rerun with approved non-sandbox execution."
   ],
   "phase_notes": {
-    "plan": "Refresh current-head release blocker diagnostics after FE v6 Export unlock using existing strict scripts.",
-    "audit": "Previous recertification artifacts predate the latest FE v6 workflow unlock commits; release docs should reflect the current HEAD and show no new unexpected blockers.",
-    "build": "Run the recertification runner, inspect generated NOT_GO artifacts, update LLM docs and completion log with current-head results.",
-    "check": "Validate JSON artifacts, search for expected NOT_GO/action markers, and run diff checks.",
-    "done": "After verification passes, stage, commit, and push this recertification refresh phase."
+    "plan": "Extract Package/Playground and Export rendering helpers from main.mjs into a focused workflow view module.",
+    "audit": "main.mjs is 921 lines after FE v6 Export unlock, exceeding the 900-line God File soft warning while remaining below the 1000-line blocker.",
+    "build": "Add workflowViews.mjs, import renderPackagePage/renderExportPage in main.mjs, and remove duplicate local rendering helpers.",
+    "check": "Run JSON validation, JS syntax checks, browser happy path, line-count checks, evidence search, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this decomposition phase."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
-    "gate": "mib-studio-v0-current-head-release-blocker-recertification",
+    "gate": "mib-studio-fe-workflow-view-extraction",
     "status": "DONE",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
-    "approved_scope": "Refresh current-head v0 release blocker recertification artifacts and LLM handoff docs only, preserving expected NOT_GO release state.",
-    "blocked_scope": "No product code/test/script/spec/mockup changes, no release GO claim, no M6 review GO edits, no verifier/evidence-policy weakening, no model weights/adapters/images/endpoint transcripts/evidence bundles.",
+    "approved_scope": "Behavior-preserving extraction of Package/Playground and Export page rendering from main.mjs into a focused FE workflow view module; update LLM docs/PABCD only.",
+    "blocked_scope": "No backend/API/schema/worker/runtime/test/mock/script/spec/mockup/release-evidence changes, no release GO claim, no M6 review GO edits, no verifier/evidence-policy weakening.",
     "phase_completion_git_policy": "When verification/evidence commands finish, stage, commit, and push this phase.",
-    "plan": "Refresh current-head release blocker diagnostics after FE v6 Export unlock using existing strict scripts.",
-    "audit": "Previous recertification artifacts predate the latest FE v6 workflow unlock commits; release docs should reflect the current HEAD and show no new unexpected blockers.",
-    "build": "Run the recertification runner, inspect generated NOT_GO artifacts, update LLM docs and completion log with current-head results.",
-    "check": "Validate JSON artifacts, search for expected NOT_GO/action markers, and run diff checks.",
-    "done": "After verification passes, stage, commit, and push this recertification refresh phase."
+    "plan": "Extract Package/Playground and Export rendering helpers from main.mjs into a focused workflow view module.",
+    "audit": "main.mjs is 921 lines after FE v6 Export unlock, exceeding the 900-line God File soft warning while remaining below the 1000-line blocker.",
+    "build": "Add workflowViews.mjs, import renderPackagePage/renderExportPage in main.mjs, and remove duplicate local rendering helpers.",
+    "check": "Run JSON validation, JS syntax checks, browser happy path, line-count checks, evidence search, and diff checks.",
+    "done": "After verification passes, stage, commit, and push this decomposition phase."
   }
 }

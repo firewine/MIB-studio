@@ -25,3 +25,4 @@
 - FE v6 Package/Playground workflow를 열어 valid benchmark report 이후 기존 agent-package/playground API로 package build와 verifier/audit 결과 확인을 연결했다.
 - FE v6 Export workflow를 열어 AgentPackage 이후 기존 export API로 zip export job 제출, ExportRead hash 표시, reveal action 확인을 연결했다.
 - FE v6 Export workflow 이후 current HEAD 기준 v0 release blocker recertification을 다시 실행해 unexpected blocker 없이 `real_trained_adapter_no_fake_endpoint`만 남은 NOT_GO 상태를 확인했다.
+- FE desktop shell의 Package/Playground/Export view 렌더링을 workflowViews.mjs로 분리해 main.mjs 900+ God File soft warning을 해소했다.

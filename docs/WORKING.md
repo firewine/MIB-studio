@@ -41,12 +41,12 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: V0_CURRENT_HEAD_RELEASE_BLOCKER_RECERTIFICATION
+phase_id: FE_WORKFLOW_VIEW_EXTRACTION
 milestone: Final_Program_Development_Closeout
-phase_status: current_head_recertified_not_go_release
-gate_id: mib-studio-v0-current-head-release-blocker-recertification
-mode: implement
-product_code_changed: false
+phase_status: fe_workflow_view_extracted_not_go_release
+gate_id: mib-studio-fe-workflow-view-extraction
+mode: development
+product_code_changed: true
 verification_tooling_changed: false
 release_claimed_go: false
 
@@ -57,6 +57,47 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-fe-workflow-view-extraction
+objective: remove the FE desktop main.mjs 900+ God File soft warning by extracting workflow view rendering
+
+files:
+  frontend_shell:
+    - apps/desktop/src/main.mjs
+  frontend_workflow_views:
+    - apps/desktop/src/lib/workflowViews.mjs
+  llm_context:
+    - docs/WORKING.md
+    - docs/plans/2026-05-09_COMPLETION_LOG.md
+
+line_counts:
+  main_before_lines: 921
+  main_after_lines: 884
+  workflowViews_lines: 69
+  main_soft_warning_threshold: 900
+  main_below_soft_warning_threshold: true
+
+scope:
+  behavior_preserving: true
+  package_playground_rendering_extracted: true
+  export_rendering_extracted: true
+  backend_api_contract_changed: false
+  tests_or_mock_data_changed: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+summary:
+  - Package, Playground, and Export page rendering moved from main.mjs into workflowViews.mjs
+  - main.mjs remains the desktop shell and route dispatcher
+  - workflowViews.mjs owns only FE rendering for Package/Playground and Export surfaces
+  - this phase does not create or validate real adapter, endpoint, Docker, benchmark, package, export, or release evidence
+```
 
 ```yaml
 gate: mib-studio-v0-current-head-release-blocker-recertification

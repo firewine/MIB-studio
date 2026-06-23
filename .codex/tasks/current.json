@@ -161,13 +161,13 @@
     "audit": "Previous pushed phase updated external CUDA handoff readiness audit at eab54c1; current recertification evidence is still c7acb56.",
     "build": "Run strict m1-smoke and v0 blocker recertification with digest-pinned CUDA base image env and Docker daemon access, then update LLM handoff docs with current blockers.",
     "check": "Validate JSON, shell syntax, marker scan, diff checks, and ensure no release GO claims.",
-    "done": "Current-head recertification and verification passed; commit and push closeout pending. Release remains NOT_GO and packet refresh is required next."
+    "done": "Current-head recertification, verification, commit, and push closeout passed. Release remains NOT_GO and packet refresh is required next."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
     "gate": "mib-studio-current-head-v0-recertification-after-eab54c1-readiness-audit",
-    "status": "COMPLETE_PENDING_COMMIT_PUSH",
+    "status": "COMPLETE_PUSHED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
@@ -178,6 +178,6 @@
     "audit": "Previous pushed phase updated external CUDA handoff readiness audit at eab54c1; current recertification evidence is still c7acb56.",
     "build": "Run strict m1-smoke and v0 blocker recertification with digest-pinned CUDA base image env and Docker daemon access, then update LLM handoff docs with current blockers.",
     "check": "Validate JSON, shell syntax, marker scan, diff checks, and ensure no release GO claims.",
-    "done": "Current-head recertification and verification passed; commit and push closeout pending. Release remains NOT_GO and packet refresh is required next."
+    "done": "Current-head recertification, verification, commit, and push closeout passed. Release remains NOT_GO and packet refresh is required next."
   }
 }

@@ -43,7 +43,7 @@ environment:
 ```yaml
 phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_2DC1255_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
-phase_status: complete_pending_commit_push
+phase_status: complete_pushed
 gate_id: mib-studio-external-cuda-operator-packet-refresh-after-2dc1255-recertification
 mode: development
 product_code_changed: false

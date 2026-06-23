@@ -135,13 +135,13 @@
     "audit": "Previous pushed recertification phase made packet source commit c7acb56 stale relative to current HEAD 2dc1255.",
     "build": "Regenerate the packet and packet verification with source commit 2dc1255, then build transfer readiness output under /tmp only.",
     "check": "Validate JSON, transfer readiness, marker scan, diff checks, and ensure no release GO claims.",
-    "done": "Packet refresh, packet verification, transfer readiness, and LLM handoff doc updates passed; commit and push closeout pending."
+    "done": "Packet refresh, packet verification, transfer readiness, commit, and push closeout passed."
   },
   "pabcd": {
     "active": true,
     "phase": "done",
     "gate": "mib-studio-external-cuda-operator-packet-refresh-after-2dc1255-recertification",
-    "status": "COMPLETE_PENDING_COMMIT_PUSH",
+    "status": "COMPLETE_PUSHED",
     "phase_complete": true,
     "explicit_user_approval": true,
     "commit_push_approved": true,
@@ -152,6 +152,6 @@
     "audit": "Previous pushed recertification phase made packet source commit c7acb56 stale relative to current HEAD 2dc1255.",
     "build": "Regenerate the packet and packet verification with source commit 2dc1255, then build transfer readiness output under /tmp only.",
     "check": "Validate JSON, transfer readiness, marker scan, diff checks, and ensure no release GO claims.",
-    "done": "Packet refresh, packet verification, transfer readiness, and LLM handoff doc updates passed; commit and push closeout pending."
+    "done": "Packet refresh, packet verification, transfer readiness, commit, and push closeout passed."
   }
 }

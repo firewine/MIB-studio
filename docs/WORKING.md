@@ -41,18 +41,19 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: CURRENT_HEAD_V0_RECERTIFICATION_AFTER_EAB54C1_READINESS_AUDIT
+phase_id: EXTERNAL_CUDA_OPERATOR_PACKET_REFRESH_AFTER_2DC1255_RECERTIFICATION
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-current-head-v0-recertification-after-eab54c1-readiness-audit
+gate_id: mib-studio-external-cuda-operator-packet-refresh-after-2dc1255-recertification
 mode: development
 product_code_changed: false
 frontend_code_changed: false
 verification_tooling_changed: false
-training_handoff_artifacts_refreshed: true
-external_operator_packet_refreshed: false
-external_operator_packet_refresh_required_after_phase_commit: true
+training_handoff_artifacts_refreshed: false
+external_operator_packet_refreshed: true
+external_operator_packet_refresh_required_after_phase_commit: false
 external_cuda_handoff_readiness_refreshed: false
+external_cuda_handoff_readiness_refresh_required_after_packet_commit: true
 llm_context_synced_after_readiness_push: true
 operator_packet_ready: true
 strict_model_cache_ready: true
@@ -66,11 +67,11 @@ current_decision:
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
   external_cuda_handoff_readiness: WAITING_FOR_EXTERNAL_CUDA_HOST
-  current_workspace_head: eab54c1
+  current_workspace_head: 2dc1255
   latest_readiness_audit_checkout_head: c103fce
   current_recertification_head: eab54c1
-  current_packet_source_commit: c7acb56
-  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
+  current_packet_source_commit: 2dc1255
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: false
   training_handoff_command_order_suffix:
     - prepare_docker_image
     - run_docker_image_handoff
@@ -81,6 +82,48 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-external-cuda-operator-packet-refresh-after-2dc1255-recertification
+objective: refresh external CUDA operator packet after current-head recertification closeout
+
+source_head: 2dc1255
+packet_source_commit: 2dc1255
+
+packet:
+  status: PREPARED_NOT_RUN
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  primary_external_handoff: artifacts/review/verified_external_cuda_training_launcher.sh
+  required_committed_files: 18
+
+packet_verification:
+  decision: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
+  operator_packet_ready: true
+  verification_ok: true
+  required_file_hashes: verified 18 required file hashes
+  required_commit_blobs: verified 18 required file blobs at 2dc1255
+  warnings: []
+
+transfer_manifest:
+  status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
+  packet_handoff_source_commit: 2dc1255
+  json_output: /tmp/mib-2dc1255-external-cuda-transfer-readiness.json
+  transfer_model: full_repository_checkout_required
+  committed_to_repo: false
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+operator_next_step:
+  run: refresh current-head external CUDA handoff readiness audit after this packet-refresh commit, then run bash artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host
+  host: external CUDA host with full repository checkout after this packet refresh commit, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, real runtime token, and real adapter output paths
+  note: packet GO and transfer READY do not claim M6-RC GO or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-current-head-v0-recertification-after-eab54c1-readiness-audit

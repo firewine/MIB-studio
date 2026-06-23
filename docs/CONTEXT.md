@@ -459,17 +459,17 @@ external_cuda_operator_packet_verification: artifacts/review/external_cuda_opera
 external_cuda_operator_transfer_manifest_builder: scripts/build_external_cuda_operator_transfer_manifest.py
 verified_external_cuda_training_launcher: artifacts/review/verified_external_cuda_training_launcher.sh
 latest_pushed_readiness_closeout_head: c103fce
-latest_recertification_closeout_head: c7acb56
+latest_recertification_closeout_head: eab54c1
 latest_readiness_audit_checkout_head: c103fce
 external_cuda_operator_packet_source_commit: c7acb56
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
-external_cuda_operator_packet_refresh_reason: none; packet refreshed after recertification closeout source commit c7acb56 and verifier/transfer readiness are GO
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
+external_cuda_operator_packet_refresh_reason: current-head recertification at eab54c1 refreshed source-pinned release/handoff artifacts; refresh packet in the next phase before external CUDA operator execution
 strict_model_cache_preparation: artifacts/review/strict_model_cache_preparation.json
 cuda_base_image_resolution: artifacts/review/real_adapter_cuda_base_image_resolution.json
 cuda_base_image_env: artifacts/review/real_adapter_cuda_base_image.env
 current_local_release_decision: NOT_GO
 current_recertification_status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
-current_recertification_head: c7acb56
+current_recertification_head: eab54c1
 current_external_cuda_handoff_readiness: WAITING_FOR_EXTERNAL_CUDA_HOST
 current_local_unexpected_blockers: []
 sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
@@ -549,12 +549,12 @@ Current actionable NOT_GO recertification summary:
 
 ```yaml
 summary_file: artifacts/review/v0_release_blocker_recertification.json
-current_head_when_last_recertified: c7acb56
+current_head_when_last_recertified: eab54c1
 latest_pushed_readiness_closeout_head: c103fce
-latest_recertification_closeout_head: c7acb56
+latest_recertification_closeout_head: eab54c1
 latest_readiness_audit_checkout_head: c103fce
 external_cuda_operator_packet_source_commit: c7acb56
-external_cuda_operator_packet_refresh_required_after_current_phase_commit: false
+external_cuda_operator_packet_refresh_required_after_current_phase_commit: true
 top_level_fields:
   - blocking_reasons
   - operator_next_actions
@@ -582,7 +582,7 @@ current_blocking_reasons_include:
   - real_trained_adapter_no_fake_endpoint
   - WAITING_FOR_REAL_ADAPTER_INPUTS
 next_actions_are_in_artifact: true
-first_operator_action: run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host after pulling this packet refresh commit into a full repository checkout
+first_operator_action: refresh the external CUDA operator packet from current recertification commit eab54c1; after packet verification and transfer readiness are GO, run artifacts/review/verified_external_cuda_training_launcher.sh on the external CUDA host
 strict_model_cache_status: READY_STRICT_MODEL_CACHE
 strict_model_cache_action: keep /tmp/mib-strict-model-cache-phi/model_cache available on the active host; rerun prepare_strict_model_cache.py with --allow-download only if that host cache is missing
 strict_model_cache_files_current_preflight_ok: true

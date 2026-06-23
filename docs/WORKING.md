@@ -41,18 +41,18 @@ environment:
 ## 1. Current Phase
 
 ```yaml
-phase_id: EXTERNAL_CUDA_HANDOFF_READINESS_AUDIT_AFTER_C103FCE_PACKET
+phase_id: CURRENT_HEAD_V0_RECERTIFICATION_AFTER_EAB54C1_READINESS_AUDIT
 milestone: Final_Program_Development_Closeout
 phase_status: complete_pending_commit_push
-gate_id: mib-studio-current-head-external-cuda-handoff-readiness-audit-after-c103fce-packet
+gate_id: mib-studio-current-head-v0-recertification-after-eab54c1-readiness-audit
 mode: development
 product_code_changed: false
 frontend_code_changed: false
 verification_tooling_changed: false
-training_handoff_artifacts_refreshed: false
+training_handoff_artifacts_refreshed: true
 external_operator_packet_refreshed: false
-external_operator_packet_refresh_required_after_phase_commit: false
-external_cuda_handoff_readiness_refreshed: true
+external_operator_packet_refresh_required_after_phase_commit: true
+external_cuda_handoff_readiness_refreshed: false
 llm_context_synced_after_readiness_push: true
 operator_packet_ready: true
 strict_model_cache_ready: true
@@ -66,11 +66,11 @@ current_decision:
   external_cuda_operator_packet_verification: GO_EXTERNAL_CUDA_OPERATOR_PACKET_VERIFICATION
   external_cuda_operator_transfer_status: READY_EXTERNAL_CUDA_OPERATOR_TRANSFER
   external_cuda_handoff_readiness: WAITING_FOR_EXTERNAL_CUDA_HOST
-  current_workspace_head: c103fce
+  current_workspace_head: eab54c1
   latest_readiness_audit_checkout_head: c103fce
-  current_recertification_head: c7acb56
+  current_recertification_head: eab54c1
   current_packet_source_commit: c7acb56
-  current_phase_changes_make_packet_stale_until_follow_up_refresh: false
+  current_phase_changes_make_packet_stale_until_follow_up_refresh: true
   training_handoff_command_order_suffix:
     - prepare_docker_image
     - run_docker_image_handoff
@@ -81,6 +81,56 @@ current_decision:
 ```
 
 ## 2. Latest Work
+
+```yaml
+gate: mib-studio-current-head-v0-recertification-after-eab54c1-readiness-audit
+objective: refresh strict smoke and v0 release blocker evidence after pushed readiness-audit closeout
+
+baseline_head: eab54c1
+latest_readiness_audit_checkout_head: c103fce
+packet_source_commit: c7acb56
+
+recertification:
+  status: NOT_GO_V0_RELEASE_BLOCKER_RECERTIFICATION
+  recertification_ok: true
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_readiness_decision: NOT_GO
+  v0_release_ready: false
+  unexpected_blockers: []
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+strict_m1_smoke:
+  command: COREPACK_HOME=/tmp/corepack PYTHONDONTWRITEBYTECODE=1 PYTHON_BIN=./.venv/bin/python ./scripts/bootstrap_dev.sh --phase m1-smoke --skip-install
+  result: passed
+  pytest: tests/smoke/test_m1_smoke.py 1 passed
+
+cuda_host_diagnostics:
+  strict_model_cache_files: ok
+  docker_daemon_available: ok
+  docker_base_image_available: ok
+  cuda_visible: false
+  docker_image_available: false
+  adapter_files_present: false
+
+phase_outputs:
+  artifact_files_changed: true
+  product_code_changed: false
+  packet_refresh_required_after_commit: true
+  packet_refresh_reason: recertification refreshed source-pinned release/handoff artifacts
+
+release_status:
+  release_claimed_go: false
+  m6_rc_claimed_go: false
+  v0_release_ready: false
+  expected_local_decision: NOT_GO
+  sole_expected_release_blocker: real_trained_adapter_no_fake_endpoint
+
+operator_next_step:
+  run: refresh external CUDA operator packet from this current recertification commit, then run bash artifacts/review/verified_external_cuda_training_launcher.sh
+  host: external CUDA host with full repository checkout after the packet refresh, .venv, nvidia-smi, strict model cache, digest-pinned CUDA base image, Docker daemon, real runtime token, and real adapter output paths
+  note: recertification does not claim M6-RC GO or v0 release GO
+```
 
 ```yaml
 gate: mib-studio-current-head-external-cuda-handoff-readiness-audit-after-c103fce-packet
